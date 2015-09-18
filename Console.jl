@@ -19,10 +19,10 @@ setproperty!(textview,:editable, false)
 setproperty!(textview,:can_focus, false)
 setproperty!(textview,:vexpand, true)
 
-scwindow = @GtkScrolledWindow()
-setproperty!(scwindow,:height_request, 100)
-push!(scwindow,textview)
-adj = getproperty(scwindow,:vadjustment, GtkAdjustment)
+console_scwindow = @GtkScrolledWindow()
+setproperty!(console_scwindow,:height_request, 100)
+push!(console_scwindow,textview)
+adj = getproperty(console_scwindow,:vadjustment, GtkAdjustment)
 
 
 ## Callbacks
@@ -33,11 +33,6 @@ end
 
 import Base.println
 #println(xs...) = my_println(xs...)
-
-#void
-#gtk_clipboard_set_text (GtkClipboard *clipboard,
-#                        const gchar *text,
-#                        gint len);
 
 function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
 
@@ -100,10 +95,10 @@ $std_data";
   end
 end
 
-#export GtkClipboard
-#@Gtk.gtktype GtkClipboard
-#GtkClipboard() =  ccall((:gtk_clipboard_get,Gtk.libgtk),Ptr{GObject},(Ptr{Uint8},), "CLIPBOARD")
-#clipboard_set_text(clip::Ptr{Gtk.GLib.GObject},text::String) = ccall((:gtk_clipboard_set_text,Gtk.libgtk),Void,(Ptr{Gtk.GLib.GObject},Ptr{Uint8},Cint), clip, text, length(text))
+clip = @GtkClipboard()
+
+text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:gtk_text_buffer_copy_clipboard,  Gtk.libgtk),Void,
+    (Ptr{GObject},Ptr{GObject}),buffer,clip)
 
 function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
   widget = convert(GtkEntry, widgetptr)
@@ -111,8 +106,8 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
   if Int(event.keyval) == 99 && Int(event.state) == 4 #ctrl+c
 
-    #clipboard_set_text(GtkClipboard(),"wesh wesh yo")
-    #@show "trying to copy text"
+      text_buffer_copy_clipboard(buffer,clip)
+
   end
 
   if event.keyval == Gtk.GdkKeySyms.Return
@@ -129,7 +124,7 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     cmd = getproperty(widget,:text,String)
 
     (comp,dotpos) = completions(cmd, endof(cmd))
-    show_completions(comp,dotpos,widget)
+    show_completions(comp,dotpos,widget,cmd)
 
     return convert(Cint,true)
   end
@@ -139,7 +134,7 @@ end
 signal_connect(entry_key_press_cb, entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
 #print completions in console (maye use the one in Base?)
-function show_completions(comp,dotpos,widget)
+function show_completions(comp,dotpos,widget,cmd)
   dotpos = dotpos.start
   prefix = dotpos > 1 ? cmd[1:dotpos-1] : ""
 
@@ -164,10 +159,6 @@ function show_completions(comp,dotpos,widget)
     set_position(widget,endof(out))
   end
 end
-
-text_iter_forward_line(it::Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter})  = ccall((:gtk_text_iter_forward_line,  Gtk.libgtk),Cint,(Ptr{Gtk.GtkTextIter},),it)
-text_iter_backward_line(it::Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}) = ccall((:gtk_text_iter_backward_line, Gtk.libgtk),Cint,(Ptr{Gtk.GtkTextIter},),it)
-text_iter_forward_to_line_end(it::Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}) = ccall((:gtk_text_iter_forward_to_line_end, Gtk.libgtk),Cint,(Ptr{Gtk.GtkTextIter},),it)
 
 function set_position(editable::Gtk.Entry,position_)
     ccall((:gtk_editable_set_position,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Cint),editable,position_)
