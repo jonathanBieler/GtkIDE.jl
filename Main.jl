@@ -1,6 +1,9 @@
+using Gtk
+using GtkSourceWidget
+
 module J
 
-export plot
+export plot, drawnow
 
 using Gtk
 using GtkSourceWidget
@@ -9,9 +12,14 @@ import Base.REPLCompletions.completions
 
 pastcmd = [""];
 
+#globals
+sm = @GtkSourceStyleSchemeManager()
+style = style_scheme(sm,"zenburn")
+languageDef = GtkSourceWidget.language(@GtkSourceLanguageManager(),"julia")
 fontsize = 13
 
 #Order might matter
+include("GtkExtensions.jl")
 include("Console.jl")
 include("Editor.jl")
 
@@ -45,7 +53,7 @@ mainPan |>
 
 setproperty!(rightPan, :width_request, 600)
 setproperty!(canvas,:height_request, 500)
-
+setproperty!(mainPan,:margin,5)
 #-
 
 ################
@@ -62,6 +70,8 @@ end
 import Winston.plot
 plot(args::Winston.PlotArg...; kvs...) = display(Winston.plot(Winston.ghf(), args...; kvs...))
 
+drawnow() = sleep(1e-16) #probably not the ideal way of doing it
+
 ## exiting
 function quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
 
@@ -73,4 +83,4 @@ showall(win);
 
 end
 
-using J
+importall J

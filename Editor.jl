@@ -1,14 +1,14 @@
 ## SETUP
 
-type EditorTab
+type EditorTab <: GtkScrolledWindow
 
-    scroll::GtkScrolledWindow
+    handle::Ptr{Gtk.GObject}
     view::GtkSourceView
     buffer::GtkSourceBuffer
 
     function EditorTab()
 
-        b = @GtkSourceBuffer(juliaLang)
+        b = @GtkSourceBuffer(languageDef)
         sc = @GtkScrolledWindow() |>
             (v = @GtkSourceView(b))
 
@@ -18,21 +18,17 @@ type EditorTab
         highlight_matching_brackets(b,true)
         highlight_current_line!(v, true)
 
-        new(sc,v,b)
+        t = new(sc.handle,v,b)
+        Gtk.gobject_move_ref(t, sc)
     end
 end
 
-function new_tab()
-    t = EditorTab();
-    push!(tabs,t)
-    push!(ntbook,t.scroll)
-    showall(ntbook)
-end
 function set_text!(t::EditorTab,text::String)
     setproperty!(t.buffer,:text,text)
     set_font(t)
 end
 get_current_tab() = tabs[current_tab]
+getbuffer(textview::GtkTextView) = getproperty(textview,:buffer,GtkSourceBuffer)
 
 #hack while waiting for proper fonts
 function set_font(t::EditorTab)
@@ -40,104 +36,11 @@ function set_font(t::EditorTab)
     Gtk.apply_tag(t.buffer, "plaintext", Gtk.GtkTextIter(t.buffer,1) , Gtk.GtkTextIter(t.buffer,length(t.buffer)+1) )
 end
 
-#globals
-sm = @GtkSourceStyleSchemeManager()
-style = style_scheme(sm,"zenburn")
-juliaLang = GtkSourceWidget.language(@GtkSourceLanguageManager(),"julia")
-
-#tabs
-tabs = Array(EditorTab,0)
-current_tab = 1
-
-
 ntbook = @GtkNotebook()
     setproperty!(ntbook,:scrollable, true)
     setproperty!(J.ntbook,:enable_popup, true)
-scbook = @GtkScrolledWindow()
-    setproperty!(scbook,:height_request, 600)
 
-push!(ntbook,scbook)
 
-for i = 1:10
-    new_tab()
-end
-
-f = open("d:\\Julia\\JuliaIDE\\Editor.jl")
-set_text!(tabs[1],readall(f))
-close(f)
-
-set_text!(tabs[2],
-"
-function f(x)
-    x
-end
-
-## ploting sin
-
-	x = 0:0.01:5
-	plot(x,exp(-x))
-
-## ploting a spiral
-
-	x = 0:0.01:4x*pi
-	plot(x.*cos(x),x.*sin(x))
-
-##
-")
-
-srcbuffer = @GtkTextBuffer()
-
-f = open("d:\\Julia\\JuliaIDE\\Main.jl")
-setproperty!(srcbuffer,:text,readall(f))
-close(f)
-
-textviewsrc = @GtkTextView()
-setproperty!(textviewsrc,:buffer,srcbuffer)
-
-push!(scbook,textviewsrc)
-
-cursors = Array(Int,0)
-
-typealias MutableGtkTextIter Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}
-typealias GtkTextIters Union{MutableGtkTextIter,Gtk.GtkTextIter}
-mutable(it::Gtk.GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)
-
-text_iter_get_text(it_start::GtkTextIters,it_end::GtkTextIters) = bytestring(ccall((:gtk_text_iter_get_text,Gtk.libgtk),Ptr{Uint8},
-	            (Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),it_start,it_end))
-
-text_iter_forward_line(it::Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter})  = ccall((:gtk_text_iter_forward_line,  Gtk.libgtk),Cint,(Ptr{Gtk.GtkTextIter},),it)
-text_iter_backward_line(it::Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}) = ccall((:gtk_text_iter_backward_line, Gtk.libgtk),Cint,(Ptr{Gtk.GtkTextIter},),it)
-text_iter_forward_to_line_end(it::Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}) = ccall((:gtk_text_iter_forward_to_line_end, Gtk.libgtk),Cint,(Ptr{Gtk.GtkTextIter},),it)
-
-text_iter_forward_search(it::MutableGtkTextIter, txt::String, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_search, Gtk.libgtk),
-  Cint,
-  (Ptr{Gtk.GtkTextIter},Ptr{Uint8},Cint,Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),
-  it,bytestring(txt),Int32(2),start,stop,limit
-)
-function text_iter_forward_search(buffer::Gtk.GtkTextBuffer, txt::String)
-  its = mutable(Gtk.GtkTextIter(buffer))
-  ite = mutable(Gtk.GtkTextIter(buffer))
-  found = text_iter_forward_search(mutable( Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))),txt,its,ite,mutable(Gtk.GtkTextIter(buffer,length(buffer))))
-
-  return (found,its,ite)
-end
-
-text_iter_backward_search(it::MutableGtkTextIter, txt::String, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_search, Gtk.libgtk),
-  Cint,
-  (Ptr{Gtk.GtkTextIter},Ptr{Uint8},Cint,Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),
-  it,bytestring(txt),Int32(2),start,stop,limit
-)
-function text_iter_backward_search(buffer::Gtk.GtkTextBuffer, txt::String)
-  its = mutable(Gtk.GtkTextIter(buffer))
-  ite = mutable(Gtk.GtkTextIter(buffer))
-  found = text_iter_backward_search(mutable( Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))),txt,its,ite,mutable(Gtk.GtkTextIter(buffer,1)))
-
-  return (found,its,ite)
-end
-
-text_buffer_place_cursor(buffer::Gtk.GtkTextBuffer,it::MutableGtkTextIter)  = ccall((:gtk_text_buffer_place_cursor,  Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter}),buffer,it)
-text_buffer_place_cursor(buffer::Gtk.GtkTextBuffer,pos::Int) = text_buffer_place_cursor(srcbuffer,mutable(Gtk.GtkTextIter(srcbuffer,pos)))
-text_buffer_place_cursor(buffer::Gtk.GtkTextBuffer,it::Gtk.GtkTextIter) = text_buffer_place_cursor(srcbuffer,mutable(it))
 
 #text_buffer_place_cursor(buffer,its)
 
@@ -189,10 +92,10 @@ function highlight_syntax()
 
 end
 
-function get_cell()
+function get_cell(buffer::GtkTextBuffer)
 
-    (foundb,itb_start,itb_end) = text_iter_backward_search(srcbuffer,"##")
-    (foundf,itf_start,itf_end) = text_iter_forward_search(srcbuffer,"##")
+    (foundb,itb_start,itb_end) = text_iter_backward_search(buffer,"##")
+    (foundf,itf_start,itf_end) = text_iter_forward_search(buffer,"##")
 
      return((foundf == 1 && foundb == 1), itb_start, itf_end)
 end
@@ -201,7 +104,7 @@ function highlight_cells()
 
     Gtk.apply_tag(srcbuffer, "background", Gtk.GtkTextIter(srcbuffer,1) , Gtk.GtkTextIter(srcbuffer,length(srcbuffer)+1) )
 
-    (found,it_start,it_end) = get_cell()
+    (found,it_start,it_end) = get_cell(srcbuffer)
 
     if found
         Gtk.apply_tag(srcbuffer, "cell", it_start , it_end )
@@ -245,7 +148,7 @@ function editor_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
   if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == 4 #ctrl
       highlight_cells()
-      (found,it_start,it_end) = get_cell()
+      (found,it_start,it_end) = get_cell(srcbuffer)
       if found
           cmd = text_iter_get_text(it_start,it_end)
       else
@@ -268,15 +171,108 @@ end
 
 signal_connect(ntbook, "switch-page") do widget, page, page_num, args...
     current_tab = Int(page_num)+1
-    @show current_tab
 end
 
 function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
-    widget = convert(GtkTextView, widgetptr)
+    textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
+
+    if event.keyval == keyval("w") && Int(event.state) == 4 #ctrl
+        pos = get_current_page(ntbook)
+        splice!(ntbook,pos)
+        set_current_page(ntbook,max(pos-1,0))
+    end
+    if event.keyval == keyval("n") && Int(event.state) == 4
+        add_tab()
+    end
+
+    if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == 5 #ctrl+shift
+
+        buffer = getbuffer(textview)
+
+        #this is a bit buggy
+        itstart = Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int)) #select current line
+        itend = Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int)) #select current line
+
+        itstart = Gtk.GLib.MutableTypes.mutable(itstart)
+        itend = Gtk.GLib.MutableTypes.mutable(itend)
+
+        text_iter_backward_line(itstart)
+        skip(itstart,1,:line)
+        text_iter_forward_to_line_end(itend)
+
+        txt = getproperty(buffer,:text,String)
+        txt = txt[getproperty(itstart,:offset,Int):getproperty(itend,:offset,Int)]
+
+        on_return_terminal(entry,txt,false)
+
+        return convert(Cint,true)
+    end
+
+    if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == 4 #ctrl
+
+        buffer = getbuffer(textview)
+
+        (found,it_start,it_end) = get_cell(buffer)
+        if found
+            cmd = text_iter_get_text(it_start,it_end)
+        else
+            cmd = getproperty(buffer,:text,String)
+            @show cmd
+        end
+        on_return_terminal(entry,cmd,false)
+        return convert(Cint,true)
+    end
+
 
     return convert(Cint,false)#false : propagate
 end
-for t in tabs
-    signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+
+
+function add_tab()
+    t = EditorTab();
+    push!(tabs,t)
+
+    pos = get_current_page(ntbook)+1
+    insert!(ntbook, pos, t, "Page $pos")
+    showall(ntbook)
+    set_current_page(ntbook,pos)
+
+    signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
 end
+
+for i = 1:2
+    add_tab()
+end
+
+f = open("d:\\Julia\\JuliaIDE\\Editor.jl")
+set_text!(tabs[1],readall(f))
+close(f)
+
+set_text!(tabs[2],
+"
+function f(x)
+    x
+end
+
+## ploting sin
+
+	x = 0:0.01:5
+	plot(x,exp(-x))
+
+## ploting a spiral
+
+	x = 0:0.01:4*pi
+	plot(x.*cos(x),x.*sin(x))
+
+##
+    x = 0:0.01:3*pi
+    for i=1:100
+        plot(x.*cos(i/15*x),x.*sin(i/10*x),
+            xrange=(-8,8),
+            yrange=(-8,8)
+        )
+        drawnow()
+    end
+##
+")

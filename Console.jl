@@ -3,7 +3,7 @@
 entry = @GtkEntry()
 setproperty!(entry, :text, "x = rand(100,1)");
 
-buffer = @GtkTextBuffer()
+buffer = @GtkSourceBuffer()
 setproperty!(buffer,:text,"")
 
 tag = Gtk.create_tag(buffer, "error", font="Normal 16")
@@ -11,9 +11,9 @@ setproperty!(tag,:foreground,"gray")
 Gtk.apply_tag(buffer, "error", Gtk.GtkTextIter(buffer,1) , Gtk.GtkTextIter(buffer,23) )
 
 Gtk.create_tag(buffer, "cursor", font="Normal $fontsize",foreground="green")
-Gtk.create_tag(buffer, "plaintext", font="Normal $fontsize",foreground="black")
+Gtk.create_tag(buffer, "plaintext", font="Normal $fontsize")
 
-textview = @GtkTextView()
+textview = @GtkSourceView()
 setproperty!(textview,:buffer, buffer)
 setproperty!(textview,:editable, false)
 setproperty!(textview,:can_focus, false)
@@ -46,6 +46,12 @@ function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
     setproperty!(widget,:text,"")
     return
   end
+
+  pos_start = length(buffer)+1
+  insert!(buffer,">julia $cmd")
+
+  Gtk.apply_tag(buffer, "cursor", Gtk.GtkTextIter(buffer,pos_start) , Gtk.GtkTextIter(buffer,pos_start+7) )
+  Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1),Gtk.GtkTextIter(buffer,length(buffer)+1) )
 
   pastcmd[1] = cmd
   ex = Base.parse_input_line(cmd)
@@ -83,14 +89,11 @@ function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
     #evalout = errors == "" ? evalout : errors
 
     finalOutput = "
->julia $cmd
 $evalout
 $std_data";
     insert!(buffer,finalOutput)
 
-    pos = length(buffer)-length(finalOutput)
-    Gtk.apply_tag(buffer, "cursor", Gtk.GtkTextIter(buffer,pos+3) , Gtk.GtkTextIter(buffer,pos+10) )
-    Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,pos+10),Gtk.GtkTextIter(buffer,length(buffer)) )
+    Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1),Gtk.GtkTextIter(buffer,length(buffer)+1) )
 
   end
 end
@@ -151,18 +154,17 @@ function show_completions(comp,dotpos,widget,cmd)
     insert!(buffer,out)
     out = prefix * Base.LineEdit.common_prefix(comp)
     setproperty!(widget,:text,out)
-    set_position(widget,endof(out))
+    set_position!(widget,endof(out))
 
   elseif !isempty(comp)
     out = prefix * comp[1]
     setproperty!(widget,:text,out)
-    set_position(widget,endof(out))
+    set_position!(widget,endof(out))
   end
 end
 
-function set_position(editable::Gtk.Entry,position_)
+function set_position!(editable::Gtk.Entry,position_)
     ccall((:gtk_editable_set_position,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Cint),editable,position_)
-    return editable
 end
 
 ## scroll textview
