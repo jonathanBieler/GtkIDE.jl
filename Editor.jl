@@ -29,6 +29,7 @@ function set_text!(t::EditorTab,text::String)
 end
 
 getbuffer(textview::GtkTextView) = getproperty(textview,:buffer,GtkSourceBuffer)
+get_current_tab() = get_tab(ntbook,get_current_page_idx(ntbook))
 
 #hack while waiting for proper fonts
 function set_font(t::EditorTab)
@@ -60,14 +61,6 @@ function highlight_cells()
     end
 end
 
-
-
-# signal_connect(srcbuffer, "changed") do widget
-#   if !doing_highlight_syntax
-#     highlight_syntax()
-#   end
-# end
-
 signal_connect(ntbook, "switch-page") do widget, page, page_num, args...
 
 end
@@ -90,8 +83,6 @@ end
 function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
-
-    @show event
     #
     if event.keyval == keyval("w") && Int(event.state) == 4 #ctrl
         close_tab()
@@ -118,12 +109,14 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
           value = sprint(Base.showlimited,value)
 
           label = @GtkLabel(value)
-          popup = @GtkWindow("", 120, 80, false, false) |> label
-          Gtk.G_.position(popup,mousepos_root[1],mousepos_root[2])
+          popup = @GtkWindow("", 2, 2, true, false) |> label
+          setproperty!(label,:margin,5)
+
+          Gtk.G_.position(popup,mousepos_root[1]+10,mousepos_root[2])
           showall(popup)
 
           @schedule begin
-              sleep(1)
+              sleep(2)
               destroy(popup)
           end
 

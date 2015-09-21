@@ -80,8 +80,18 @@ signal_connect(quit_cb, win, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
 showall(win);
 
-## reloading function stuff
+function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
+    event = convert(Gtk.GdkEvent, eventptr)
+
+    if event.keyval == keyval("r") && Int(event.state) == 4 #this often crashes
+    end
+
+    return Cint(false)
+end
+signal_connect(window_key_press_cb,win, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+
+## reloading functions stuff
 function parseall(str)
     pos = start(str)
     exs = []
@@ -98,11 +108,12 @@ function parseall(str)
     end
 end
 
-function reload()
+function re()
     files = ["Main.jl","Editor.jl","Console.jl"]
-    for f in files reload(f) end
+    for f in files re(f) end
+    update_cb()
 end
-function reload(filename::String)
+function re(filename::String)
     s = open("d:\\Julia\\JuliaIDE\\" * filename) do io
          readall(io)
     end
@@ -115,14 +126,23 @@ function reloadfunc(ex::Array{Any,1})
     end
 end
 function reloadfunc(ex::Expr)
-    if ex.head == :function #I probably need to reconnect signals
+    if ex.head == :function
         eval(Main,ex)
         println(string(ex.args[1].args[1]))
+    elseif ex.head == :call && ex.args[1] == :signal_connect
+        #eval(Main,ex)
     else
         reloadfunc(ex.args)
     end
 end
 reloadfunc(s) = nothing
+function update_cb()
+    #just update the current tab
+    t = get_current_tab()
+    signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+    nothing
+end
+
 #end
 
 #importall J

@@ -76,3 +76,5 @@ set_current_page_idx(notebook::Gtk.GtkNotebook,page_num::Int) = ccall((:gtk_note
 
 get_tab(notebook::Gtk.GtkNotebook,page_num::Int) = convert(Gtk.GtkWidget,ccall((:gtk_notebook_get_nth_page,Gtk.libgtk),Ptr{Gtk.GObject},
 	(Ptr{Gtk.GObject},Cint),notebook,page_num-1))
+
+## entry

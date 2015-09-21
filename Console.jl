@@ -26,42 +26,106 @@ adj = getproperty(console_scwindow,:vadjustment, GtkAdjustment)
 
 
 ## Callbacks
-function my_println(xs)
-  insert!(buffer,string(xs))
-  nothing
+# function my_println(xs)
+#   insert!(buffer,string(xs))
+#   nothing
+# end
+# my_println() = nothing
+#
+# import Base.println
+# println(xs...) = my_println(xs...)
+# import Base.print
+# print(xs...) = my_println(xs...)
+
+function print_std_out(rd::Base.PipeEndpoint,buffer::GtkTextBuffer)
+    response = readavailable(rd)
+    if !isempty(response)
+        insert!(buffer,bytestring(response))
+    end
+end
+function watch_redirect(buffer::GtkTextBuffer)
+    rd, wr = redirect_stdout()
+    while(true)
+        print_std_out(rd,buffer)
+    end
+end
+#remotecall(1,watch_redirect,buffer)#too slow
+
+type HistoryProvider
+    history::Array{String,1}
+    history_file
+    cur_idx::Int
+    last_idx::Int
+    HistoryProvider() = new(String[""],nothing,0,0)
+    HistoryProvider(h::Array{AbstractString,1},hf,cidx::Int,lidx::Int) = new(h,hf,cidx,lidx)
 end
 
-import Base.println
-#println(xs...) = my_println(xs...)
+function setup_history()
+    #load history, etc
+    h = HistoryProvider(String["x = pi"],nothing,1,1)
+end
+function history_add(h::HistoryProvider, str::String)
+    isempty(strip(str)) && return
+    push!(h.history, str)
+    h.history_file === nothing && return
+end
+function history_move(h::HistoryProvider,m::Int)
+    h.cur_idx = clamp(h.cur_idx+m,1,length(h.history)+1) #+1 is the empty state when we are at the end of history and press down
+end
+history_get_current(h::HistoryProvider) = h.cur_idx == length(h.history)+1 ? "" : h.history[h.cur_idx]
+function history_seek_end(h::HistoryProvider)
+    h.cur_idx = length(h.history)+1
+end
+
+history = setup_history()
+
+function clear_entry()
+    setproperty!(entry,:text,"")
+end
+
+function check_special_commands(cmd::String)
+
+    #case :(
+    if cmd == ""
+      insert!(buffer,"\n")
+      return true
+    end
+    if cmd == "clc"
+      setproperty!(buffer,:text,"")
+      clear_entry()
+      return true
+    end
+    if cmd == "reload"
+        re()
+        clear_entry()
+      return true
+    end
+
+    return false
+end
 
 function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
 
-  if cmd == ""
-    insert!(buffer,"\n")
-    return
-  end
+    history_add(history,cmd)
+    history_seek_end(history)
 
-  if cmd == "clc"
-    setproperty!(buffer,:text,"")
-    setproperty!(widget,:text,"")
-    return
-  end
+    cmd = strip(cmd)
+    check_special_commands(cmd) && return
 
-  pos_start = length(buffer)+1
-  insert!(buffer,">julia $cmd")
+    pos_start = length(buffer)+1
+    insert!(buffer,">julia $cmd")
 
-  Gtk.apply_tag(buffer, "cursor", Gtk.GtkTextIter(buffer,pos_start) , Gtk.GtkTextIter(buffer,pos_start+7) )
-  Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1),Gtk.GtkTextIter(buffer,length(buffer)+1) )
+    Gtk.apply_tag(buffer, "cursor", Gtk.GtkTextIter(buffer,pos_start) , Gtk.GtkTextIter(buffer,pos_start+7) )
+    Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1),Gtk.GtkTextIter(buffer,length(buffer)+1) )
 
-  pastcmd[1] = cmd
-  ex = Base.parse_input_line(cmd)
-  ex = expand(ex)
+    ex = Base.parse_input_line(cmd)
+    ex = expand(ex)
 
-  doClear ? setproperty!(widget,:text,"") : nothing
+    doClear ? setproperty!(widget,:text,"") : nothing
 
-  evalout = ""
-  value = :()
-  @async begin
+    evalout = ""
+    value = :()
+    @async begin
 
     #(outRead, outWrite) = redirect_stdout()#capture console prints
     #(errorRead, errorWrite) = redirect_stderr()
@@ -95,7 +159,7 @@ $std_data";
 
     Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1),Gtk.GtkTextIter(buffer,length(buffer)+1) )
 
-  end
+    end
 end
 
 clip = @GtkClipboard()
@@ -104,24 +168,31 @@ text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:
     (Ptr{GObject},Ptr{GObject}),buffer,clip)
 
 function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
-  widget = convert(GtkEntry, widgetptr)
-  event = convert(Gtk.GdkEvent, eventptr)
+    widget = convert(GtkEntry, widgetptr)
+    event = convert(Gtk.GdkEvent, eventptr)
 
-  if Int(event.keyval) == 99 && Int(event.state) == 4 #ctrl+c
+    if Int(event.keyval) == 99 && Int(event.state) == 4 #ctrl+c
+        text_buffer_copy_clipboard(buffer,clip)
+    end
 
-      text_buffer_copy_clipboard(buffer,clip)
+    if event.keyval == Gtk.GdkKeySyms.Return
+        cmd = getproperty(widget,:text,String)
+        on_return_terminal(widget,cmd,true)
+    end
 
-  end
+    if event.keyval == Gtk.GdkKeySyms.Up
 
-  if event.keyval == Gtk.GdkKeySyms.Return
-    cmd = getproperty(widget,:text,String)
-    on_return_terminal(widget,cmd,true)
-  end
+        history_move(history,-1)
+        setproperty!(widget,:text,history_get_current(history))
 
-  if event.keyval == Gtk.GdkKeySyms.Up
-    setproperty!(widget,:text,pastcmd[1])
-    return convert(Cint,true)
-  end
+        return convert(Cint,true)
+    end
+    if event.keyval == Gtk.GdkKeySyms.Down
+
+        history_move(history,+1)
+        setproperty!(widget,:text,history_get_current(history))
+        return convert(Cint,true)
+    end
 
   if event.keyval == Gtk.GdkKeySyms.Tab
     cmd = getproperty(widget,:text,String)
