@@ -13,12 +13,12 @@ pastcmd = [""];
 
 #globals
 sm = @GtkSourceStyleSchemeManager()
-style = style_scheme(sm,"zenburn")
+style = style_scheme(sm,"kate")
 languageDef = GtkSourceWidget.language(@GtkSourceLanguageManager(),"julia")
 fontsize = 13
 
 #Order might matter
-include("GtkExtensions.jl")
+include("GtkExtensions.jl"); #using GtkExtenstions
 include("Console.jl")
 include("Editor.jl")
 
@@ -43,7 +43,7 @@ mainPan |>
         (canvas = Gtk.@Canvas())  |>
         ((rightBox = @GtkBox(:v)) |>
             (consoleFrame = @GtkFrame("") |>
-                console_scwindow
+                console
             ) |>
             entry
         )
@@ -128,9 +128,9 @@ end
 function reloadfunc(ex::Expr)
     if ex.head == :function
         eval(Main,ex)
-        println(string(ex.args[1].args[1]))
+        #println(string(ex.args[1].args[1]))
     elseif ex.head == :call && ex.args[1] == :signal_connect
-        #eval(Main,ex)
+        eval(Main,ex)
     else
         reloadfunc(ex.args)
     end
@@ -143,6 +143,6 @@ function update_cb()
     nothing
 end
 
-#end
+#end#module
 
 #importall J

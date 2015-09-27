@@ -1,55 +1,142 @@
-## SETUP
 
-entry = @GtkEntry()
-setproperty!(entry, :text, "x = rand(100,1)");
+type Console <: GtkScrolledWindow
 
-buffer = @GtkSourceBuffer()
-setproperty!(buffer,:text,"")
+    handle::Ptr{Gtk.GObject}
+    view::GtkSourceView
+    buffer::GtkSourceBuffer
+    entry::GtkEntry
+    locked::Bool
 
-tag = Gtk.create_tag(buffer, "error", font="Normal 16")
-setproperty!(tag,:foreground,"gray")
-Gtk.apply_tag(buffer, "error", Gtk.GtkTextIter(buffer,1) , Gtk.GtkTextIter(buffer,23) )
+    function Console()
 
-Gtk.create_tag(buffer, "cursor", font="Normal $fontsize",foreground="green")
-Gtk.create_tag(buffer, "plaintext", font="Normal $fontsize")
+        entry = @GtkEntry()
+        setproperty!(entry, :text, "x = rand(100,1)")
 
-textview = @GtkSourceView()
-setproperty!(textview,:buffer, buffer)
-setproperty!(textview,:editable, false)
-setproperty!(textview,:can_focus, false)
-setproperty!(textview,:vexpand, true)
+        buffer = @GtkSourceBuffer()
+        setproperty!(buffer,:text,"")
 
-console_scwindow = @GtkScrolledWindow()
-setproperty!(console_scwindow,:height_request, 100)
-push!(console_scwindow,textview)
-adj = getproperty(console_scwindow,:vadjustment, GtkAdjustment)
+        tag = Gtk.create_tag(buffer, "error", font="Normal 16")
+        setproperty!(tag,:foreground,"gray")
+        Gtk.apply_tag(buffer, "error", Gtk.GtkTextIter(buffer,1) , Gtk.GtkTextIter(buffer,23) )
+
+        Gtk.create_tag(buffer, "cursor", font="Normal $fontsize",foreground="green")
+        Gtk.create_tag(buffer, "plaintext", font="Normal $fontsize")
+
+        textview = @GtkSourceView()
+        setproperty!(textview,:buffer, buffer)
+        setproperty!(textview,:editable, false)
+        setproperty!(textview,:can_focus, false)
+        setproperty!(textview,:vexpand, true)
+        setproperty!(textview,:wrap_mode,2)
+
+        console_scwindow = @GtkScrolledWindow()
+        setproperty!(console_scwindow,:height_request, 100)
+        push!(console_scwindow,textview)
 
 
-## Callbacks
-# function my_println(xs)
-#   insert!(buffer,string(xs))
-#   nothing
-# end
-# my_println() = nothing
-#
-# import Base.println
-# println(xs...) = my_println(xs...)
-# import Base.print
-# print(xs...) = my_println(xs...)
-
-function print_std_out(rd::Base.PipeEndpoint,buffer::GtkTextBuffer)
-    response = readavailable(rd)
-    if !isempty(response)
-        insert!(buffer,bytestring(response))
+        t = new(console_scwindow.handle,textview,buffer,entry,false)
+        Gtk.gobject_move_ref(t, console_scwindow)
     end
 end
-function watch_redirect(buffer::GtkTextBuffer)
-    rd, wr = redirect_stdout()
-    while(true)
-        print_std_out(rd,buffer)
+
+function lock(c::Console)
+    c.locked = true
+end
+function unlock(c::Console)
+    c.locked = false
+end
+function wait(c::Console)
+    t = @schedule begin
+        while c.locked
+        end
+    end
+    Base.wait(t)
+end
+function write(c::Console,s::String)
+    @schedule begin
+        wait(c)
+        lock(c)
+        try
+            insert!(c.buffer,s)
+            Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1),Gtk.GtkTextIter(buffer,length(buffer)+1) )
+        finally
+            unlock(c)
+        end
     end
 end
-#remotecall(1,watch_redirect,buffer)#too slow
+function write(c::Console,s::String,f::Function)
+    @schedule begin
+        wait(c)
+        lock(c)
+        try
+            insert!(c.buffer,s)
+            Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1),Gtk.GtkTextIter(buffer,length(buffer)+1) )
+            f()
+        finally
+            unlock(c)
+        end
+    end
+end
+function clear(c::Console)
+    @schedule begin
+        wait(c)
+        lock(c)
+        try
+            setproperty!(c.buffer,:text,"")
+            clear_entry()
+        finally
+            unlock(c)
+        end
+    end
+end
+
+console = Console()
+buffer = console.buffer
+entry = console.entry
+textview = console.view
+
+
+stdout = STDOUT
+function send_stream(rd::IO, name::AbstractString)
+    nb = nb_available(rd)
+    if nb > 0
+        d = readbytes(rd, nb)
+        s = try
+            bytestring(d)
+        catch
+            # FIXME: what should we do here?
+            string("<ERROR: invalid UTF8 data ", d, ">")
+        end
+        if !isempty(s)
+            write(console,s)
+        end
+    end
+end
+
+function watch_stream(rd::IO, name::AbstractString)
+    try
+        while !eof(rd) # blocks until something is available
+            send_stream(rd, name)
+            sleep(0.05) # a little delay to accumulate output
+        end
+    catch e
+        # the IPython manager may send us a SIGINT if the user
+        # chooses to interrupt the kernel; don't crash on this
+        if isa(e, InterruptException)
+            watch_stream(rd, name)
+        else
+            rethrow()
+        end
+    end
+end
+
+global read_stdout
+read_stdout, wr = redirect_stdout()
+function watch_stdio()
+    @async watch_stream(read_stdout, "stdout")
+end
+watch_stdio()
+#this makes get_current_line_text crash, probably because it modifies the buffer and render textIters invalid
 
 type HistoryProvider
     history::Array{String,1}
@@ -80,29 +167,10 @@ end
 history = setup_history()
 
 function clear_entry()
-    setproperty!(entry,:text,"")
+    setproperty!(console.entry,:text,"")
 end
 
-function check_special_commands(cmd::String)
-
-    #case :(
-    if cmd == ""
-      insert!(buffer,"\n")
-      return true
-    end
-    if cmd == "clc"
-      setproperty!(buffer,:text,"")
-      clear_entry()
-      return true
-    end
-    if cmd == "reload"
-        re()
-        clear_entry()
-      return true
-    end
-
-    return false
-end
+include("ConsoleCommands.jl")
 
 function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
 
@@ -110,13 +178,13 @@ function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
     history_seek_end(history)
 
     cmd = strip(cmd)
-    check_special_commands(cmd) && return
+    check_console_commands(cmd) && return
 
     pos_start = length(buffer)+1
-    insert!(buffer,">julia $cmd")
-
-    Gtk.apply_tag(buffer, "cursor", Gtk.GtkTextIter(buffer,pos_start) , Gtk.GtkTextIter(buffer,pos_start+7) )
-    Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1),Gtk.GtkTextIter(buffer,length(buffer)+1) )
+    write(console,">julia $cmd\n",() -> begin
+        Gtk.apply_tag(buffer, "cursor", Gtk.GtkTextIter(buffer,pos_start), Gtk.GtkTextIter(buffer,pos_start+7) )
+        Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1), Gtk.GtkTextIter(buffer,length(buffer)+1) )
+    end)
 
     ex = Base.parse_input_line(cmd)
     ex = expand(ex)
@@ -133,7 +201,7 @@ function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
     try
       value = eval(Main,ex)
       eval(Main, :(ans = $(Expr(:quote, value))))
-      evalout = sprint(Base.showlimited,value)
+      evalout = value == nothing ? "" : sprint(Base.showlimited,value)
     catch err
       io = IOBuffer()
       showerror(io,err)
@@ -141,31 +209,15 @@ function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
       close(io)
     end
 
-    std_data = ""
-    #close(outWrite)
-    #std_data = readavailable(outRead)
-    #close(outRead)
-    #std_data = convert(UTF8String,std_data)
 
-    #close(errorWrite)
-    #errors = readavailable(errorRead)
-    #close(errorRead)
-    #evalout = errors == "" ? evalout : errors
+    finalOutput = "$evalout\n\n";
+    write(console,finalOutput)
 
-    finalOutput = "
-$evalout
-$std_data";
-    insert!(buffer,finalOutput)
-
-    Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1),Gtk.GtkTextIter(buffer,length(buffer)+1) )
 
     end
 end
 
 clip = @GtkClipboard()
-
-text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:gtk_text_buffer_copy_clipboard,  Gtk.libgtk),Void,
-    (Ptr{GObject},Ptr{GObject}),buffer,clip)
 
 function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     widget = convert(GtkEntry, widgetptr)
@@ -209,37 +261,41 @@ signal_connect(entry_key_press_cb, entry, "key-press-event", Cint, (Ptr{Gtk.GdkE
 
 #print completions in console (maye use the one in Base?)
 function show_completions(comp,dotpos,widget,cmd)
-  dotpos = dotpos.start
-  prefix = dotpos > 1 ? cmd[1:dotpos-1] : ""
+    @schedule begin
+        wait(console)
+        lock(console)
 
-  if(length(comp)>1)
-    out = "\n"
-    for i=1:length(comp)
-      tabs = repeat("\t",ceil(Int,9/length(comp[i]))+1)
-      out = "$out $(comp[i]) $tabs"
-      if mod(i,6) == 0
+        dotpos = dotpos.start
+        prefix = dotpos > 1 ? cmd[1:dotpos-1] : ""
+
+        if(length(comp)>1)
+        out = "\n"
+        for i=1:length(comp)
+          tabs = repeat("\t",ceil(Int,9/length(comp[i]))+1)
+          out = "$out $(comp[i]) $tabs"
+          if mod(i,6) == 0
+            out = out * "\n"
+          end
+        end
         out = out * "\n"
-      end
+        insert!(buffer,out)
+        out = prefix * Base.LineEdit.common_prefix(comp)
+        setproperty!(widget,:text,out)
+        set_position!(widget,endof(out))
+
+        elseif !isempty(comp)
+        out = prefix * comp[1]
+        setproperty!(widget,:text,out)
+        set_position!(widget,endof(out))
+        end
+
+        unlock(console)
     end
-    out = out * "\n"
-    insert!(buffer,out)
-    out = prefix * Base.LineEdit.common_prefix(comp)
-    setproperty!(widget,:text,out)
-    set_position!(widget,endof(out))
-
-  elseif !isempty(comp)
-    out = prefix * comp[1]
-    setproperty!(widget,:text,out)
-    set_position!(widget,endof(out))
-  end
-end
-
-function set_position!(editable::Gtk.Entry,position_)
-    ccall((:gtk_editable_set_position,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Cint),editable,position_)
 end
 
 ## scroll textview
 function scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
+  adj = getproperty(console,:vadjustment, GtkAdjustment)
   setproperty!(adj,:value, getproperty(adj,:upper,FloatingPoint) - getproperty(adj,:page_size,FloatingPoint))
   nothing
 end
