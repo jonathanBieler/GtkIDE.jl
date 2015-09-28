@@ -8,6 +8,12 @@
 # using Gtk
 # const libgtk = Gtk.Gtk.libgtk
 
+baremodule GdkModifierType
+    const SHIFT		= Main.Base.convert(Int32,1)
+    const LOCK 	  	= Main.Base.convert(Int32,2)
+	const CONTROL 	= Main.Base.convert(Int32,4)
+end
+
 typealias MutableGtkTextIter Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}
 typealias GtkTextIters Union{MutableGtkTextIter,Gtk.GtkTextIter}
 mutable(it::Gtk.GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)

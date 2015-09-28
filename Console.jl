@@ -52,6 +52,7 @@ function wait(c::Console)
     end
     Base.wait(t)
 end
+import Base.write
 function write(c::Console,s::String)
     @schedule begin
         wait(c)
@@ -95,67 +96,108 @@ buffer = console.buffer
 entry = console.entry
 textview = console.view
 
-
-stdout = STDOUT
-function send_stream(rd::IO, name::AbstractString)
-    nb = nb_available(rd)
-    if nb > 0
-        d = readbytes(rd, nb)
-        s = try
-            bytestring(d)
-        catch
-            # FIXME: what should we do here?
-            string("<ERROR: invalid UTF8 data ", d, ">")
-        end
-        if !isempty(s)
-            write(console,s)
-        end
-    end
-end
-
-function watch_stream(rd::IO, name::AbstractString)
-    try
-        while !eof(rd) # blocks until something is available
-            send_stream(rd, name)
-            sleep(0.05) # a little delay to accumulate output
-        end
-    catch e
-        # the IPython manager may send us a SIGINT if the user
-        # chooses to interrupt the kernel; don't crash on this
-        if isa(e, InterruptException)
-            watch_stream(rd, name)
-        else
-            rethrow()
+if REDIRECT_STDOUT
+    stdout = STDOUT
+    function send_stream(rd::IO, name::AbstractString)
+        nb = nb_available(rd)
+        if nb > 0
+            d = readbytes(rd, nb)
+            s = try
+                bytestring(d)
+            catch
+                # FIXME: what should we do here?
+                string("<ERROR: invalid UTF8 data ", d, ">")
+            end
+            if !isempty(s)
+                write(console,s)
+            end
         end
     end
-end
 
-global read_stdout
-read_stdout, wr = redirect_stdout()
-function watch_stdio()
-    @async watch_stream(read_stdout, "stdout")
+    function watch_stream(rd::IO, name::AbstractString)
+        try
+            while !eof(rd) # blocks until something is available
+                send_stream(rd, name)
+                sleep(0.05) # a little delay to accumulate output
+            end
+        catch e
+            # the IPython manager may send us a SIGINT if the user
+            # chooses to interrupt the kernel; don't crash on this
+            if isa(e, InterruptException)
+                watch_stream(rd, name)
+            else
+                rethrow()
+            end
+        end
+    end
+
+    global read_stdout
+    read_stdout, wr = redirect_stdout()
+    function watch_stdio()
+        @async watch_stream(read_stdout, "stdout")
+    end
+    watch_stdio()
+    #this makes get_current_line_text crash, probably because it modifies the buffer and render textIters invalid
 end
-watch_stdio()
-#this makes get_current_line_text crash, probably because it modifies the buffer and render textIters invalid
 
 type HistoryProvider
-    history::Array{String,1}
-    history_file
+    history::Array{AbstractString,1}
+    filename::AbstractString
     cur_idx::Int
-    last_idx::Int
     HistoryProvider() = new(String[""],nothing,0,0)
-    HistoryProvider(h::Array{AbstractString,1},hf,cidx::Int,lidx::Int) = new(h,hf,cidx,lidx)
+    HistoryProvider(h::Array{AbstractString,1},hf,cidx::Int) = new(h,hf,cidx)
 end
 
 function setup_history()
     #load history, etc
-    h = HistoryProvider(String["x = pi"],nothing,1,1)
+    h = HistoryProvider(String["x = pi"], HOMEDIR * "history", 1)
+
+    if isfile(h.filename)
+        h.history = parse_history(h)
+        h.cur_idx = length(h.history)
+    else
+        f = open(h.filename,"w")
+        close(f)
+    end
+    return h
 end
-function history_add(h::HistoryProvider, str::String)
+function history_add(h::HistoryProvider, str::AbstractString)
     isempty(strip(str)) && return
     push!(h.history, str)
-    h.history_file === nothing && return
+
+    if isfile(h.filename)
+        f = open(h.filename,"a")
+        str = "
+# _history_entry_
+$str"
+        write(f, str)
+        close(f)
+    else
+        write(console,"unable to open history file " * h.filename)
+    end
 end
+## use JSON or xml ?
+function parse_history(h::HistoryProvider)
+
+    f = open(h.filename,"r")
+    lines = readlines(f)
+    close(f)
+
+    out = Array(AbstractString,0)
+    current_command = ""
+    for line in lines
+        @show line
+        if match(r"^# _history_entry_",line) != nothing
+            current_command != "" && push!(out,current_command)
+            current_command = ""
+        else
+            current_command = string(current_command,line)
+        end
+    end
+    current_command != "" && push!(out,current_command)
+    return out
+end
+##
 function history_move(h::HistoryProvider,m::Int)
     h.cur_idx = clamp(h.cur_idx+m,1,length(h.history)+1) #+1 is the empty state when we are at the end of history and press down
 end
@@ -178,7 +220,10 @@ function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
     history_seek_end(history)
 
     cmd = strip(cmd)
-    check_console_commands(cmd) && return
+    if check_console_commands(cmd)
+        update_pathEntry()
+        return
+    end
 
     pos_start = length(buffer)+1
     write(console,">julia $cmd\n",() -> begin
@@ -213,6 +258,7 @@ function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
     finalOutput = "$evalout\n\n";
     write(console,finalOutput)
 
+    update_pathEntry()#if there was any cd
 
     end
 end

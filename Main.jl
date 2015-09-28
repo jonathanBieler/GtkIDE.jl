@@ -9,7 +9,8 @@ using GtkSourceWidget
 using Winston
 import Base.REPLCompletions.completions
 
-pastcmd = [""];
+const HOMEDIR = "d:\\Julia\\JuliaIDE\\"
+const REDIRECT_STDOUT = false
 
 #globals
 sm = @GtkSourceStyleSchemeManager()
@@ -35,6 +36,7 @@ filemenu = @GtkMenu(file) |>
 win = @GtkWindow("Julia IDE",1400,900) |>
     ((mainVbox = @GtkBox(:v)) |>
         mb |>
+        (pathEntry = @GtkEntry()) |>
         (mainPan = @GtkPaned(:h))
     )
 
@@ -54,6 +56,25 @@ setproperty!(rightPan, :width_request, 600)
 setproperty!(canvas,:height_request, 500)
 setproperty!(mainPan,:margin,5)
 #-
+
+##
+setproperty!(pathEntry, :widht_request, 600)
+update_pathEntry() = setproperty!(pathEntry, :text, pwd())
+update_pathEntry()
+
+function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+    widget = convert(GtkEntry, widgetptr)
+    event = convert(Gtk.GdkEvent, eventptr)
+
+    if event.keyval == Gtk.GdkKeySyms.Return
+        cd(getproperty(widget,:text,AbstractString))
+        write(console,getproperty(widget,:text,AbstractString) * "\n")
+    end
+
+    return convert(Cint,false)
+end
+signal_connect(pathEntry_key_press_cb, pathEntry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+
 
 ################
 ## WINSTON

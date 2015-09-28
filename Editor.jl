@@ -5,7 +5,7 @@ type EditorTab <: GtkScrolledWindow
     handle::Ptr{Gtk.GObject}
     view::GtkSourceView
     buffer::GtkSourceBuffer
-    filename::String
+    filename::AbstractString
 
     function EditorTab()
 
@@ -25,15 +25,17 @@ type EditorTab <: GtkScrolledWindow
     end
 end
 
-function set_text!(t::EditorTab,text::String)
+function set_text!(t::EditorTab,text::AbstractString)
     setproperty!(t.buffer,:text,text)
     set_font(t)
 end
+get_text(t::EditorTab) = getproperty(t.buffer,:text,AbstractString)
 
 getbuffer(textview::GtkTextView) = getproperty(textview,:buffer,GtkSourceBuffer)
 get_current_tab() = get_tab(ntbook,get_current_page_idx(ntbook))
 
-function open(t::EditorTab, filename::String)
+import Base.open
+function open(t::EditorTab, filename::AbstractString)
     try
         f = Base.open(filename)
         set_text!(t,readall(f))
@@ -45,7 +47,19 @@ function open(t::EditorTab, filename::String)
     end
 end
 
-function open_in_new_tab(filename::String)
+function save(t::EditorTab)
+    try
+        f = Base.open(t.filename,"w")
+        write(f,get_text(t))
+        write(console,"saved $(t.filename)")
+    catch err
+        @show err
+    end
+end
+
+save_current_tab() = save(get_current_tab())
+
+function open_in_new_tab(filename::AbstractString)
     add_tab()
     filename = ispath(filename) ? filename : joinpath(pwd(),filename)
     open(get_current_tab(),filename)
@@ -100,24 +114,29 @@ end
 
 function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
+    #note use write(console,...) here and not print or @show
+
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
-    #
-    if event.keyval == keyval("w") && Int(event.state) == 4 #ctrl
+
+    if event.keyval == keyval("s") && Int(event.state) == GdkModifierType.CONTROL
+        save_current_tab()
+    end
+
+    if event.keyval == keyval("w") && Int(event.state) == GdkModifierType.CONTROL
         close_tab()
     end
-    if event.keyval == keyval("n") && Int(event.state) == 4
+    if event.keyval == keyval("n") && Int(event.state) == GdkModifierType.CONTROL
         add_tab()
     end
 
-    if event.keyval == keyval("d") && Int(event.state) == 4
+    if event.keyval == keyval("d") && Int(event.state) == GdkModifierType.CONTROL
         show_data_hint(textview)
     end
 
-    if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == 5 #ctrl+shift
+    if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == (GdkModifierType.CONTROL + GdkModifierType.SHIFT)
 
         buffer = getbuffer(textview)
-
         txt = get_current_line_text(buffer)
         on_return_terminal(entry,txt,false)
 
@@ -132,7 +151,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         if found
             cmd = text_iter_get_text(it_start,it_end)
         else
-            cmd = getproperty(buffer,:text,String)
+            cmd = getproperty(buffer,:text,AbstractString)
         end
         on_return_terminal(entry,cmd,false)
         return convert(Cint,true)
@@ -185,7 +204,7 @@ function get_current_line_text(buffer::GtkTextBuffer)
     skip(itstart,1,:line)
     text_iter_forward_to_line_end(itend)
 
-    txt = getproperty(buffer,:text,String)
+    txt = getproperty(buffer,:text,AbstractString)
     return txt[getproperty(itstart,:offset,Int):getproperty(itend,:offset,Int)]
 end
 
@@ -200,7 +219,7 @@ function add_tab()
 
     Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
-
+e
     signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
 end
 
@@ -208,7 +227,7 @@ for i = 1:2
     add_tab()
 end
 
-open(get_tab(ntbook,1),"d:\\Julia\\JuliaIDE\\Editor.jl")
+open(get_tab(ntbook,1),"d:\\Julia\\JuliaIDE\\repl.jl")
 
 set_text!(get_tab(ntbook,2),
 "
