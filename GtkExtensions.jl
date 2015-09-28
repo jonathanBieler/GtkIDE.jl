@@ -107,8 +107,30 @@ function set_position!(editable::Gtk.Entry,position_)
 end
 
 ## clipboard
-
 text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:gtk_text_buffer_copy_clipboard,  Gtk.Gtk.libgtk),Void,
     (Ptr{GObject},Ptr{GObject}),buffer,clip)
+
+
+##
+function GtkCssProviderFromData(;data=nothing,filename=nothing)
+    source_count = (data!==nothing) + (filename!==nothing)
+    @assert(source_count <= 1,
+        "GtkCssProvider must have at most one data or filename argument")
+    provider = GtkCssProviderLeaf(ccall((:gtk_css_provider_get_default,Gtk.libgtk),Ptr{Gtk.GObject},()))
+    if data !== nothing
+        Gtk.GError() do error_check
+          ccall((:gtk_css_provider_load_from_data,Gtk.libgtk), Bool,
+            (Ptr{Gtk.GObject}, Ptr{UInt8}, Clong, Ptr{Ptr{Gtk.GError}}),
+            provider, bytestring(data), sizeof(data), error_check)
+        end
+    elseif filename !== nothing
+        Gtk.GError() do error_check
+          ccall((:gtk_css_provider_load_from_path,Gtk.libgtk), Bool,
+            (Ptr{Gtk.GObject}, Ptr{UInt8}, Clong, Ptr{Ptr{Gtk.GError}}),
+            provider, bytestring(filename), error_check)
+        end
+    end
+    return provider
+end
 
 #end#module

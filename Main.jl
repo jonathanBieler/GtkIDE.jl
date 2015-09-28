@@ -1,6 +1,9 @@
 using Gtk
 using GtkSourceWidget
 
+#include("CairoExtensions.jl")
+#using CairoExtensions
+
 #module J
 #export plot, drawnow
 
@@ -8,9 +11,22 @@ using Gtk
 using GtkSourceWidget
 using Winston
 import Base.REPLCompletions.completions
+include("GtkExtensions.jl"); #using GtkExtenstions
 
 const HOMEDIR = "d:\\Julia\\JuliaIDE\\"
 const REDIRECT_STDOUT = false
+
+## more sure antialiasing is working on windows
+
+s = Pkg.dir() * "\\WinRPM\\deps\\usr\\x86_64-w64-mingw32\\sys-root\\mingw\\etc\\gtk-3.0\\"
+if isdir(s) && !isfile(s * "settings.ini")
+    f = open(s * "settings.ini","w")
+    write(f,
+"[Settings]
+gtk-xft-antialias = 1
+gtk-xft-rgba = rgb)")
+    close(f)
+end
 
 #globals
 sm = @GtkSourceStyleSchemeManager()
@@ -18,8 +34,14 @@ style = style_scheme(sm,"kate")
 languageDef = GtkSourceWidget.language(@GtkSourceLanguageManager(),"julia")
 fontsize = 13
 
+data =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
+    color: black;
+    font-family: Consolas, Courier, monospace;
+    font-size: $(fontsize)
+}"""
+global provider = GtkStyleProvider( GtkCssProviderFromData(data=data) )
+
 #Order might matter
-include("GtkExtensions.jl"); #using GtkExtenstions
 include("Console.jl")
 include("Editor.jl")
 
@@ -56,6 +78,16 @@ setproperty!(rightPan, :width_request, 600)
 setproperty!(canvas,:height_request, 500)
 setproperty!(mainPan,:margin,5)
 #-
+
+
+sc = Gtk.G_.style_context(entry)
+push!(sc, provider, 600)
+
+sc = Gtk.G_.style_context(pathEntry)
+push!(sc, provider, 600)
+
+sc = Gtk.G_.style_context(textview)
+push!(sc, provider, 600)
 
 ##
 setproperty!(pathEntry, :widht_request, 600)

@@ -67,8 +67,11 @@ end
 
 #hack while waiting for proper fonts
 function set_font(t::EditorTab)
-    Gtk.create_tag(t.buffer, "plaintext", font="Normal $fontsize")
-    Gtk.apply_tag(t.buffer, "plaintext", Gtk.GtkTextIter(t.buffer,1) , Gtk.GtkTextIter(t.buffer,length(t.buffer)+1) )
+    #Gtk.create_tag(t.buffer, "plaintext", font="Normal $fontsize")
+    #Gtk.apply_tag(t.buffer, "plaintext", Gtk.GtkTextIter(t.buffer,1) , Gtk.GtkTextIter(t.buffer,length(t.buffer)+1) )
+
+    sc = Gtk.G_.style_context(t.view)
+    push!(sc, provider, 600)
 end
 
 ntbook = @GtkNotebook()
