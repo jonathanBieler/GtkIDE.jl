@@ -27,7 +27,7 @@ type Console <: GtkScrolledWindow
         setproperty!(textview,:editable, false)
         setproperty!(textview,:can_focus, false)
         setproperty!(textview,:vexpand, true)
-        setproperty!(textview,:wrap_mode,2)
+        setproperty!(textview,:wrap_mode,1)
 
         console_scwindow = @GtkScrolledWindow()
         setproperty!(console_scwindow,:height_request, 100)

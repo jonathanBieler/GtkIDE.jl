@@ -1,3 +1,5 @@
+#todo : filename should save the full path
+
 
 global sourcemap = @GtkSourceMap()
 global ntbook = @GtkNotebook()
@@ -10,6 +12,7 @@ type EditorTab <: GtkScrolledWindow
     view::GtkSourceView
     buffer::GtkSourceBuffer
     filename::AbstractString
+    modified::Bool
 
     function EditorTab()
 
@@ -20,9 +23,12 @@ type EditorTab <: GtkScrolledWindow
         highlight_matching_brackets(b,true)
 
         show_line_numbers!(v,true)
-        auto_indent!(v,true)
+	    auto_indent!(v,true)
         highlight_current_line!(v, true)
         setproperty!(v,:wrap_mode,0)
+
+        setproperty!(v,:tab_width,4)
+        setproperty!(v,:insert_spaces_instead_of_tabs,true)
 
         sc = @GtkScrolledWindow()
         push!(sc,v)
@@ -43,9 +49,11 @@ get_current_tab() = get_tab(ntbook,get_current_page_idx(ntbook))
 import Base.open
 function open(t::EditorTab, filename::AbstractString)
     try
+    
         f = Base.open(filename)
         set_text!(t,readall(f))
         t.filename = filename
+        t.modified = false
         set_tab_label_text(ntbook,t,basename(filename))
         reset_undomanager(t.buffer)#otherwise we can undo loading the file...
         close(f)
@@ -235,11 +243,14 @@ function add_tab()
     signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
 end
 
-open_in_new_tab("d:\\Julia\\JuliaIDE\\repl.jl")
-open_in_new_tab("d:\\Julia\\JuliaIDE\\Editor.jl")
+#open_in_new_tab("d:\\Julia\\JuliaIDE\\repl.jl")
+#open_in_new_tab("d:\\Julia\\JuliaIDE\\Editor.jl")
+
+for f in workspace.files
+    open_in_new_tab(f)
+end
 
 t = get_current_tab()
-
 set_view(sourcemap,t.view)
 
 # for i = 1:2

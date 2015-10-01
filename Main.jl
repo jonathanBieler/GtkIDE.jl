@@ -1,14 +1,10 @@
 using Gtk
 using GtkSourceWidget
-
-#include("CairoExtensions.jl")
-#using CairoExtensions
+using JSON
 
 #module J
 #export plot, drawnow
 
-using Gtk
-using GtkSourceWidget
 using Winston
 import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
@@ -17,30 +13,32 @@ const HOMEDIR = "d:\\Julia\\JuliaIDE\\"
 const REDIRECT_STDOUT = false
 
 ## more sure antialiasing is working on windows
-
-s = Pkg.dir() * "\\WinRPM\\deps\\usr\\x86_64-w64-mingw32\\sys-root\\mingw\\etc\\gtk-3.0\\"
-if isdir(s) && !isfile(s * "settings.ini")
-    f = open(s * "settings.ini","w")
-    write(f,
+if OS_NAME == :Windows
+    s = Pkg.dir() * "\\WinRPM\\deps\\usr\\x86_64-w64-mingw32\\sys-root\\mingw\\etc\\gtk-3.0\\"
+    if isdir(s) && !isfile(s * "settings.ini")
+        f = open(s * "settings.ini","w")
+        write(f,
 "[Settings]
 gtk-xft-antialias = 1
 gtk-xft-rgba = rgb)")
-    close(f)
+        close(f)
+    end
 end
 
-#globals
-sm = @GtkSourceStyleSchemeManager()
-style = style_scheme(sm,"zenburn")
-languageDef = GtkSourceWidget.language(@GtkSourceLanguageManager(),"julia")
-fontsize = 13
+## globals
+global style = style_scheme(@GtkSourceStyleSchemeManager(),"zenburn")
+global languageDef = GtkSourceWidget.language(@GtkSourceLanguageManager(),"julia")
+global fontsize = 13
 
-data =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
+fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
     font-family: Consolas, Courier, monospace;
     font-size: $(fontsize)
 }"""
-global provider = GtkStyleProvider( GtkCssProviderFromData(data=data) )
+global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 
-#Order might matter
+
+#Order matters
+include("Workspace.jl")
 include("Console.jl")
 include("Editor.jl")
 
@@ -54,7 +52,7 @@ filemenu = @GtkMenu(file) |>
     @GtkSeparatorMenuItem() |>
     (quit = @GtkMenuItem("Quit"))
 
-win = @GtkWindow("Julia IDE",1400,900) |>
+win = @GtkWindow("Julia IDE",1600,1000) |>
     ((mainVbox = @GtkBox(:v)) |>
         mb |>
         (pathEntry = @GtkEntry()) |>
@@ -65,9 +63,7 @@ mainPan |>
     (rightPan = @GtkPaned(:v) |>
         (canvas = Gtk.@Canvas())  |>
         ((rightBox = @GtkBox(:v)) |>
-            (consoleFrame = @GtkFrame("") |>
-                console
-            ) |>
+            console |>
             entry
         )
     ) |>
@@ -79,23 +75,19 @@ mainPan |>
 ##setproperty!(ntbook, :width_request, 800)
 
 setproperty!(editorBox,:expand,ntbook,true)
-
-setproperty!(rightPan, :width_request, 600)
-setproperty!(canvas,:height_request, 500)
 setproperty!(mainPan,:margin,0)
+Gtk.G_.position(mainPan,600)
+Gtk.G_.position(rightPan,400)
 #-
-
 
 sc = Gtk.G_.style_context(entry)
 push!(sc, provider, 600)
-
 sc = Gtk.G_.style_context(pathEntry)
 push!(sc, provider, 600)
-
 sc = Gtk.G_.style_context(textview)
 push!(sc, provider, 600)
 
-##
+## the current path is shown in an entry on top
 setproperty!(pathEntry, :widht_request, 600)
 update_pathEntry() = setproperty!(pathEntry, :text, pwd())
 update_pathEntry()
@@ -149,6 +141,13 @@ function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return Cint(false)
 end
 signal_connect(window_key_press_cb,win, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+
+
+function restart()
+    win_ = win
+    include("d:\\Julia\\JuliaIDE\\Main.jl")
+    destroy(win_)
+end
 
 ## reloading functions stuff
 function parseall(str)
