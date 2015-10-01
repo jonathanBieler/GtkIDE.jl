@@ -1,4 +1,8 @@
-## SETUP
+
+global sourcemap = @GtkSourceMap()
+global ntbook = @GtkNotebook()
+    setproperty!(ntbook,:scrollable, true)
+    setproperty!(ntbook,:enable_popup, true)
 
 type EditorTab <: GtkScrolledWindow
 
@@ -10,15 +14,18 @@ type EditorTab <: GtkScrolledWindow
     function EditorTab()
 
         b = @GtkSourceBuffer(languageDef)
-        sc = @GtkScrolledWindow() |>
-            (v = @GtkSourceView(b))
-
         setproperty!(b,:style_scheme,style)
+        v = @GtkSourceView(b)
+
+        highlight_matching_brackets(b,true)
+
         show_line_numbers!(v,true)
         auto_indent!(v,true)
-        highlight_matching_brackets(b,true)
         highlight_current_line!(v, true)
-        setproperty!(v,:wrap_mode,2)
+        setproperty!(v,:wrap_mode,0)
+
+        sc = @GtkScrolledWindow()
+        push!(sc,v)
 
         t = new(sc.handle,v,b)
         Gtk.gobject_move_ref(t, sc)
@@ -30,7 +37,6 @@ function set_text!(t::EditorTab,text::AbstractString)
     set_font(t)
 end
 get_text(t::EditorTab) = getproperty(t.buffer,:text,AbstractString)
-
 getbuffer(textview::GtkTextView) = getproperty(textview,:buffer,GtkSourceBuffer)
 get_current_tab() = get_tab(ntbook,get_current_page_idx(ntbook))
 
@@ -41,6 +47,7 @@ function open(t::EditorTab, filename::AbstractString)
         set_text!(t,readall(f))
         t.filename = filename
         set_tab_label_text(ntbook,t,basename(filename))
+        reset_undomanager(t.buffer)#otherwise we can undo loading the file...
         close(f)
     catch err
         @show err
@@ -56,7 +63,7 @@ function save(t::EditorTab)
         @show err
     end
 end
-
+in
 save_current_tab() = save(get_current_tab())
 
 function open_in_new_tab(filename::AbstractString)
@@ -73,10 +80,6 @@ function set_font(t::EditorTab)
     sc = Gtk.G_.style_context(t.view)
     push!(sc, provider, 600)
 end
-
-ntbook = @GtkNotebook()
-    setproperty!(ntbook,:scrollable, true)
-    setproperty!(ntbook,:enable_popup, true)
 
 function get_cell(buffer::GtkTextBuffer)
 
@@ -96,12 +99,18 @@ function highlight_cells()
     end
 end
 
-signal_connect(ntbook, "switch-page") do widget, page, page_num, args...
+function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
+    page = convert(Gtk.GtkWidget, pageptr)
+    if typeof(page) == EditorTab
+        set_view(sourcemap, page.view)
+    end
+    nothing
 end
+signal_connect(ntbook_switch_page_cb,ntbook, "switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
 
-mousepos = zeros(Int,2)
-mousepos_root = zeros(Int,2)
+global mousepos = zeros(Int,2)
+global mousepos_root = zeros(Int,2)
 signal_connect(ntbook, "motion-notify-event") do widget, event, args...
     mousepos[1] = round(Int,event.x)
     mousepos[2] = round(Int,event.y)
@@ -222,40 +231,47 @@ function add_tab()
 
     Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
-e
+
     signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
 end
 
-for i = 1:2
-    add_tab()
-end
+open_in_new_tab("d:\\Julia\\JuliaIDE\\repl.jl")
+open_in_new_tab("d:\\Julia\\JuliaIDE\\Editor.jl")
 
-open(get_tab(ntbook,1),"d:\\Julia\\JuliaIDE\\repl.jl")
+t = get_current_tab()
 
-set_text!(get_tab(ntbook,2),
-"
-function f(x)
-    x
-end
+set_view(sourcemap,t.view)
 
-## ploting sin
+# for i = 1:2
+#     add_tab()
+# end
 
-	x = 0:0.01:5
-	plot(x,exp(-x))
+##open(get_tab(ntbook,1),"d:\\Julia\\JuliaIDE\\repl.jl")
 
-## ploting a spiral
-
-	x = 0:0.01:4*pi
-	plot(x.*cos(x),x.*sin(x))
-
-##
-    x = 0:0.01:3*pi
-    for i=1:100
-        plot(x.*cos(i/15*x),x.*sin(i/10*x),
-            xrange=(-8,8),
-            yrange=(-8,8)
-        )
-        drawnow()
-    end
-##
-")
+# set_text!(get_tab(ntbook,2),
+# "
+# function f(x)
+#     x
+# end
+#
+# ## ploting sin
+#
+# 	x = 0:0.01:5
+# 	plot(x,exp(-x))
+#
+# ## ploting a spiral
+#
+# 	x = 0:0.01:4*pi
+# 	plot(x.*cos(x),x.*sin(x))
+#
+# ##
+#     x = 0:0.01:3*pi
+#     for i=1:100
+#         plot(x.*cos(i/15*x),x.*sin(i/10*x),
+#             xrange=(-8,8),
+#             yrange=(-8,8)
+#         )
+#         drawnow()
+#     end
+# ##
+# ")

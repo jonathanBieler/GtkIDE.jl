@@ -42,8 +42,12 @@ add_console_command(r"^ls",(m) -> begin
     return true
 end)
 add_console_command(r"^cd (.*)",(m) -> begin
-    cd(m.captures[1])
-    write(console,"\n$(pwd())\n")
+	try
+	    cd(m.captures[1])
+		write(console,"\n$(pwd())\n")
+	catch err
+		write(console,sprint(show,err))
+	end
     clear_entry()
     return true
 end)

@@ -30,12 +30,11 @@ end
 
 #globals
 sm = @GtkSourceStyleSchemeManager()
-style = style_scheme(sm,"kate")
+style = style_scheme(sm,"zenburn")
 languageDef = GtkSourceWidget.language(@GtkSourceLanguageManager(),"julia")
 fontsize = 13
 
 data =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
-    color: black;
     font-family: Consolas, Courier, monospace;
     font-size: $(fontsize)
 }"""
@@ -72,11 +71,18 @@ mainPan |>
             entry
         )
     ) |>
-    ntbook
+    ((editorBox = @GtkBox(:h)) |>
+        ntbook |>
+        sourcemap
+    )
+
+##setproperty!(ntbook, :width_request, 800)
+
+setproperty!(editorBox,:expand,ntbook,true)
 
 setproperty!(rightPan, :width_request, 600)
 setproperty!(canvas,:height_request, 500)
-setproperty!(mainPan,:margin,5)
+setproperty!(mainPan,:margin,0)
 #-
 
 

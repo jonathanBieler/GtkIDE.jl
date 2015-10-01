@@ -240,7 +240,7 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 end
 signal_connect(entry_key_press_cb, entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
-#print completions in console (maye use the one in Base?)
+#print completions in console, todo: adjust with console width
 function show_completions(comp,dotpos,widget,cmd)
     @schedule begin
         wait(console)
@@ -250,24 +250,27 @@ function show_completions(comp,dotpos,widget,cmd)
         prefix = dotpos > 1 ? cmd[1:dotpos-1] : ""
 
         if(length(comp)>1)
-        out = "\n"
-        for i=1:length(comp)
-          tabs = repeat("\t",ceil(Int,9/length(comp[i]))+1)
-          out = "$out $(comp[i]) $tabs"
-          if mod(i,6) == 0
+
+            maxLength = maximum(map(length,comp))
+            out = "\n"
+            for i=1:length(comp)
+                spacing = repeat(" ",maxLength-length(comp[i]))
+                out = "$out $(comp[i]) $spacing"
+                if mod(i,4) == 0
+                    out = out * "\n"
+                end
+            end
             out = out * "\n"
-          end
-        end
-        out = out * "\n"
-        insert!(buffer,out)
-        out = prefix * Base.LineEdit.common_prefix(comp)
-        setproperty!(widget,:text,out)
-        set_position!(widget,endof(out))
+            insert!(buffer,out)
+            out = prefix * Base.LineEdit.common_prefix(comp)
+            setproperty!(widget,:text,out)
+            set_position!(widget,endof(out))
 
         elseif !isempty(comp)
-        out = prefix * comp[1]
-        setproperty!(widget,:text,out)
-        set_position!(widget,endof(out))
+
+            out = prefix * comp[1]
+            setproperty!(widget,:text,out)
+            set_position!(widget,endof(out))
         end
 
         unlock(console)
