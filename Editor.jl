@@ -33,14 +33,13 @@ type EditorTab <: GtkScrolledWindow
         sc = @GtkScrolledWindow()
         push!(sc,v)
 
-        t = new(sc.handle,v,b)
+        t = new(sc.handle,v,b,"",false)
         Gtk.gobject_move_ref(t, sc)
     end
 end
 
 function set_text!(t::EditorTab,text::AbstractString)
     setproperty!(t.buffer,:text,text)
-    set_font(t)
 end
 get_text(t::EditorTab) = getproperty(t.buffer,:text,AbstractString)
 getbuffer(textview::GtkTextView) = getproperty(textview,:buffer,GtkSourceBuffer)
@@ -49,7 +48,6 @@ get_current_tab() = get_tab(ntbook,get_current_page_idx(ntbook))
 import Base.open
 function open(t::EditorTab, filename::AbstractString)
     try
-    
         f = Base.open(filename)
         set_text!(t,readall(f))
         t.filename = filename
@@ -60,6 +58,7 @@ function open(t::EditorTab, filename::AbstractString)
     catch err
         @show err
     end
+    update!(project)
 end
 
 function save(t::EditorTab)
@@ -80,11 +79,7 @@ function open_in_new_tab(filename::AbstractString)
     open(get_current_tab(),filename)
 end
 
-#hack while waiting for proper fonts
 function set_font(t::EditorTab)
-    #Gtk.create_tag(t.buffer, "plaintext", font="Normal $fontsize")
-    #Gtk.apply_tag(t.buffer, "plaintext", Gtk.GtkTextIter(t.buffer,1) , Gtk.GtkTextIter(t.buffer,length(t.buffer)+1) )
-
     sc = Gtk.G_.style_context(t.view)
     push!(sc, provider, 600)
 end
@@ -145,9 +140,11 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     if event.keyval == keyval("w") && Int(event.state) == GdkModifierType.CONTROL
         close_tab()
+        save(project)
     end
     if event.keyval == keyval("n") && Int(event.state) == GdkModifierType.CONTROL
         add_tab()
+        save(project)
     end
 
     if event.keyval == keyval("d") && Int(event.state) == GdkModifierType.CONTROL
@@ -239,6 +236,7 @@ function add_tab()
 
     Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
+    set_font(t)
 
     signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
 end
@@ -246,12 +244,17 @@ end
 #open_in_new_tab("d:\\Julia\\JuliaIDE\\repl.jl")
 #open_in_new_tab("d:\\Julia\\JuliaIDE\\Editor.jl")
 
-for f in workspace.files
+for f in project.files
     open_in_new_tab(f)
+end
+
+if length(ntbook)==0
+    add_tab()
 end
 
 t = get_current_tab()
 set_view(sourcemap,t.view)
+
 
 # for i = 1:2
 #     add_tab()

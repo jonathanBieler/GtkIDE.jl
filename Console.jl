@@ -10,7 +10,7 @@ type Console <: GtkScrolledWindow
     function Console()
 
         entry = @GtkEntry()
-        setproperty!(entry, :text, "x = rand(100,1)")
+        setproperty!(entry, :text, "")
 
         buffer = @GtkSourceBuffer()
         setproperty!(buffer,:text,"")
@@ -91,6 +91,7 @@ function clear(c::Console)
     end
 end
 
+# FIXME remove all these variables 
 console = Console()
 buffer = console.buffer
 entry = console.entry

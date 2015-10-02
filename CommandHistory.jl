@@ -12,7 +12,7 @@ function setup_history()
 
     if isfile(h.filename)
         h.history = parse_history(h)
-        h.cur_idx = length(h.history)
+        h.cur_idx = length(h.history)+1
     else
         f = open(h.filename,"w")
         close(f)

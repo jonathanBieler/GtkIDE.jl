@@ -38,7 +38,7 @@ global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 
 
 #Order matters
-include("Workspace.jl")
+include("Project.jl")
 include("Console.jl")
 include("Editor.jl")
 
@@ -110,10 +110,10 @@ signal_connect(pathEntry_key_press_cb, pathEntry, "key-press-event", Cint, (Ptr{
 ## WINSTON
 
 if !Winston.hasfig(Winston._display,1)
-  Winston.ghf()
-  Winston.addfig(Winston._display, 1, Winston.Figure(canvas,Winston._pwinston))
+    Winston.ghf()
+    Winston.addfig(Winston._display, 1, Winston.Figure(canvas,Winston._pwinston))
 else
-  Winston._display.figs[1] = Winston.Figure(canvas,Winston._pwinston)
+    Winston._display.figs[1] = Winston.Figure(canvas,Winston._pwinston)
 end
 
 #replace plot with a version that display the plot
@@ -125,7 +125,11 @@ drawnow() = sleep(0.001) #probably not the ideal way of doing it
 ## exiting
 function quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
 
-  return convert(Cint,false)
+    @show project
+    if typeof(project) == Project
+        save(project)
+    end
+    return convert(Cint,false)
 end
 signal_connect(quit_cb, win, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
@@ -142,9 +146,10 @@ function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 end
 signal_connect(window_key_press_cb,win, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
-
-function restart()
+function restart(new_workspace=false)
+    save(project)
     win_ = win
+    new_workspace && workspace() 
     include("d:\\Julia\\JuliaIDE\\Main.jl")
     destroy(win_)
 end
