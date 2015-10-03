@@ -8,6 +8,13 @@
 # using Gtk
 # const libgtk = Gtk.Gtk.libgtk
 
+## Widget
+
+grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , Gtk.libgtk),Void,(Ptr{Gtk.GObject},),w)
+
+
+
+##
 baremodule GdkModifierType
     const SHIFT		= Main.Base.convert(Int32,1)
     const LOCK 	  	= Main.Base.convert(Int32,2)

@@ -17,13 +17,8 @@ add_console_command(r"^$",(m) -> begin
     write(console,"\n")
     return true
 end)
-add_console_command(r"^clc",(m) -> begin
+add_console_command(r"^clc$",(m) -> begin
     clear(console)
-    return true
-end)
-add_console_command(r"^reload",(m) -> begin
-    re()
-    clear_entry()
     return true
 end)
 add_console_command(r"^pwd",(m) -> begin
@@ -31,13 +26,19 @@ add_console_command(r"^pwd",(m) -> begin
     clear_entry()
     return true
 end)
-add_console_command(r"^ls",(m) -> begin
-    files = readdir()
-    s = ""
-    for f in files
-        s = string(s,"\n",f)
-    end
-    write(console,s * "\n")
+add_console_command(r"^ls\s*(.*)",(m) -> begin
+
+	try
+        files = readdir(m.captures[1])
+        s = ""
+        for f in files
+            s = string(s,"\n",f)
+        end
+        write(console, s * "\n")
+	catch err
+		write(console,sprint(show,err) * "\n")
+	end
+	
     clear_entry()
     return true
 end)
@@ -46,7 +47,7 @@ add_console_command(r"^cd (.*)",(m) -> begin
 	    cd(m.captures[1])
 		write(console,"\n$(pwd())\n")
 	catch err
-		write(console,sprint(show,err))
+		write(console,sprint(show,err) * "\n")
 	end
     clear_entry()
     return true

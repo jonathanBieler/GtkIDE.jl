@@ -154,7 +154,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == (GdkModifierType.CONTROL + GdkModifierType.SHIFT)
 
         buffer = getbuffer(textview)
-        txt = get_current_line_text(buffer)
+        txt = strip(get_current_line_text(buffer))
         on_return_terminal(entry,txt,false)
 
         return convert(Cint,true)

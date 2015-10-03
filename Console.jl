@@ -91,7 +91,14 @@ function clear(c::Console)
     end
 end
 
-# FIXME remove all these variables 
+function set_entry_text(str::AbstractString)
+
+    cpos = getproperty(console.entry,:cursor_position,Int)
+    setproperty!(console.entry,:text,str)
+    set_position!(console.entry,cpos)
+end
+
+# FIXME remove all these variables
 console = Console()
 buffer = console.buffer
 entry = console.entry
@@ -152,6 +159,8 @@ include("ConsoleCommands.jl")
 
 function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
 
+    cmd = strip(cmd)
+
     history_add(history,cmd)
     history_seek_end(history)
 
@@ -205,31 +214,36 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     widget = convert(GtkEntry, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
 
+    cmd = getproperty(widget,:text,AbstractString)
+    cmd = strip(cmd)
+    
+    pos = getproperty(entry,:cursor_position,Int)
+    prefix = length(cmd) >= pos ? cmd[1:pos] : ""
+
     if Int(event.keyval) == 99 && Int(event.state) == 4 #ctrl+c
         text_buffer_copy_clipboard(buffer,clip)
     end
 
     if event.keyval == Gtk.GdkKeySyms.Return
-        cmd = getproperty(widget,:text,String)
         on_return_terminal(widget,cmd,true)
     end
-
+    
     if event.keyval == Gtk.GdkKeySyms.Up
 
-        history_move(history,-1)
-        setproperty!(widget,:text,history_get_current(history))
+        !history_up(history,prefix,cmd) && return convert(Cint,true)
 
+        set_entry_text(history_get_current(history))
         return convert(Cint,true)
     end
     if event.keyval == Gtk.GdkKeySyms.Down
 
-        history_move(history,+1)
-        setproperty!(widget,:text,history_get_current(history))
+        history_down(history,prefix,cmd)
+
+        set_entry_text(history_get_current(history))
         return convert(Cint,true)
     end
 
   if event.keyval == Gtk.GdkKeySyms.Tab
-    cmd = getproperty(widget,:text,String)
 
     (comp,dotpos) = completions(cmd, endof(cmd))
     show_completions(comp,dotpos,widget,cmd)
@@ -240,6 +254,11 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
   return convert(Cint,false)
 end
 signal_connect(entry_key_press_cb, entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+
+
+signal_connect(entry, "grab-notify") do widget
+    println(widget, "lose focus")
+end
 
 #print completions in console, todo: adjust with console width
 function show_completions(comp,dotpos,widget,cmd)
