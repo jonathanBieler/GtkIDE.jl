@@ -26,7 +26,7 @@ gtk-xft-rgba = rgb)")
 end
 
 ## globals
-global style = style_scheme(@GtkSourceStyleSchemeManager(),"zenburn")
+global style = style_scheme(@GtkSourceStyleSchemeManager(),"autumn")
 global languageDef = GtkSourceWidget.language(@GtkSourceLanguageManager(),"julia")
 global fontsize = 13
 
@@ -149,7 +149,7 @@ signal_connect(window_key_press_cb,win, "key-press-event", Cint, (Ptr{Gtk.GdkEve
 function restart(new_workspace=false)
     save(project)
     win_ = win
-    new_workspace && workspace() 
+    new_workspace && workspace()
     include("d:\\Julia\\JuliaIDE\\Main.jl")
     destroy(win_)
 end

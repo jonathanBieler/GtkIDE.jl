@@ -102,6 +102,13 @@ function highlight_cells()
     end
 end
 
+function get_selected_text()
+    t = get_current_tab()
+
+    (found,it_start,it_end) = selection_bounds(t.buffer)
+    return found ? text_iter_get_text(it_start,it_end) : ""
+end
+
 function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
     page = convert(Gtk.GtkWidget, pageptr)
@@ -162,13 +169,19 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == 4 #ctrl
 
-        buffer = getbuffer(textview)
+        cmd = get_selected_text()
 
-        (found,it_start,it_end) = get_cell(buffer)
-        if found
-            cmd = text_iter_get_text(it_start,it_end)
-        else
-            cmd = getproperty(buffer,:text,AbstractString)
+        if cmd == ""
+
+            buffer = getbuffer(textview)
+
+            (found,it_start,it_end) = get_cell(buffer)
+            if found
+                cmd = text_iter_get_text(it_start,it_end)
+            else
+                cmd = getproperty(buffer,:text,AbstractString)
+            end
+
         end
         on_return_terminal(entry,cmd,false)
         return convert(Cint,true)
@@ -221,8 +234,7 @@ function get_current_line_text(buffer::GtkTextBuffer)
     skip(itstart,1,:line)
     text_iter_forward_to_line_end(itend)
 
-    txt = getproperty(buffer,:text,AbstractString)
-    return txt[getproperty(itstart,:offset,Int):getproperty(itend,:offset,Int)]
+    return text_iter_get_text(itstart, itend)
 end
 
 

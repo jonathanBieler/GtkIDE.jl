@@ -1,4 +1,5 @@
 ## special commands that can be called from the console
+# FIXME evaluate in console
 
 type Console_command
 	r::Regex
@@ -38,7 +39,7 @@ add_console_command(r"^ls\s*(.*)",(m) -> begin
 	catch err
 		write(console,sprint(show,err) * "\n")
 	end
-	
+
     clear_entry()
     return true
 end)

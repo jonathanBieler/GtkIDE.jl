@@ -58,8 +58,7 @@ function write(c::Console,s::String)
         wait(c)
         lock(c)
         try
-            insert!(c.buffer,s)
-            Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1),Gtk.GtkTextIter(buffer,length(buffer)+1) )
+            insert!(c.buffer, end_iter(c.buffer),s)
         finally
             unlock(c)
         end
@@ -70,8 +69,7 @@ function write(c::Console,s::String,f::Function)
         wait(c)
         lock(c)
         try
-            insert!(c.buffer,s)
-            Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1),Gtk.GtkTextIter(buffer,length(buffer)+1) )
+            insert!(c.buffer, end_iter(c.buffer),s)
             f()
         finally
             unlock(c)
@@ -105,48 +103,50 @@ entry = console.entry
 textview = console.view
 
 if REDIRECT_STDOUT
-    stdout = STDOUT
-    function send_stream(rd::IO, name::AbstractString)
-        nb = nb_available(rd)
-        if nb > 0
-            d = readbytes(rd, nb)
-            s = try
-                bytestring(d)
-            catch
-                # FIXME: what should we do here?
-                string("<ERROR: invalid UTF8 data ", d, ">")
-            end
-            if !isempty(s)
-                write(console,s)
-            end
+
+stdout = STDOUT
+function send_stream(rd::IO, name::AbstractString)
+    nb = nb_available(rd)
+    if nb > 0
+        d = readbytes(rd, nb)
+        s = try
+            bytestring(d)
+        catch
+            # FIXME: what should we do here?
+            string("<ERROR: invalid UTF8 data ", d, ">")
+        end
+        if !isempty(s)
+            write(console,s)
         end
     end
-
-    function watch_stream(rd::IO, name::AbstractString)
-        try
-            while !eof(rd) # blocks until something is available
-                send_stream(rd, name)
-                sleep(0.05) # a little delay to accumulate output
-            end
-        catch e
-            # the IPython manager may send us a SIGINT if the user
-            # chooses to interrupt the kernel; don't crash on this
-            if isa(e, InterruptException)
-                watch_stream(rd, name)
-            else
-                rethrow()
-            end
-        end
-    end
-
-    global read_stdout
-    read_stdout, wr = redirect_stdout()
-    function watch_stdio()
-        @async watch_stream(read_stdout, "stdout")
-    end
-    watch_stdio()
-    #this makes get_current_line_text crash, probably because it modifies the buffer and render textIters invalid
 end
+
+function watch_stream(rd::IO, name::AbstractString)
+    try
+        while !eof(rd) # blocks until something is available
+            send_stream(rd, name)
+            sleep(0.05) # a little delay to accumulate output
+        end
+    catch e
+        # the IPython manager may send us a SIGINT if the user
+        # chooses to interrupt the kernel; don't crash on this
+        if isa(e, InterruptException)
+            watch_stream(rd, name)
+        else
+            rethrow()
+        end
+    end
+end
+
+global read_stdout
+read_stdout, wr = redirect_stdout()
+function watch_stdio()
+    @async watch_stream(read_stdout, "stdout")
+end
+watch_stdio()
+#this makes get_current_line_text crash, probably because it modifies the buffer and render textIters invalid
+
+end#REDIRECT_STDOUT
 
 include("CommandHistory.jl")
 history = setup_history()
@@ -216,7 +216,7 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     cmd = getproperty(widget,:text,AbstractString)
     cmd = strip(cmd)
-    
+
     pos = getproperty(entry,:cursor_position,Int)
     prefix = length(cmd) >= pos ? cmd[1:pos] : ""
 
@@ -227,7 +227,7 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if event.keyval == Gtk.GdkKeySyms.Return
         on_return_terminal(widget,cmd,true)
     end
-    
+
     if event.keyval == Gtk.GdkKeySyms.Up
 
         !history_up(history,prefix,cmd) && return convert(Cint,true)
@@ -255,12 +255,11 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 end
 signal_connect(entry_key_press_cb, entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
+ # signal_connect(entry, "grab-notify") do widget
+#     println(widget, "lose focus")
+# end
 
-signal_connect(entry, "grab-notify") do widget
-    println(widget, "lose focus")
-end
-
-#print completions in console, todo: adjust with console width
+#print completions in console, FIXME: adjust with console width
 function show_completions(comp,dotpos,widget,cmd)
     @schedule begin
         wait(console)

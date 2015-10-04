@@ -67,6 +67,18 @@ function show_iter(it::MutableGtkTextIter,buffer::GtkTextBuffer,color::Int)
     Gtk.apply_tag(buffer, color > 0 ? "debug1" : "debug2",it, it+1)
 end
 
+function selection_bounds(buffer::Gtk.GtkTextBuffer)
+    its = mutable(Gtk.GtkTextIter(buffer))
+    ite = mutable(Gtk.GtkTextIter(buffer))
+    return (convert(Bool,ccall((:gtk_text_buffer_get_selection_bounds,Gtk.libgtk),Cint,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),buffer,its,ite)),its,ite)
+end
+
+function end_iter(buffer::Gtk.GtkTextBuffer)
+    iter = Gtk.mutable(Gtk.GtkTextIter)
+    ccall((:gtk_text_buffer_get_end_iter,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter}),buffer,iter)
+    return iter
+end
+
 text_buffer_place_cursor(buffer::GtkTextBuffer,it::MutableGtkTextIter)  = ccall((:gtk_text_buffer_place_cursor,  Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter}),buffer,it)
 text_buffer_place_cursor(buffer::GtkTextBuffer,pos::Int) = text_buffer_place_cursor(srcbuffer,mutable(Gtk.GtkTextIter(srcbuffer,pos)))
 text_buffer_place_cursor(buffer::GtkTextBuffer,it::Gtk.GtkTextIter) = text_buffer_place_cursor(srcbuffer,mutable(it))
