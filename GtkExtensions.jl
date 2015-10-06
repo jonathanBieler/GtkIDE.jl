@@ -13,7 +13,6 @@
 grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , Gtk.libgtk),Void,(Ptr{Gtk.GObject},),w)
 
 
-
 ##
 baremodule GdkModifierType
     const SHIFT		= Main.Base.convert(Int32,1)
@@ -83,6 +82,8 @@ text_buffer_place_cursor(buffer::GtkTextBuffer,it::MutableGtkTextIter)  = ccall(
 text_buffer_place_cursor(buffer::GtkTextBuffer,pos::Int) = text_buffer_place_cursor(srcbuffer,mutable(Gtk.GtkTextIter(srcbuffer,pos)))
 text_buffer_place_cursor(buffer::GtkTextBuffer,it::Gtk.GtkTextIter) = text_buffer_place_cursor(srcbuffer,mutable(it))
 
+## TextView
+
 get_iter_at_position(text_view::Gtk.GtkTextView,iter::MutableGtkTextIter,trailing,x::Int32,y::Int32) = ccall((:gtk_text_view_get_iter_at_position,Gtk.libgtk),Void,
 	(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Cint},Cint,Cint),text_view,iter,trailing,x,y)
 
@@ -104,6 +105,12 @@ function text_view_window_to_buffer_coords(text_view::Gtk.GtkTextView,wintype::I
 end
 
 text_view_window_to_buffer_coords(text_view::Gtk.GtkTextView,window_x::Int,window_y::Int) = text_view_window_to_buffer_coords(text_view,2,window_x,window_y)
+
+scroll_to_iter(text_view::Gtk.GtkTextView,iter::GtkTextIters,within_margin::Number,use_align::Bool,xalign::Number,yalign::Number) = ccall((:gtk_text_view_scroll_to_iter,Gtk.libgtk),Cint,
+	(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Cdouble,Cint,Cdouble,Cdouble),
+    text_view,iter,within_margin,use_align,xalign,yalign)
+
+scroll_to_iter(text_view::Gtk.GtkTextView,iter::GtkTextIters) = scroll_to_iter(text_view,iter,0.0,true,1.0,0.1)
 
 # notebook
 get_current_page_idx(notebook::Gtk.GtkNotebook) = ccall((:gtk_notebook_get_current_page,Gtk.libgtk),Cint,

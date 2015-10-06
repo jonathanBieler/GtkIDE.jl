@@ -19,7 +19,6 @@ function update!(w::Project)
             push!(w.files,t.filename)
         end
     end
-
 end
 
 function save(w::Project)
@@ -35,7 +34,6 @@ function load(w::Project)
         w.path = pwd()
         return
     end
-
     j = JSON.parsefile(HOMEDIR * "config\\project")
     w.path = j["path"]
     w.files = j["files"]

@@ -1,5 +1,6 @@
 #todo : filename should save the full path
 
+extension(f::AbstractString) = splitext(f)[2]
 
 global sourcemap = @GtkSourceMap()
 global ntbook = @GtkNotebook()
@@ -14,9 +15,11 @@ type EditorTab <: GtkScrolledWindow
     filename::AbstractString
     modified::Bool
 
-    function EditorTab()
+    function EditorTab(filename::AbstractString)
 
-        b = @GtkSourceBuffer(languageDef)
+        lang = haskey(languageDefinitions,extension(filename)) ? languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
+
+        b = @GtkSourceBuffer(lang)
         setproperty!(b,:style_scheme,style)
         v = @GtkSourceView(b)
 
@@ -33,9 +36,10 @@ type EditorTab <: GtkScrolledWindow
         sc = @GtkScrolledWindow()
         push!(sc,v)
 
-        t = new(sc.handle,v,b,"",false)
+        t = new(sc.handle,v,b,filename,false)
         Gtk.gobject_move_ref(t, sc)
     end
+    EditorTab() = EditorTab("")
 end
 
 function set_text!(t::EditorTab,text::AbstractString)
@@ -74,8 +78,8 @@ in
 save_current_tab() = save(get_current_tab())
 
 function open_in_new_tab(filename::AbstractString)
-    add_tab()
     filename = ispath(filename) ? filename : joinpath(pwd(),filename)
+    add_tab(filename)
     open(get_current_tab(),filename)
 end
 
@@ -85,10 +89,8 @@ function set_font(t::EditorTab)
 end
 
 function get_cell(buffer::GtkTextBuffer)
-
     (foundb,itb_start,itb_end) = text_iter_backward_search(buffer,"##")
     (foundf,itf_start,itf_end) = text_iter_forward_search(buffer,"##")
-
      return((foundf == 1 && foundb == 1), itb_start, itf_end)
 end
 
@@ -104,7 +106,6 @@ end
 
 function get_selected_text()
     t = get_current_tab()
-
     (found,it_start,it_end) = selection_bounds(t.buffer)
     return found ? text_iter_get_text(it_start,it_end) : ""
 end
@@ -144,7 +145,6 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if event.keyval == keyval("s") && Int(event.state) == GdkModifierType.CONTROL
         save_current_tab()
     end
-
     if event.keyval == keyval("w") && Int(event.state) == GdkModifierType.CONTROL
         close_tab()
         save(project)
@@ -153,7 +153,6 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         add_tab()
         save(project)
     end
-
     if event.keyval == keyval("d") && Int(event.state) == GdkModifierType.CONTROL
         show_data_hint(textview)
     end
@@ -170,11 +169,9 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == 4 #ctrl
 
         cmd = get_selected_text()
-
         if cmd == ""
 
             buffer = getbuffer(textview)
-
             (found,it_start,it_end) = get_cell(buffer)
             if found
                 cmd = text_iter_get_text(it_start,it_end)
@@ -222,10 +219,12 @@ function show_data_hint(textview::GtkTextView)
     end
 end
 
+get_text_iter_at_cursor(buffer::GtkTextBuffer) = Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))
+
 function get_current_line_text(buffer::GtkTextBuffer)
 
-    itstart = Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int)) #select current line
-    itend = Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int)) #select current line
+    itstart = get_text_iter_at_cursor(buffer)
+    itend = get_text_iter_at_cursor(buffer)
 
     itstart = Gtk.GLib.MutableTypes.mutable(itstart)
     itend = Gtk.GLib.MutableTypes.mutable(itend)
@@ -237,9 +236,8 @@ function get_current_line_text(buffer::GtkTextBuffer)
     return text_iter_get_text(itstart, itend)
 end
 
-
-function add_tab()
-    t = EditorTab();
+function add_tab(filename::AbstractString)
+    t = EditorTab(filename);
 
     idx = get_current_page_idx(ntbook)+1
     insert!(ntbook, idx, t, "Page $idx")
@@ -253,15 +251,12 @@ function add_tab()
     signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
 end
 
-#open_in_new_tab("d:\\Julia\\JuliaIDE\\repl.jl")
-#open_in_new_tab("d:\\Julia\\JuliaIDE\\Editor.jl")
-
 for f in project.files
     open_in_new_tab(f)
 end
 
 if length(ntbook)==0
-    add_tab()
+    add_tab("unnamed")
 end
 
 t = get_current_tab()

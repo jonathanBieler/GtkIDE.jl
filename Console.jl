@@ -39,6 +39,7 @@ type Console <: GtkScrolledWindow
     end
 end
 
+import Base: lock, unlock, wait
 function lock(c::Console)
     c.locked = true
 end

@@ -27,7 +27,9 @@ end
 
 ## globals
 global style = style_scheme(@GtkSourceStyleSchemeManager(),"autumn")
-global languageDef = GtkSourceWidget.language(@GtkSourceLanguageManager(),"julia")
+global languageDefinitions = Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}()
+languageDefinitions[".jl"] = GtkSourceWidget.language(@GtkSourceLanguageManager(),"julia")
+languageDefinitions[".md"] = GtkSourceWidget.language(@GtkSourceLanguageManager(),"markdown")
 global fontsize = 13
 
 fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
