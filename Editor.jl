@@ -147,12 +147,9 @@ import GtkSourceWidget.set_search_text
 set_search_text(s::AbstractString) = set_search_text(search_settings,s)
 
 
-function search_entry_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+function search_entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     widget = convert(GtkEntry, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
-
-    s = getproperty(widget,:text,AbstractString) #FIXME this should be later
-    set_search_text(s)
 
     if event.keyval == Gtk.GdkKeySyms.Escape
         set_search_text("")
@@ -180,6 +177,15 @@ function search_entry_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)
 end
 
+function search_entry_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+    widget = convert(GtkEntry, widgetptr)
+
+    s = getproperty(widget,:text,AbstractString)
+    set_search_text(s)
+
+    return convert(Cint,false)
+end
+
 #FIXME put this somewhere else
 search_window = @GtkWindow("search",200,50) |>
     (search_entry = @GtkEntry())
@@ -192,7 +198,8 @@ function open_search_window(s::AbstractString)
     grab_focus(search_entry)
     showall(search_window)
 
-    signal_connect(search_entry_cb, search_entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+    signal_connect(search_entry_key_press_cb, search_entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+    signal_connect(search_entry_key_release_cb, search_entry, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 end
 
 function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
@@ -326,7 +333,6 @@ end
 
 t = get_current_tab()
 set_view(sourcemap,t.view)
-
 
 # for i = 1:2
 #     add_tab()

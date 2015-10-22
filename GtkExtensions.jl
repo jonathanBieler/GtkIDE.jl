@@ -13,7 +13,6 @@
 grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , Gtk.libgtk),Void,(Ptr{Gtk.GObject},),w)#this should work?
 grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , Gtk.libgtk),Void,(Ptr{Gtk.GObject},),w)
 
-
 ##
 baremodule GdkModifierType
     const SHIFT		= Main.Base.convert(Int32,1)

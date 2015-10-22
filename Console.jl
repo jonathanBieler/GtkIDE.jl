@@ -99,7 +99,6 @@ end
 
 # FIXME remove all these variables
 console = Console()
-buffer = console.buffer
 entry = console.entry
 textview = console.view
 
@@ -161,6 +160,7 @@ include("ConsoleCommands.jl")
 function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
 
     cmd = strip(cmd)
+    buffer = console.buffer
 
     history_add(history,cmd)
     history_seek_end(history)
@@ -222,7 +222,7 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     prefix = length(cmd) >= pos ? cmd[1:pos] : ""
 
     if Int(event.keyval) == 99 && Int(event.state) == 4 #ctrl+c
-        text_buffer_copy_clipboard(buffer,clip)
+        text_buffer_copy_clipboard(console.buffer,clip)
     end
 
     if event.keyval == Gtk.GdkKeySyms.Return
@@ -281,7 +281,7 @@ function show_completions(comp,dotpos,widget,cmd)
                 end
             end
             out = out * "\n"
-            insert!(buffer,out)
+            insert!(console.buffer,out)
             out = prefix * Base.LineEdit.common_prefix(comp)
             setproperty!(widget,:text,out)
             set_position!(widget,endof(out))

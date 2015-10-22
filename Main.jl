@@ -156,58 +156,6 @@ function restart(new_workspace=false)
     destroy(win_)
 end
 
-## reloading functions stuff
-function parseall(str)
-    pos = start(str)
-    exs = []
-    while !done(str, pos)
-        ex, pos = parse(str, pos)
-        push!(exs, ex)
-    end
-    if length(exs) == 0
-        throw(ParseError("end of input"))
-    elseif length(exs) == 1
-        return exs[1]
-    else
-        return Expr(:block, exs...)
-    end
-end
-
-function re()
-    files = ["Main.jl","Editor.jl","Console.jl"]
-    for f in files re(f) end
-    update_cb()
-end
-function re(filename::String)
-    s = open("d:\\Julia\\JuliaIDE\\" * filename) do io
-         readall(io)
-    end
-    ex = parseall(s)
-    reloadfunc(ex.args)
-end
-function reloadfunc(ex::Array{Any,1})
-    for e in ex
-        reloadfunc(e)
-    end
-end
-function reloadfunc(ex::Expr)
-    if ex.head == :function
-        eval(Main,ex)
-        #println(string(ex.args[1].args[1]))
-    elseif ex.head == :call && ex.args[1] == :signal_connect
-        eval(Main,ex)
-    else
-        reloadfunc(ex.args)
-    end
-end
-reloadfunc(s) = nothing
-function update_cb()
-    #just update the current tab
-    t = get_current_tab()
-    signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-    nothing
-end
-
 #end#module
 
 #importall J
