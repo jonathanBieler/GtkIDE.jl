@@ -7,6 +7,9 @@ global ntbook = @GtkNotebook()
     setproperty!(ntbook,:scrollable, true)
     setproperty!(ntbook,:enable_popup, true)
 
+global search_settings = @GtkSourceSearchSettings()
+setproperty!(search_settings,:wrap_around,true)
+
 type EditorTab <: GtkScrolledWindow
 
     handle::Ptr{Gtk.GObject}
@@ -14,6 +17,8 @@ type EditorTab <: GtkScrolledWindow
     buffer::GtkSourceBuffer
     filename::AbstractString
     modified::Bool
+    search_context::GtkSourceSearchContext
+    search_mark
 
     function EditorTab(filename::AbstractString)
 
@@ -36,7 +41,10 @@ type EditorTab <: GtkScrolledWindow
         sc = @GtkScrolledWindow()
         push!(sc,v)
 
-        t = new(sc.handle,v,b,filename,false)
+        search_con = @GtkSourceSearchContext(b,search_settings)
+        highlight(search_con,true)
+
+        t = new(sc.handle,v,b,filename,false,search_con,nothing)
         Gtk.gobject_move_ref(t, sc)
     end
     EditorTab() = EditorTab("")
@@ -135,6 +143,58 @@ function close_tab()
     set_current_page_idx(ntbook,max(idx-1,0))
 end
 
+import GtkSourceWidget.set_search_text
+set_search_text(s::AbstractString) = set_search_text(search_settings,s)
+
+
+function search_entry_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+    widget = convert(GtkEntry, widgetptr)
+    event = convert(Gtk.GdkEvent, eventptr)
+
+    s = getproperty(widget,:text,AbstractString) #FIXME this should be later
+    set_search_text(s)
+
+    if event.keyval == Gtk.GdkKeySyms.Escape
+        set_search_text("")
+        visible(search_window,false)
+    end
+
+    if event.keyval == Gtk.GdkKeySyms.Return
+
+        t = get_current_tab()
+        if t.search_mark == nothing
+            t.search_mark = text_buffer_create_mark(t.buffer,Gtk.GtkTextIter(t.buffer,1))#search from the start
+        end
+
+        it = text_buffer_get_iter_at_mark(t.buffer,t.search_mark)
+        it = Gtk.GtkTextIter(t.buffer, getproperty(it,:offset,Int))#FIXME need unmutable here?
+        (found,its,ite) = search_context_forward(t.search_context,it)
+
+        if found
+            scroll_to_iter(t.view,its)
+            t.search_mark  = text_buffer_create_mark(t.buffer,ite)#save the position for next search
+        end
+
+    end
+
+    return convert(Cint,false)
+end
+
+#FIXME put this somewhere else
+search_window = @GtkWindow("search",200,50) |>
+    (search_entry = @GtkEntry())
+visible(search_window,false)
+Gtk.G_.keep_above(search_window,true)
+
+function open_search_window(s::AbstractString)
+
+    visible(search_window,true)
+    grab_focus(search_entry)
+    showall(search_window)
+
+    signal_connect(search_entry_cb, search_entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+end
+
 function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     #note use write(console,...) here and not print or @show
@@ -156,6 +216,10 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if event.keyval == keyval("d") && Int(event.state) == GdkModifierType.CONTROL
         show_data_hint(textview)
     end
+    if event.keyval == keyval("f") && Int(event.state) == GdkModifierType.CONTROL
+        open_search_window("")
+    end
+
 
     if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == (GdkModifierType.CONTROL + GdkModifierType.SHIFT)
 
@@ -250,13 +314,14 @@ function add_tab(filename::AbstractString)
 
     signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
 end
+add_tab() = add_tab("untitled")
 
 for f in project.files
     open_in_new_tab(f)
 end
 
 if length(ntbook)==0
-    add_tab("unnamed")
+    add_tab()
 end
 
 t = get_current_tab()
