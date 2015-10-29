@@ -217,6 +217,10 @@ function open_method(textview::GtkTextView)
         tv, decls, file, line = Base.arg_decl_parts(value.defs)
         file = string(file)
 
+        file = ispath(file) ? file : joinpath( joinpath(splitdir(JULIA_HOME)[1],"share\\julia\\base"), file)
+
+        @show file
+
         if ispath(file)
             t = open_in_new_tab(file)
 
@@ -441,4 +445,3 @@ set_view(sourcemap,t.view)
 #     end
 # ##
 # ")
-
