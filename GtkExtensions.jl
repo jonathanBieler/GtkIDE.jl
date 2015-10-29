@@ -8,6 +8,8 @@
 # using Gtk
 # const libgtk = Gtk.Gtk.libgtk
 
+import ..Gtk: suffix
+
 ## Widget
 
 grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , Gtk.libgtk),Void,(Ptr{Gtk.GObject},),w)#this should work?
@@ -141,11 +143,44 @@ Ptr{Gtk.GObject},Ptr{Uint8}),notebook,child,tab_text)
 ## entry
 
 function set_position!(editable::Gtk.Entry,position_)
-    ccall((:gtk_editable_set_position,Gtk.Gtk.libgtk),Void,(Ptr{Gtk.GObject},Cint),editable,position_)
+    ccall((:gtk_editable_set_position,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Cint),editable,position_)
 end
 
-## clipboard
-text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:gtk_text_buffer_copy_clipboard,  Gtk.Gtk.libgtk),Void,
+#####  GtkClipboard #####
+
+Gtk.@gtktype GtkClipboard
+
+baremodule GdkAtoms
+    const NONE = 0x0000
+    const SELECTION_PRIMARY = 0x0001
+    const SELECTION_SECONDARY = 0x0002
+    const SELECTION_TYPE_ATOM = 0x0004
+    const SELECTION_TYPE_BITMAP = 0x0005
+    const SELECTION_TYPE_COLORMAP = 0x0007
+    const SELECTION_TYPE_DRAWABLE = 0x0011
+    const SELECTION_TYPE_INTEGER = 0x0013
+    const SELECTION_TYPE_PIXMAP = 0x0014
+    const SELECTION_TYPE_STRING = 0x001f
+    const SELECTION_TYPE_WINDOW = 0x0021
+    const SELECTION_CLIPBOARD = 0x0045
+end
+
+GtkClipboardLeaf(selection::Uint16) =  GtkClipboardLeaf(ccall((:gtk_clipboard_get,Gtk.libgtk), Ptr{GObject},
+    (Uint16,), selection))
+GtkClipboardLeaf() = GtkClipboardLeaf(GdkAtoms.SELECTION_CLIPBOARD)
+clipboard_set_text(clip::GtkClipboard,text::String) = ccall((:gtk_clipboard_set_text,Gtk.libgtk), Void,
+    (Ptr{GObject}, Ptr{Uint8},Cint), clip, text, sizeof(text))
+clipboard_store(clip::GtkClipboard) = ccall((:gtk_clipboard_store,Gtk.libgtk), Void,
+    (Ptr{GObject},), clip)
+
+#note: this needs main_loops to run
+function clipboard_wait_for_text(clip::GtkClipboard)
+    ptr = ccall((:gtk_clipboard_wait_for_text,Gtk.libgtk), Ptr{Uint8},
+        (Ptr{GObject},), clip)
+    return ptr == C_NULL ? "" : bytestring(ptr)
+end
+
+text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:gtk_text_buffer_copy_clipboard, Gtk.libgtk),Void,
     (Ptr{GObject},Ptr{GObject}),buffer,clip)
 
 

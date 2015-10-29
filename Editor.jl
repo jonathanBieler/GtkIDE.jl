@@ -87,8 +87,9 @@ save_current_tab() = save(get_current_tab())
 
 function open_in_new_tab(filename::AbstractString)
     filename = ispath(filename) ? filename : joinpath(pwd(),filename)
-    add_tab(filename)
-    open(get_current_tab(),filename)
+    t = add_tab(filename)
+    open(t,filename)
+    return t
 end
 
 function set_font(t::EditorTab)
@@ -202,6 +203,47 @@ function open_search_window(s::AbstractString)
     signal_connect(search_entry_key_release_cb, search_entry, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 end
 
+#FIXME need to take into account module
+# Base functions
+function open_method(textview::GtkTextView)
+
+    word = get_word_under_cursor(textview)
+
+    try
+        ex = parse(word)
+        value = eval(Main,ex)
+        value = typeof(value) == Function ? methods(value) : value
+
+        tv, decls, file, line = Base.arg_decl_parts(value.defs)
+        file = string(file)
+
+        if ispath(file)
+            t = open_in_new_tab(file)
+
+            iter = mutable(Gtk.GtkTextIter(t.buffer))
+            setproperty!(iter,:line,line)
+
+            @schedule begin
+                sleep(0.5)
+                scroll_to_iter(t.view,iter)
+            end
+        end
+    end
+
+end
+
+function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+    textview = convert(GtkTextView, widgetptr)
+    event = convert(Gtk.GdkEvent, eventptr)
+
+    if Int(event.button) == 1 && Int(event.state) == GdkModifierType.CONTROL
+        open_method(textview)
+    end
+
+    return convert(Cint,false)#false : propagate
+end
+
+
 function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     #note use write(console,...) here and not print or @show
@@ -258,7 +300,29 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)#false : propagate
 end
 
-function show_data_hint(textview::GtkTextView)
+can_extend_backward(iter) = text_iter_get_text(iter, iter-1) == "_"
+can_extend_forward(iter) = text_iter_get_text(iter+1, iter) == "_"
+
+#this is a bit brittle
+function extend_word(iter_start,iter_end)
+
+    while can_extend_backward(iter_start)
+        iter_start = iter_start - 2
+        text_iter_backward_word_start(iter_start)
+    end
+    while can_extend_forward(iter_end)
+        iter_end = iter_end + 2
+        text_iter_forward_word_end(iter_end)
+    end
+
+    if text_iter_get_text(iter_end+1, iter_end) == "!"
+        iter_end = iter_end + 1
+    end
+
+    return (iter_start,iter_end)
+end
+
+function get_word_under_cursor(textview::GtkTextView)
 
     (x,y) = text_view_window_to_buffer_coords(textview,mousepos[1],mousepos[2])
     iter_end = get_iter_at_position(textview,x,y)
@@ -267,7 +331,15 @@ function show_data_hint(textview::GtkTextView)
     getproperty(iter_start,:ends_word,Bool) ? nothing : text_iter_forward_word_end(iter_end)
     getproperty(iter_start,:starts_word,Bool) ? nothing : text_iter_backward_word_start(iter_start)
 
+    (iter_start,iter_end) = extend_word(iter_start,iter_end)
+
     word = text_iter_get_text(iter_end, iter_start)
+    return word
+end
+
+function show_data_hint(textview::GtkTextView)
+
+    word = get_word_under_cursor(textview)
 
     try
       ex = parse(word)
@@ -320,6 +392,8 @@ function add_tab(filename::AbstractString)
     set_font(t)
 
     signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
+    signal_connect(tab_button_press_cb,t.view , "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+    return t
 end
 add_tab() = add_tab("untitled")
 
@@ -367,3 +441,4 @@ set_view(sourcemap,t.view)
 #     end
 # ##
 # ")
+
