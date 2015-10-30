@@ -14,3 +14,4 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 ## Issues
 
 - Print commands and error are sent to the Julia REPL by default.
+- Too many issues to list.
