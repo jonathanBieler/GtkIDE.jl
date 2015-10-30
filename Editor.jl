@@ -261,8 +261,12 @@ function editor_autocomplete(view::GtkTextView)
     end
 
     cmd = ""
-    if getproperty(itstart,:starts_word,Bool)
+    if getproperty(itstart,:starts_word,Bool)#FIXME I need my own word start definition to avoid this mess
         cmd = text_iter_get_text(itstart-1,itend)
+        if can_extend_backward(itstart)
+            itstart = extend_word_backward(itstart)
+            cmd = text_iter_get_text(itstart,itend)
+        end
     else
         text_iter_backward_word_start(itstart)
         itstart = extend_word_backward(itstart)
@@ -271,18 +275,23 @@ function editor_autocomplete(view::GtkTextView)
     end
 
     (comp,dotpos) = completions(cmd, endof(cmd))
-
-    dotpos = dotpos.start
-    prefix = dotpos > 1 ? cmd[1:dotpos-1] : ""
-
+    @show cmd
     @show comp
 
-    if(length(comp)>1)
+    isempty(comp) && return convert(Cint, true)
 
-    elseif !isempty(comp)
-        text_buffer_delete(buffer,itstart,itend)
-        insert!(buffer,itstart,comp[1])
+    dotpos_ = dotpos
+    dotpos = dotpos.start
+    prefix = dotpos > 1 ? cmd[1:dotpos-1] : "" #FIXME: redundant with the console code
+    out = ""
+    if(length(comp)>1)
+        show_completions(comp,dotpos_,nothing,cmd) ##FIXME need a window here
+        out = prefix * Base.LineEdit.common_prefix(comp)
+    else
+        out = prefix * comp[1]
     end
+    text_buffer_delete(buffer,itstart,itend)
+    insert!(buffer,itstart,out)
 
     return convert(Cint, true)
 end

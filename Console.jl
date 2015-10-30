@@ -262,6 +262,8 @@ signal_connect(entry_key_press_cb, entry, "key-press-event", Cint, (Ptr{Gtk.GdkE
 
 #print completions in console, FIXME: adjust with console width
 function show_completions(comp,dotpos,widget,cmd)
+
+    isempty(comp) && return
     @schedule begin
         wait(console)
         lock(console)
@@ -283,12 +285,11 @@ function show_completions(comp,dotpos,widget,cmd)
             out = out * "\n"
             insert!(console.buffer,out)
             out = prefix * Base.LineEdit.common_prefix(comp)
-            setproperty!(widget,:text,out)
-            set_position!(widget,endof(out))
-
-        elseif !isempty(comp)
-
+        else
             out = prefix * comp[1]
+        end
+
+        if widget != nothing
             setproperty!(widget,:text,out)
             set_position!(widget,endof(out))
         end
