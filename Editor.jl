@@ -78,11 +78,12 @@ function save(t::EditorTab)
         f = Base.open(t.filename,"w")
         write(f,get_text(t))
         write(console,"saved $(t.filename)")
+        close(f)
     catch err
         @show err
     end
 end
-in
+
 save_current_tab() = save(get_current_tab())
 
 function open_in_new_tab(filename::AbstractString)
@@ -204,7 +205,7 @@ function open_search_window(s::AbstractString)
 end
 
 #FIXME need to take into account module
-# Base functions
+#set the cursos position ?
 function open_method(textview::GtkTextView)
 
     word = get_word_under_cursor(textview)
@@ -247,6 +248,44 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)#false : propagate
 end
 
+function editor_autocomplete(view::GtkTextView)
+
+    buffer = getproperty(view,:buffer,GtkTextBuffer)
+
+    itstart = mutable( get_text_iter_at_cursor(buffer) )
+    itend = mutable( get_text_iter_at_cursor(buffer) ) +1
+
+    c = text_iter_get_text(itstart,itend)
+    if c == " " || c == "\n" || c == "\t" || c == "" #we go back to normal tab behavior if there's nothing on the left of the cursor
+        return convert(Cint, false)
+    end
+
+    cmd = ""
+    if getproperty(itstart,:starts_word,Bool)
+        cmd = text_iter_get_text(itstart-1,itend)
+    else
+        text_iter_backward_word_start(itstart)
+        itstart = extend_word_backward(itstart)
+
+        cmd = text_iter_get_text(itstart,itend)
+    end
+
+    (comp,dotpos) = completions(cmd, endof(cmd))
+
+    dotpos = dotpos.start
+    prefix = dotpos > 1 ? cmd[1:dotpos-1] : ""
+
+    @show comp
+
+    if(length(comp)>1)
+
+    elseif !isempty(comp)
+        text_buffer_delete(buffer,itstart,itend)
+        insert!(buffer,itstart,comp[1])
+    end
+
+    return convert(Cint, true)
+end
 
 function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
@@ -272,7 +311,9 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if event.keyval == keyval("f") && Int(event.state) == GdkModifierType.CONTROL
         open_search_window("")
     end
-
+    if event.keyval == Gtk.GdkKeySyms.Tab
+        return editor_autocomplete(textview)
+    end
 
     if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == (GdkModifierType.CONTROL + GdkModifierType.SHIFT)
 
@@ -283,7 +324,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         return convert(Cint,true)
     end
 
-    if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == 4 #ctrl
+    if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == GdkModifierType.CONTROL
 
         cmd = get_selected_text()
         if cmd == ""
@@ -308,12 +349,17 @@ can_extend_backward(iter) = text_iter_get_text(iter, iter-1) == "_"
 can_extend_forward(iter) = text_iter_get_text(iter+1, iter) == "_"
 
 #this is a bit brittle
-function extend_word(iter_start,iter_end)
+function extend_word_backward(iter_start)
 
     while can_extend_backward(iter_start)
         iter_start = iter_start - 2
         text_iter_backward_word_start(iter_start)
     end
+    return iter_start
+end
+
+function extend_word_forward(iter_end)
+
     while can_extend_forward(iter_end)
         iter_end = iter_end + 2
         text_iter_forward_word_end(iter_end)
@@ -322,8 +368,7 @@ function extend_word(iter_start,iter_end)
     if text_iter_get_text(iter_end+1, iter_end) == "!"
         iter_end = iter_end + 1
     end
-
-    return (iter_start,iter_end)
+    return iter_end
 end
 
 function get_word_under_cursor(textview::GtkTextView)
@@ -335,7 +380,8 @@ function get_word_under_cursor(textview::GtkTextView)
     getproperty(iter_start,:ends_word,Bool) ? nothing : text_iter_forward_word_end(iter_end)
     getproperty(iter_start,:starts_word,Bool) ? nothing : text_iter_backward_word_start(iter_start)
 
-    (iter_start,iter_end) = extend_word(iter_start,iter_end)
+    iter_start = extend_word_backward(iter_start)
+    iter_end = extend_word_forward(iter_end)
 
     word = text_iter_get_text(iter_end, iter_start)
     return word
@@ -443,5 +489,8 @@ set_view(sourcemap,t.view)
 #         )
 #         drawnow()
 #     end
+# ##
+# ")
+# end
 # ##
 # ")

@@ -95,6 +95,9 @@ function text_buffer_get_iter_at_mark(buffer::GtkTextBuffer,mark::GtkTextMark)
     return iter
 end
 
+text_buffer_delete(buffer::GtkTextBuffer,itstart::GtkTextIters,itend::GtkTextIters)  = ccall((:gtk_text_buffer_delete,  Gtk.libgtk),Void,
+(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),buffer,itstart,itend)
+
 ## TextView
 
 get_iter_at_position(text_view::Gtk.GtkTextView,iter::MutableGtkTextIter,trailing,x::Int32,y::Int32) = ccall((:gtk_text_view_get_iter_at_position,Gtk.libgtk),Void,
