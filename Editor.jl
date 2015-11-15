@@ -286,6 +286,9 @@ function editor_autocomplete(view::GtkTextView)
     out = ""
     if(length(comp)>1)
         show_completions(comp,dotpos_,nothing,cmd) ##FIXME need a window here
+
+        show_completion_window(comp,view)
+
         out = prefix * Base.LineEdit.common_prefix(comp)
     else
         out = prefix * comp[1]
@@ -294,6 +297,39 @@ function editor_autocomplete(view::GtkTextView)
     insert!(buffer,itstart,out)
 
     return convert(Cint, true)
+end
+
+function show_completion_window(comp,view)
+
+
+    ls = @GtkListStore(AbstractString)
+    for c in comp
+        push!(ls,(c,))
+    end
+    tv = @GtkTreeView(GtkTreeModel(ls))
+    r1 = @GtkCellRendererText()
+    c1 = @GtkTreeViewColumn("", r1, Dict([("text",0)]))
+    setproperty!(tv,:headers_visible,false)
+    push!(tv,c1)
+    w = @GtkWindow(tv, "")
+    
+    (x,y,h) = get_cursor_absolute_position(view)
+    Gtk.G_.position(w,x+h,y)
+    showall(w)
+
+end
+
+function get_cursor_absolute_position(view)
+
+    (it,r1,r2) = cursor_locations(view)
+    (x,y) = text_view_buffer_to_window_coords(view,1,r1.x,r1.y)
+    
+    w = Gtk.G_.window(view)
+    
+    (ox,oy) = gdk_window_get_origin(w)
+    
+    return (x+ox, y+oy+r1.height,r1.height)
+    
 end
 
 function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)

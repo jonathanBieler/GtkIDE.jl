@@ -109,7 +109,7 @@ function get_iter_at_position(text_view::Gtk.GtkTextView,x::Integer,y::Integer)
 	 return iter
 end
 
-function text_view_window_to_buffer_coords(text_view::Gtk.GtkTextView,wintype::Int,window_x::Int,window_y::Int)
+function text_view_window_to_buffer_coords(text_view::Gtk.GtkTextView,wintype::Integer,window_x::Integer,window_y::Integer)
 
 	buffer_x = Gtk.mutable(Cint)
 	buffer_y = Gtk.mutable(Cint)
@@ -119,8 +119,29 @@ function text_view_window_to_buffer_coords(text_view::Gtk.GtkTextView,wintype::I
 
 	return (buffer_x[],buffer_y[])
 end
+text_view_window_to_buffer_coords(text_view::Gtk.GtkTextView,window_x::Integer,window_y::Integer) = text_view_window_to_buffer_coords(text_view,2,window_x,window_y)
 
-text_view_window_to_buffer_coords(text_view::Gtk.GtkTextView,window_x::Int,window_y::Int) = text_view_window_to_buffer_coords(text_view,2,window_x,window_y)
+function text_view_buffer_to_window_coords(text_view::Gtk.GtkTextView,wintype::Integer,buffer_x::Integer,buffer_y::Integer)
+
+	window_x = Gtk.mutable(Cint)
+	window_y = Gtk.mutable(Cint)
+
+	ccall((:gtk_text_view_buffer_to_window_coords,Gtk.libgtk),Void,
+		(Ptr{Gtk.GObject},Cint,Cint,Cint,Ptr{Cint},Ptr{Cint}),text_view,Int32(wintype),buffer_x,buffer_y,window_x,window_y)
+
+	return (window_x[],window_y[])
+end
+text_view_buffer_to_window_coords(text_view::Gtk.GtkTextView,buffer_x::Integer,buffer_y::Integer) = text_view_window_to_buffer_coords(text_view,0,buffer_x,buffer_y)
+
+function cursor_locations(text_view::Gtk.GtkTextView)
+    weak = Gtk.mutable(Gtk.GdkRectangle)
+    strong = Gtk.mutable(Gtk.GdkRectangle)
+    buffer = getproperty(text_view,:buffer,GtkTextBuffer)
+    iter = mutable( Gtk.GtkTextIter(buffer, getproperty(buffer,:cursor_position,Int)) )
+
+    ccall((:gtk_text_view_get_cursor_locations,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GdkRectangle},Ptr{Gtk.GdkRectangle}),text_view,iter,strong,weak)
+    return (iter,strong[],weak[])
+end
 
 scroll_to_iter(text_view::Gtk.GtkTextView,iter::GtkTextIters,within_margin::Number,use_align::Bool,xalign::Number,yalign::Number) = ccall((:gtk_text_view_scroll_to_iter,Gtk.libgtk),Cint,
 	(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Cdouble,Cint,Cdouble,Cdouble),
@@ -206,5 +227,20 @@ function GtkCssProviderFromData(;data=nothing,filename=nothing)
     end
     return provider
 end
+
+## Gdk
+
+function gdk_window_get_origin(window)
+
+	window_x = Gtk.mutable(Cint)
+	window_y = Gtk.mutable(Cint)
+
+	ccall((:gdk_window_get_origin,Gtk.libgdk),Cint,
+		(Ptr{Gtk.GObject},Ptr{Cint},Ptr{Cint}),window,window_x,window_y)
+
+	return (window_x[],window_y[])
+end
+
+
 
 #end#module
