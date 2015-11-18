@@ -42,6 +42,7 @@ global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 #Order matters
 include("Project.jl")
 include("Console.jl")
+include("CompletionWindow.jl")
 include("Editor.jl")
 
 #-

@@ -217,11 +217,7 @@ function open_method(textview::GtkTextView)
 
         tv, decls, file, line = Base.arg_decl_parts(value.defs)
         file = string(file)
-
         file = ispath(file) ? file : joinpath( joinpath(splitdir(JULIA_HOME)[1],"share\\julia\\base"), file)
-
-        @show file
-
         if ispath(file)
             t = open_in_new_tab(file)
 
@@ -229,7 +225,7 @@ function open_method(textview::GtkTextView)
             setproperty!(iter,:line,line)
 
             @schedule begin
-                sleep(0.5)
+                sleep(0.5) #FIXME
                 scroll_to_iter(t.view,iter)
             end
         end
@@ -248,16 +244,14 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)#false : propagate
 end
 
-function editor_autocomplete(view::GtkTextView)
-
-    buffer = getproperty(view,:buffer,GtkTextBuffer)
+function get_autocomplete_cmd(buffer::GtkTextBuffer)
 
     itstart = mutable( get_text_iter_at_cursor(buffer) )
     itend = mutable( get_text_iter_at_cursor(buffer) ) +1
 
     c = text_iter_get_text(itstart,itend)
-    if c == " " || c == "\n" || c == "\t" || c == "" #we go back to normal tab behavior if there's nothing on the left of the cursor
-        return convert(Cint, false)
+    if c == " " || c == "\n" || c == "\t" || c == ""
+        return ("",itstart,itend)
     end
 
     cmd = ""
@@ -273,63 +267,70 @@ function editor_autocomplete(view::GtkTextView)
 
         cmd = text_iter_get_text(itstart,itend)
     end
+    return (cmd,itstart,itend)
+end
+
+function editor_autocomplete(view::GtkTextView,replace=true)
+
+    buffer = getproperty(view,:buffer,GtkTextBuffer)
+
+    (cmd,itstart,itend) = get_autocomplete_cmd(buffer)
+
+    if cmd == ""
+        visible(completion_window,false)
+        return convert(Cint, false)  #we go back to normal behavior if there's nothing on the left of the cursor
+    end
 
     (comp,dotpos) = completions(cmd, endof(cmd))
-    @show cmd
-    @show comp
-
-    isempty(comp) && return convert(Cint, true)
+    if isempty(comp)
+        visible(completion_window,false)
+        return convert(Cint, false)
+    end
 
     dotpos_ = dotpos
     dotpos = dotpos.start
     prefix = dotpos > 1 ? cmd[1:dotpos-1] : "" #FIXME: redundant with the console code
     out = ""
     if(length(comp)>1)
-        show_completions(comp,dotpos_,nothing,cmd) ##FIXME need a window here
-
-        show_completion_window(comp,view)
-
+        #show_completions(comp,dotpos_,nothing,cmd) ##FIXME need a window here
         out = prefix * Base.LineEdit.common_prefix(comp)
     else
-        out = prefix * comp[1]
+        out = prefix * comp[1]        
     end
-    text_buffer_delete(buffer,itstart,itend)
-    insert!(buffer,itstart,out)
+    build_completion_window(comp,view,prefix)
+    replace && replace_text(buffer,itstart,itend,out)
 
     return convert(Cint, true)
 end
 
-function show_completion_window(comp,view)
-
-
-    ls = @GtkListStore(AbstractString)
-    for c in comp
-        push!(ls,(c,))
-    end
-    tv = @GtkTreeView(GtkTreeModel(ls))
-    r1 = @GtkCellRendererText()
-    c1 = @GtkTreeViewColumn("", r1, Dict([("text",0)]))
-    setproperty!(tv,:headers_visible,false)
-    push!(tv,c1)
-    w = @GtkWindow(tv, "")
-    
-    (x,y,h) = get_cursor_absolute_position(view)
-    Gtk.G_.position(w,x+h,y)
-    showall(w)
-
+function replace_text(buffer::GtkTextBuffer,itstart::GtkTextIters,itend::GtkTextIters,str::AbstractString)
+    text_buffer_delete(buffer,itstart,itend)
+    insert!(buffer,itstart,str)
 end
 
+# returns the position of the cursor inside a buffer such that we can position
+# a window there
 function get_cursor_absolute_position(view)
 
     (it,r1,r2) = cursor_locations(view)
     (x,y) = text_view_buffer_to_window_coords(view,1,r1.x,r1.y)
-    
+
     w = Gtk.G_.window(view)
-    
     (ox,oy) = gdk_window_get_origin(w)
-    
+
     return (x+ox, y+oy+r1.height,r1.height)
-    
+
+end
+
+function tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+
+    textview = convert(GtkTextView, widgetptr)
+    event = convert(Gtk.GdkEvent, eventptr)
+    buffer = getbuffer(textview)
+
+    !update_completion_window_release(event,buffer) && return convert(Cint,true)
+
+    return convert(Cint,false)#false : propagate
 end
 
 function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
@@ -338,6 +339,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
+    buffer = getbuffer(textview)
 
     if event.keyval == keyval("s") && Int(event.state) == GdkModifierType.CONTROL
         save_current_tab()
@@ -357,12 +359,13 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         open_search_window("")
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
-        return editor_autocomplete(textview)
+        if !visible(completion_window)
+            return editor_autocomplete(textview)
+        end
     end
 
     if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == (GdkModifierType.CONTROL + GdkModifierType.SHIFT)
 
-        buffer = getbuffer(textview)
         txt = strip(get_current_line_text(buffer))
         on_return_terminal(entry,txt,false)
 
@@ -373,19 +376,18 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
         cmd = get_selected_text()
         if cmd == ""
-
-            buffer = getbuffer(textview)
             (found,it_start,it_end) = get_cell(buffer)
             if found
                 cmd = text_iter_get_text(it_start,it_end)
             else
                 cmd = getproperty(buffer,:text,AbstractString)
             end
-
         end
         on_return_terminal(entry,cmd,false)
         return convert(Cint,true)
     end
+
+    !update_completion_window(event,buffer) && return convert(Cint,true)
 
     return convert(Cint,false)#false : propagate
 end
@@ -487,6 +489,7 @@ function add_tab(filename::AbstractString)
     set_font(t)
 
     signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
+    signal_connect(tab_key_release_cb,t.view , "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(tab_button_press_cb,t.view , "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     return t
 end
