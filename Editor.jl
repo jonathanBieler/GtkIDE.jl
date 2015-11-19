@@ -1,5 +1,8 @@
 #todo : filename should save the full path
 
+include("CompletionWindow.jl")
+include("SearchWindow.jl")
+
 extension(f::AbstractString) = splitext(f)[2]
 
 global sourcemap = @GtkSourceMap()
@@ -60,10 +63,15 @@ get_current_tab() = get_tab(ntbook,get_current_page_idx(ntbook))
 import Base.open
 function open(t::EditorTab, filename::AbstractString)
     try
-        f = Base.open(filename)
-        set_text!(t,readall(f))
+        if isfile(filename)
+            f = Base.open(filename)
+            set_text!(t,readall(f))
+            t.modified = false
+        else
+            f = Base.open(filename,"w")
+            t.modified = true
+        end
         t.filename = filename
-        t.modified = false
         set_tab_label_text(ntbook,t,basename(filename))
         reset_undomanager(t.buffer)#otherwise we can undo loading the file...
         close(f)
@@ -149,61 +157,6 @@ import GtkSourceWidget.set_search_text
 set_search_text(s::AbstractString) = set_search_text(search_settings,s)
 
 
-function search_entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
-    widget = convert(GtkEntry, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
-
-    if event.keyval == Gtk.GdkKeySyms.Escape
-        set_search_text("")
-        visible(search_window,false)
-    end
-
-    if event.keyval == Gtk.GdkKeySyms.Return
-
-        t = get_current_tab()
-        if t.search_mark == nothing
-            t.search_mark = text_buffer_create_mark(t.buffer,Gtk.GtkTextIter(t.buffer,1))#search from the start
-        end
-
-        it = text_buffer_get_iter_at_mark(t.buffer,t.search_mark)
-        it = Gtk.GtkTextIter(t.buffer, getproperty(it,:offset,Int))#FIXME need unmutable here?
-        (found,its,ite) = search_context_forward(t.search_context,it)
-
-        if found
-            scroll_to_iter(t.view,its)
-            t.search_mark  = text_buffer_create_mark(t.buffer,ite)#save the position for next search
-        end
-
-    end
-
-    return convert(Cint,false)
-end
-
-function search_entry_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
-    widget = convert(GtkEntry, widgetptr)
-
-    s = getproperty(widget,:text,AbstractString)
-    set_search_text(s)
-
-    return convert(Cint,false)
-end
-
-#FIXME put this somewhere else
-search_window = @GtkWindow("search",200,50) |>
-    (search_entry = @GtkEntry())
-visible(search_window,false)
-Gtk.G_.keep_above(search_window,true)
-
-function open_search_window(s::AbstractString)
-
-    visible(search_window,true)
-    grab_focus(search_entry)
-    showall(search_window)
-
-    signal_connect(search_entry_key_press_cb, search_entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-    signal_connect(search_entry_key_release_cb, search_entry, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-end
-
 #FIXME need to take into account module
 #set the cursos position ?
 function open_method(textview::GtkTextView)
@@ -236,8 +189,13 @@ end
 function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
+    
+    if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
+        @show "wesh"
+        return convert(Cint,true)
+    end
 
-    if Int(event.button) == 1 && Int(event.state) == GdkModifierType.CONTROL
+    if Int(event.button) == 1 && Int(event.state) == GdkModifierType.CONTROL #ctrl+right click
         open_method(textview)
     end
 
@@ -458,6 +416,8 @@ function show_data_hint(textview::GtkTextView)
 
     end
 end
+
+
 
 get_text_iter_at_cursor(buffer::GtkTextBuffer) = Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))
 

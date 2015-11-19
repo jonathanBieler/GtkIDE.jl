@@ -42,7 +42,6 @@ global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 #Order matters
 include("Project.jl")
 include("Console.jl")
-include("CompletionWindow.jl")
 include("Editor.jl")
 
 #-
@@ -55,7 +54,7 @@ filemenu = @GtkMenu(file) |>
     @GtkSeparatorMenuItem() |>
     (quit = @GtkMenuItem("Quit"))
 
-win = @GtkWindow("Julia IDE",1600,1000) |>
+win = @GtkWindow("Julia IDE",1800,1200) |>
     ((mainVbox = @GtkBox(:v)) |>
         mb |>
         (pathEntry = @GtkEntry()) |>
@@ -70,13 +69,17 @@ mainPan |>
             entry
         )
     ) |>
-    ((editorBox = @GtkBox(:h)) |>
-        ntbook |>
-        sourcemap
+    ((editorVBox = @GtkBox(:v)) |>
+        ((editorBox = @GtkBox(:h)) |>
+            ntbook |>
+            sourcemap
+        ) |>
+        search_window
     )
 
 ##setproperty!(ntbook, :width_request, 800)
 
+setproperty!(ntbook,:vexpand,true)
 setproperty!(editorBox,:expand,ntbook,true)
 setproperty!(mainPan,:margin,0)
 Gtk.G_.position(mainPan,600)
@@ -136,7 +139,8 @@ function quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
 end
 signal_connect(quit_cb, win, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
-showall(win);
+showall(win)
+visible(search_window,false)
 
 function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 

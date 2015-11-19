@@ -1,4 +1,4 @@
-type CompletionWindow <: GtkWindow
+type CompletionWindow <: GtkWindow #FIXME not the right container?
 
     handle::Ptr{Gtk.GObject}
     view::GtkSourceView
@@ -122,4 +122,4 @@ end
 ##
 global completion_window = CompletionWindow()
 visible(completion_window,false)
-Gtk.G_.keep_above(completion_window,true)
+#Gtk.G_.keep_above(completion_window,true)
