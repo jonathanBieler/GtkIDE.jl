@@ -1,16 +1,27 @@
-#need a proper type?
 
-global search_window = @GtkFrame("Search") |>
-    (search_entry = @GtkEntry())
-    
-setproperty!(search_window,:height_request, 120)
-push!(search_window,search_entry)
+type SearchWindow <: GtkFrame
 
-function open_search_window(s::AbstractString)
+    handle::Ptr{Gtk.GObject}
+    entry::GtkEntry
+    function SearchWindow()
 
-    visible(search_window,true)
-    grab_focus(search_entry)
-    showall(search_window)
+        global search_window = @GtkFrame("Search") |>
+            (search_entry = @GtkEntry())
+
+        setproperty!(search_window,:height_request, 120)
+
+        w = new(search_window.handle,search_entry)
+        Gtk.gobject_move_ref(w, search_window)
+    end
+end
+
+global search_window = SearchWindow()
+
+import Base.open
+function open(w::SearchWindow)
+    visible(w,true)
+    grab_focus(w.entry)
+    showall(w)
 end
 
 function search_entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
@@ -52,8 +63,8 @@ function search_entry_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)
 end
 
-signal_connect(search_entry_key_press_cb, search_entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-signal_connect(search_entry_key_release_cb, search_entry, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+signal_connect(search_entry_key_press_cb, search_window.entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+signal_connect(search_entry_key_release_cb, search_window.entry, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
 visible(search_window,false)
 
@@ -67,7 +78,7 @@ visible(search_window,false)
 ##
 function search_window_quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
 
-    @show "wesh"
+    #@show "wesh"
     return convert(Cint,true)
 end
 signal_connect(search_window_quit_cb, search_window, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)

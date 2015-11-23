@@ -22,6 +22,7 @@ type EditorTab <: GtkScrolledWindow
     modified::Bool
     search_context::GtkSourceSearchContext
     search_mark
+    scroll_target::AbstractFloat
 
     function EditorTab(filename::AbstractString)
 
@@ -189,7 +190,7 @@ end
 function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
-    
+
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
         @show "wesh"
         return convert(Cint,true)
@@ -253,7 +254,7 @@ function editor_autocomplete(view::GtkTextView,replace=true)
         #show_completions(comp,dotpos_,nothing,cmd) ##FIXME need a window here
         out = prefix * Base.LineEdit.common_prefix(comp)
     else
-        out = prefix * comp[1]        
+        out = prefix * comp[1]
     end
     build_completion_window(comp,view,prefix)
     replace && replace_text(buffer,itstart,itend,out)
@@ -417,8 +418,6 @@ function show_data_hint(textview::GtkTextView)
     end
 end
 
-
-
 get_text_iter_at_cursor(buffer::GtkTextBuffer) = Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))
 
 function get_current_line_text(buffer::GtkTextBuffer)
@@ -436,6 +435,25 @@ function get_current_line_text(buffer::GtkTextBuffer)
     return text_iter_get_text(itstart, itend)
 end
 
+value(adj::GtkAdjustment) = getproperty(adj,:value,AbstractFloat)
+value(adj::GtkAdjustment,v::AbstractFloat) = setproperty!(adj,:value,v)
+
+function tab_adj_changed_cb(adjptr::Ptr, user_data)
+
+    adj = convert(GtkAdjustment, adjptr)
+    t = user_data
+
+    if t.scroll_target != 0
+
+        if value(adj) != t.scroll_target
+            value(adj,t.scroll_target)
+        else
+            t.scroll_target = 0
+        end
+    end
+    return nothing
+end
+
 function add_tab(filename::AbstractString)
     t = EditorTab(filename);
 
@@ -451,20 +469,35 @@ function add_tab(filename::AbstractString)
     signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
     signal_connect(tab_key_release_cb,t.view , "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(tab_button_press_cb,t.view , "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+
+    signal_connect(tab_adj_changed_cb, getproperty(t.view,:vadjustment,GtkAdjustment) , "changed", Void, (), false,t)
+
     return t
 end
 add_tab() = add_tab("untitled")
 
-for f in project.files
-    open_in_new_tab(f)
+function load_tabs(project::Project)
+
+    #project get modified later
+    files = project.files
+    scroll_position = project.scroll_position
+    ntbook_idx = project.ntbook_idx
+
+    for i = 1:length(files)
+        t = open_in_new_tab(files[i])
+        t.scroll_target = scroll_position[i]
+    end
+
+    if length(ntbook)==0
+        add_tab()
+    elseif ntbook_idx <= length(ntbook)
+        set_current_page_idx(ntbook,ntbook_idx)
+    end
+    t = get_current_tab()
+    set_view(sourcemap,t.view)
 end
 
-if length(ntbook)==0
-    add_tab()
-end
-
-t = get_current_tab()
-set_view(sourcemap,t.view)
+load_tabs(project)
 
 # for i = 1:2
 #     add_tab()
