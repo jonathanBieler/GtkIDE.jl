@@ -74,6 +74,10 @@ function selection_bounds(buffer::Gtk.GtkTextBuffer)
     return (convert(Bool,ccall((:gtk_text_buffer_get_selection_bounds,Gtk.libgtk),Cint,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),buffer,its,ite)),its,ite)
 end
 
+function selection_bounds(buffer::Gtk.GtkTextBuffer,ins::GtkTextIters,bound::GtkTextIters)
+    ccall((:gtk_text_buffer_select_range,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),buffer,ins,bound)
+end
+
 function end_iter(buffer::Gtk.GtkTextBuffer)
     iter = Gtk.mutable(Gtk.GtkTextIter)
     ccall((:gtk_text_buffer_get_end_iter,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter}),buffer,iter)

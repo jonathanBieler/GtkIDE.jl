@@ -190,9 +190,22 @@ end
 function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
+    buffer = getproperty(textview,:buffer,GtkTextBuffer)
 
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
-        @show "wesh"
+        
+        #FIXME there's some issues when clicking on "_"
+        iter_end = mutable( get_text_iter_at_cursor(buffer) )
+        iter_start = copy(iter_end)+1
+        
+        getproperty(iter_start,:ends_word,Bool) ? nothing : text_iter_forward_word_end(iter_end)
+        getproperty(iter_start,:starts_word,Bool) ? nothing : text_iter_backward_word_start(iter_start)
+
+        iter_start = extend_word_backward(iter_start)
+        iter_end = extend_word_forward(iter_end)
+        
+        selection_bounds(buffer,iter_start,iter_end)
+        
         return convert(Cint,true)
     end
 
@@ -315,7 +328,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         show_data_hint(textview)
     end
     if event.keyval == keyval("f") && Int(event.state) == GdkModifierType.CONTROL
-        open_search_window("")
+        open(search_window)
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
         if !visible(completion_window)
@@ -442,9 +455,7 @@ function tab_adj_changed_cb(adjptr::Ptr, user_data)
 
     adj = convert(GtkAdjustment, adjptr)
     t = user_data
-
     if t.scroll_target != 0
-
         if value(adj) != t.scroll_target
             value(adj,t.scroll_target)
         else
@@ -454,8 +465,20 @@ function tab_adj_changed_cb(adjptr::Ptr, user_data)
     return nothing
 end
 
+function tab_extend_selection_cb(widgetptr::Ptr,granularityptr::Ptr,locationptr::Ptr,it_startptr::Ptr,it_endptr::Ptr,user_data)
+
+    view = convert(GtkTextView,widgetptr)
+    location = convert(GtkTextView,locationptr)
+
+    @show location
+
+    return convert(Cint,false)
+end
+
+
 function add_tab(filename::AbstractString)
     t = EditorTab(filename);
+    t.scroll_target = 0
 
     idx = get_current_page_idx(ntbook)+1
     insert!(ntbook, idx, t, "Page $idx")
@@ -466,9 +489,11 @@ function add_tab(filename::AbstractString)
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
     set_font(t)
 
-    signal_connect(tab_key_press_cb,t.view , "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
-    signal_connect(tab_key_release_cb,t.view , "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-    signal_connect(tab_button_press_cb,t.view , "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
+    signal_connect(tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+    signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+
+    signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint, (Ptr{Void},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}), false)
 
     signal_connect(tab_adj_changed_cb, getproperty(t.view,:vadjustment,GtkAdjustment) , "changed", Void, (), false,t)
 
