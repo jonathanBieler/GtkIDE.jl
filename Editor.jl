@@ -187,25 +187,47 @@ function open_method(textview::GtkTextView)
 
 end
 
+function get_text_left_of_cursor(buffer::GtkTextBuffer)
+    it = mutable(get_text_iter_at_cursor(buffer))
+    return text_iter_get_text(it,it+1)
+end
+function get_text_right_of_cursor(buffer::GtkTextBuffer)
+    it = mutable(get_text_iter_at_cursor(buffer))
+    return text_iter_get_text(it+1,it+2)
+end
+get_text_left_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it,it+1)
+get_text_right_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it+1,it+2)
+
+function starts_word(it::GtkTextIters)
+    return getproperty(it,:starts_word,Bool) && !(get_text_left_of_iter(it) == "_")
+end
+function ends_word(it::GtkTextIters)
+    return getproperty(it,:ends_word,Bool) && !(get_text_right_of_iter(it) == "_")
+end
+
 function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getproperty(textview,:buffer,GtkTextBuffer)
 
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
-        
-        #FIXME there's some issues when clicking on "_"
-        iter_end = mutable( get_text_iter_at_cursor(buffer) )
-        iter_start = copy(iter_end)+1
-        
-        getproperty(iter_start,:ends_word,Bool) ? nothing : text_iter_forward_word_end(iter_end)
-        getproperty(iter_start,:starts_word,Bool) ? nothing : text_iter_backward_word_start(iter_start)
+
+        (x,y) = text_view_window_to_buffer_coords(textview,mousepos[1],mousepos[2])
+        iter_end = get_iter_at_position(textview,x,y)
+        #iter_end = mutable( get_text_iter_at_cursor(buffer) ) #can't use this because the cursor position is modified somewhere
+        iter_start = copy(iter_end)
+
+        @show get_text_right_of_iter(iter_end)
+        @show get_text_left_of_iter(iter_start)
+
+        ends_word(iter_end) ? nothing : text_iter_forward_word_end(iter_end)
+        starts_word(iter_start) ? nothing : text_iter_backward_word_start(iter_start)
 
         iter_start = extend_word_backward(iter_start)
         iter_end = extend_word_forward(iter_end)
-        
+
         selection_bounds(buffer,iter_start,iter_end)
-        
+
         return convert(Cint,true)
     end
 
@@ -264,16 +286,18 @@ function editor_autocomplete(view::GtkTextView,replace=true)
     prefix = dotpos > 1 ? cmd[1:dotpos-1] : "" #FIXME: redundant with the console code
     out = ""
     if(length(comp)>1)
-        #show_completions(comp,dotpos_,nothing,cmd) ##FIXME need a window here
         out = prefix * Base.LineEdit.common_prefix(comp)
+        build_completion_window(comp,view,prefix)
     else
         out = prefix * comp[1]
+        visible(completion_window) && build_completion_window(comp,view,prefix)
     end
-    build_completion_window(comp,view,prefix)
-    replace && replace_text(buffer,itstart,itend,out)
+
+    replace && insert_autocomplete(out,itstart,itend,buffer)
 
     return convert(Cint, true)
 end
+
 
 function replace_text(buffer::GtkTextBuffer,itstart::GtkTextIters,itend::GtkTextIters,str::AbstractString)
     text_buffer_delete(buffer,itstart,itend)
@@ -364,7 +388,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)#false : propagate
 end
 
-can_extend_backward(iter) = text_iter_get_text(iter, iter-1) == "_"
+can_extend_backward(iter) = text_iter_get_text(iter, iter-1) == "_" #FIXME need something more general that also include @
 can_extend_forward(iter) = text_iter_get_text(iter+1, iter) == "_"
 
 #this is a bit brittle

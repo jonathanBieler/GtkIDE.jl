@@ -57,6 +57,14 @@ function selection_down(w::CompletionWindow)
     display(w)
 end
 
+function insert_autocomplete(out::AbstractString,itstart::GtkTextIters,itend::GtkTextIters,buffer::GtkTextBuffer)
+
+        ex = r"(^.*\))( at .+\.jl:[0-9]+$)" #remove the file/line number for methods)
+        m = match(ex,out)
+        out = m == nothing ? out : m[1]
+        replace_text(buffer,itstart,itend,out)   
+end
+
 function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
 
     propagate = true
@@ -79,7 +87,7 @@ function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
             (cmd,itstart,itend) = get_autocomplete_cmd(buffer)
 
             out = completion_window.prefix * completion_window.content[completion_window.idx]
-            replace_text(buffer,itstart,itend,out)
+            insert_autocomplete(out,itstart,itend,buffer)
             visible(completion_window,false)
             propagate = false
         end
@@ -100,7 +108,7 @@ function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuf
     event.keyval == Gtk.GdkKeySyms.Tab && return false
 
     t = get_current_tab()
-    visible(completion_window) &&  editor_autocomplete(t.view,false)
+    visible(completion_window) && editor_autocomplete(t.view,false)
     return true
 end
 
