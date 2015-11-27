@@ -124,14 +124,13 @@ end
 
 #replace plot with a version that display the plot
 import Winston.plot
-plot(args::Winston.PlotArg...; kvs...) = display(Winston.plot(Winston.ghf(), args...; kvs...))
+plot(args::Winston.PlotArg...; kvs...) = Winston.display(Winston.plot(Winston.ghf(), args...; kvs...))
 
-drawnow() = sleep(0.001) #probably not the ideal way of doing it
+drawnow() = sleep(0.001) 
 
 ## exiting
 function quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
 
-    @show project
     if typeof(project) == Project
         save(project)
     end
@@ -146,7 +145,8 @@ function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     event = convert(Gtk.GdkEvent, eventptr)
 
-    if event.keyval == keyval("r") && Int(event.state) == 4 #this often crashes
+    if event.keyval == keyval("r") && Int(event.state) == 4 
+        restart()
     end
 
     return Cint(false)

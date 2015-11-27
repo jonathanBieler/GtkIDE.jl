@@ -2,6 +2,7 @@
 
 include("CompletionWindow.jl")
 include("SearchWindow.jl")
+include("Actions.jl")
 
 extension(f::AbstractString) = splitext(f)[2]
 
@@ -205,6 +206,7 @@ function ends_word(it::GtkTextIters)
     return getproperty(it,:ends_word,Bool) && !(get_text_right_of_iter(it) == "_")
 end
 
+#clicks
 function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
@@ -214,11 +216,8 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
         (x,y) = text_view_window_to_buffer_coords(textview,mousepos[1],mousepos[2])
         iter_end = get_iter_at_position(textview,x,y)
-        #iter_end = mutable( get_text_iter_at_cursor(buffer) ) #can't use this because the cursor position is modified somewhere
+        #iter_end = mutable( get_text_iter_at_cursor(buffer) ) #not using this because the cursor position is modified somewhere
         iter_start = copy(iter_end)
-
-        @show get_text_right_of_iter(iter_end)
-        @show get_text_left_of_iter(iter_start)
 
         ends_word(iter_end) ? nothing : text_iter_forward_word_end(iter_end)
         starts_word(iter_start) ? nothing : text_iter_backward_word_start(iter_start)
@@ -298,14 +297,12 @@ function editor_autocomplete(view::GtkTextView,replace=true)
     return convert(Cint, true)
 end
 
-
 function replace_text(buffer::GtkTextBuffer,itstart::GtkTextIters,itend::GtkTextIters,str::AbstractString)
     text_buffer_delete(buffer,itstart,itend)
     insert!(buffer,itstart,str)
 end
 
-# returns the position of the cursor inside a buffer such that we can position
-# a window there
+# returns the position of the cursor inside a buffer such that we can position a window there
 function get_cursor_absolute_position(view)
 
     (it,r1,r2) = cursor_locations(view)
@@ -337,21 +334,21 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getbuffer(textview)
 
-    if event.keyval == keyval("s") && Int(event.state) == GdkModifierType.CONTROL
+    if doing(Actions.save, event)
         save_current_tab()
     end
-    if event.keyval == keyval("w") && Int(event.state) == GdkModifierType.CONTROL
+    if doing(Actions.closetab, event)
         close_tab()
         save(project)
     end
-    if event.keyval == keyval("n") && Int(event.state) == GdkModifierType.CONTROL
+    if doing(Actions.newtab, event)
         add_tab()
         save(project)
     end
-    if event.keyval == keyval("d") && Int(event.state) == GdkModifierType.CONTROL
+    if doing(Actions.datahint, event)
         show_data_hint(textview)
     end
-    if event.keyval == keyval("f") && Int(event.state) == GdkModifierType.CONTROL
+    if doing(Actions.search, event)
         open(search_window)
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
@@ -359,8 +356,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
             return editor_autocomplete(textview)
         end
     end
-
-    if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == (GdkModifierType.CONTROL + GdkModifierType.SHIFT)
+    if doing(Actions.runline, event)
 
         txt = strip(get_current_line_text(buffer))
         on_return_terminal(entry,txt,false)
@@ -368,7 +364,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         return convert(Cint,true)
     end
 
-    if event.keyval == Gtk.GdkKeySyms.Return && Int(event.state) == GdkModifierType.CONTROL
+    if doing(Actions.runcode, event)
 
         cmd = get_selected_text()
         if cmd == ""
@@ -494,8 +490,6 @@ function tab_extend_selection_cb(widgetptr::Ptr,granularityptr::Ptr,locationptr:
     view = convert(GtkTextView,widgetptr)
     location = convert(GtkTextView,locationptr)
 
-    @show location
-
     return convert(Cint,false)
 end
 
@@ -517,7 +511,7 @@ function add_tab(filename::AbstractString)
     signal_connect(tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
-    signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint, (Ptr{Void},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}), false)
+    #signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint, (Ptr{Void},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}), false)
 
     signal_connect(tab_adj_changed_cb, getproperty(t.view,:vadjustment,GtkAdjustment) , "changed", Void, (), false,t)
 
