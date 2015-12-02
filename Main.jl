@@ -9,7 +9,7 @@ using Winston
 import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
 
-const HOMEDIR = dirname(Base.source_path()) * "/"
+const HOMEDIR = dirname(Base.source_path()) * "\\"
 const REDIRECT_STDOUT = false
 
 ## more sure antialiasing is working on windows

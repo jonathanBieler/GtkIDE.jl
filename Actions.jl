@@ -16,13 +16,13 @@ end
 baremodule Actions
     using Main.Action, Main.GdkModifierType, Main.keyval, Base.call, Main.Gtk, Base.+
 
-    save     = Action(keyval("s"), GdkModifierType.CONTROL, "Save file")
-    closetab = Action(keyval("w"), GdkModifierType.CONTROL, "Close current tab")
-    newtab   = Action(keyval("n"), GdkModifierType.CONTROL, "New tab")
-    datahint = Action(keyval("d"), GdkModifierType.CONTROL, "Show data hint")
-    search   = Action(keyval("f"), GdkModifierType.CONTROL, "Search")
-    runline  = Action(Gtk.GdkKeySyms.Return, GdkModifierType.CONTROL + GdkModifierType.SHIFT, "Execute current line")
-    runcode  = Action(Gtk.GdkKeySyms.Return, GdkModifierType.CONTROL, "Execute code")
+    const save     = Action(keyval("s"), GdkModifierType.CONTROL, "Save file")
+    const closetab = Action(keyval("w"), GdkModifierType.CONTROL, "Close current tab")
+    const newtab   = Action(keyval("n"), GdkModifierType.CONTROL, "New tab")
+    const datahint = Action(keyval("d"), GdkModifierType.CONTROL, "Show data hint")
+    const search   = Action(keyval("f"), GdkModifierType.CONTROL, "Search")
+    const runline  = Action(Gtk.GdkKeySyms.Return, GdkModifierType.CONTROL + GdkModifierType.SHIFT, "Execute current line")
+    const runcode  = Action(Gtk.GdkKeySyms.Return, GdkModifierType.CONTROL, "Execute code")
     
 end
 
