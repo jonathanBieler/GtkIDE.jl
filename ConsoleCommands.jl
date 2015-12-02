@@ -28,9 +28,9 @@ add_console_command(r"^pwd",(m) -> begin
     return true
 end)
 add_console_command(r"^ls\s*(.*)",(m) -> begin
-
+    
 	try
-        files = readdir(m.captures[1])
+        files = m.captures[1] == "" ? readdir() : readdir(m.captures[1])
         s = ""
         for f in files
             s = string(s,"\n",f)

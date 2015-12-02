@@ -9,7 +9,7 @@ using Winston
 import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
 
-const HOMEDIR = "d:\\Julia\\JuliaIDE\\"
+const HOMEDIR = dirname(Base.source_path()) * "/"
 const REDIRECT_STDOUT = false
 
 ## more sure antialiasing is working on windows
@@ -26,10 +26,17 @@ gtk-xft-rgba = rgb)")
 end
 
 ## globals
-global style = style_scheme(@GtkSourceStyleSchemeManager(),"autumn")
+sourceStyleManager = @GtkSourceStyleSchemeManager()
+GtkSourceWidget.set_search_path(sourceStyleManager,
+  Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
+global style = style_scheme(sourceStyleManager,"autumn")
+
 global languageDefinitions = Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}()
-languageDefinitions[".jl"] = GtkSourceWidget.language(@GtkSourceLanguageManager(),"julia")
-languageDefinitions[".md"] = GtkSourceWidget.language(@GtkSourceLanguageManager(),"markdown")
+sourceLanguageManager = @GtkSourceLanguageManager()
+GtkSourceWidget.set_search_path(sourceLanguageManager,
+  Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/language-specs/",C_NULL])
+languageDefinitions[".jl"] = GtkSourceWidget.language(sourceLanguageManager,"julia")
+languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"markdown")
 global fontsize = 13
 
 fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
@@ -114,7 +121,7 @@ signal_connect(pathEntry_key_press_cb, pathEntry, "key-press-event", Cint, (Ptr{
 
 ################
 ## WINSTON
-
+if true
 if !Winston.hasfig(Winston._display,1)
     Winston.ghf()
     Winston.addfig(Winston._display, 1, Winston.Figure(canvas,Winston._pwinston))
@@ -125,8 +132,8 @@ end
 #replace plot with a version that display the plot
 import Winston.plot
 plot(args::Winston.PlotArg...; kvs...) = Winston.display(Winston.plot(Winston.ghf(), args...; kvs...))
-
-drawnow() = sleep(0.001) 
+end
+drawnow() = sleep(0.001)
 
 ## exiting
 function quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
@@ -145,7 +152,7 @@ function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     event = convert(Gtk.GdkEvent, eventptr)
 
-    if event.keyval == keyval("r") && Int(event.state) == 4 
+    if event.keyval == keyval("r") && Int(event.state) == 4
         restart()
     end
 
@@ -157,7 +164,7 @@ function restart(new_workspace=false)
     save(project)
     win_ = win
     new_workspace && workspace()
-    include("d:\\Julia\\JuliaIDE\\Main.jl")
+    include(HOMEDIR * "Main.jl")
     destroy(win_)
 end
 

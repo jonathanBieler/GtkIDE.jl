@@ -493,7 +493,6 @@ function tab_extend_selection_cb(widgetptr::Ptr,granularityptr::Ptr,locationptr:
     return convert(Cint,false)
 end
 
-
 function add_tab(filename::AbstractString)
     t = EditorTab(filename);
     t.scroll_target = 0
