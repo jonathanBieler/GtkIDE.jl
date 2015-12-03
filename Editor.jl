@@ -264,8 +264,8 @@ function get_autocomplete_cmd(buffer::GtkTextBuffer)
 end
 
 function editor_autocomplete(view::GtkTextView,replace=true)
-
-    buffer = getproperty(view,:buffer,GtkTextBuffer)
+    
+    buffer = getbuffer(view)
 
     (cmd,itstart,itend) = get_autocomplete_cmd(buffer)
 

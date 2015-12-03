@@ -9,7 +9,7 @@ using Winston
 import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
 
-const HOMEDIR = dirname(Base.source_path()) * "\\"
+const HOMEDIR = dirname(Base.source_path()) * "/"
 const REDIRECT_STDOUT = false
 
 ## more sure antialiasing is working on windows
@@ -37,12 +37,21 @@ GtkSourceWidget.set_search_path(sourceLanguageManager,
   Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/language-specs/",C_NULL])
 languageDefinitions[".jl"] = GtkSourceWidget.language(sourceLanguageManager,"julia")
 languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"markdown")
+
 global fontsize = 13
 
 fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
     font-family: Consolas, Courier, monospace;
     font-size: $(fontsize)
 }"""
+@osx_only begin
+    global fontsize = 13
+    fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
+        font-family: Monaco, Consolas, Courier, monospace;
+        font-size: $(fontsize)
+    }"""
+end
+
 global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 
 
