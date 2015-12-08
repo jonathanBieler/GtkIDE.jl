@@ -36,7 +36,7 @@ type EditorTab <: GtkScrolledWindow
         highlight_matching_brackets(b,true)
 
         show_line_numbers!(v,true)
-	    auto_indent!(v,true)
+	      auto_indent!(v,true)
         highlight_current_line!(v, true)
         setproperty!(v,:wrap_mode,0)
 
@@ -89,6 +89,7 @@ function save(t::EditorTab)
         write(f,get_text(t))
         write(console,"saved $(t.filename)")
         close(f)
+        modified(t,false)
     catch err
         @show err
     end
@@ -264,7 +265,7 @@ function get_autocomplete_cmd(buffer::GtkTextBuffer)
 end
 
 function editor_autocomplete(view::GtkTextView,replace=true)
-    
+
     buffer = getbuffer(view)
 
     (cmd,itstart,itend) = get_autocomplete_cmd(buffer)
@@ -493,6 +494,19 @@ function tab_extend_selection_cb(widgetptr::Ptr,granularityptr::Ptr,locationptr:
     return convert(Cint,false)
 end
 
+function modified(t::EditorTab,v::Bool)
+    t.modified = v
+    s = v ? basename(t.filename) * "*" : basename(t.filename)
+    set_tab_label_text(ntbook,t,s)
+end
+
+function tab_buffer_changed_cb(widgetptr::Ptr,user_data)
+    t = user_data
+    modified(t,true)
+
+    return nothing
+end
+
 function add_tab(filename::AbstractString)
     t = EditorTab(filename);
     t.scroll_target = 0
@@ -509,6 +523,8 @@ function add_tab(filename::AbstractString)
     signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
     signal_connect(tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+
+    signal_connect(tab_buffer_changed_cb,t.buffer,"changed", Void, (), false,t)
 
     #signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint, (Ptr{Void},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}), false)
 

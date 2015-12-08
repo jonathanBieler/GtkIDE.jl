@@ -15,11 +15,18 @@ import ..Gtk: suffix
 grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , Gtk.libgtk),Void,(Ptr{Gtk.GObject},),w)#this should work?
 grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , Gtk.libgtk),Void,(Ptr{Gtk.GObject},),w)
 
-##
 baremodule GdkModifierType
-    const SHIFT		= Main.Base.convert(Int32,1)
-    const LOCK 	  	= Main.Base.convert(Int32,2)
-	const CONTROL 	= Main.Base.convert(Int32,4)
+    using Main.Base.convert
+
+    const SHIFT		  = convert(UInt32,1)
+    const LOCK 	  	= convert(UInt32,2)
+    Main.Base.@windows_only begin # I'm not sure that's the way of doing this
+        const CONTROL 	= convert(UInt32,4)
+    end
+    Main.Base.@osx_only begin
+        const COMMAND 	= convert(UInt32,4)
+        const CONTROL   = convert(UInt32,268435472)
+    end
 end
 
 typealias MutableGtkTextIter Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}
@@ -28,7 +35,7 @@ mutable(it::Gtk.GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)
 
 function text_iter_get_text(it_start::GtkTextIters,it_end::GtkTextIters)
 	s = ccall((:gtk_text_iter_get_text,Gtk.libgtk),Ptr{Uint8},(Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),it_start,it_end)
-	return s == C_NULL ? "" : bytestring(s)
+    return s == C_NULL ? "" : bytestring(s)
 end
 
 text_iter_forward_line(it::MutableGtkTextIter)  = ccall((:gtk_text_iter_forward_line,  Gtk.libgtk),Cint,(Ptr{Gtk.GtkTextIter},),it)
