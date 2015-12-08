@@ -1,4 +1,3 @@
-
 type Console <: GtkScrolledWindow
 
     handle::Ptr{Gtk.GObject}
@@ -91,16 +90,21 @@ function clear(c::Console)
 end
 
 function set_entry_text(str::AbstractString)
-
     cpos = getproperty(console.entry,:cursor_position,Int)
     setproperty!(console.entry,:text,str)
     set_position!(console.entry,cpos)
 end
 
+clear_entry() = setproperty!(console.entry,:text,"")
+
 # FIXME remove all these variables
 console = Console()
 entry = console.entry
 textview = console.view
+
+include("CommandHistory.jl")
+history = setup_history()
+include("ConsoleCommands.jl")
 
 if REDIRECT_STDOUT
 
@@ -148,15 +152,6 @@ watch_stdio()
 
 end#REDIRECT_STDOUT
 
-include("CommandHistory.jl")
-history = setup_history()
-
-function clear_entry()
-    setproperty!(console.entry,:text,"")
-end
-
-include("ConsoleCommands.jl")
-
 function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
 
     cmd = strip(cmd)
@@ -165,7 +160,6 @@ function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
     history_add(history,cmd)
     history_seek_end(history)
 
-    cmd = strip(cmd)
     if check_console_commands(cmd)
         update_pathEntry()
         return
@@ -185,27 +179,21 @@ function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
     evalout = ""
     value = :()
     @async begin
+        try
+            value = eval(Main,ex)
+            eval(Main, :(ans = $(Expr(:quote, value))))
+            evalout = value == nothing ? "" : sprint(Base.showlimited,value)
+        catch err
+            io = IOBuffer()
+            showerror(io,err)
+            evalout = takebuf_string(io)
+            close(io)
+        end
 
-    #(outRead, outWrite) = redirect_stdout()#capture console prints
-    #(errorRead, errorWrite) = redirect_stderr()
+        finalOutput = "$evalout\n\n";
+        write(console,finalOutput)
 
-    try
-      value = eval(Main,ex)
-      eval(Main, :(ans = $(Expr(:quote, value))))
-      evalout = value == nothing ? "" : sprint(Base.showlimited,value)
-    catch err
-      io = IOBuffer()
-      showerror(io,err)
-      evalout = takebuf_string(io)
-      close(io)
-    end
-
-
-    finalOutput = "$evalout\n\n";
-    write(console,finalOutput)
-
-    update_pathEntry()#if there was any cd
-
+        update_pathEntry()#if there was any cd
     end
 end
 
@@ -221,7 +209,7 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     pos = getproperty(entry,:cursor_position,Int)
     prefix = length(cmd) >= pos ? cmd[1:pos] : ""
 
-    if Int(event.keyval) == 99 && Int(event.state) == 4 #ctrl+c
+    if event.keyval == keyval("c") && Int(event.state) == GdkModifierType.CONTROL
         text_buffer_copy_clipboard(console.buffer,clip)
     end
 
@@ -232,27 +220,25 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if event.keyval == Gtk.GdkKeySyms.Up
 
         !history_up(history,prefix,cmd) && return convert(Cint,true)
-
         set_entry_text(history_get_current(history))
         return convert(Cint,true)
     end
     if event.keyval == Gtk.GdkKeySyms.Down
 
         history_down(history,prefix,cmd)
-
         set_entry_text(history_get_current(history))
         return convert(Cint,true)
     end
 
-  if event.keyval == Gtk.GdkKeySyms.Tab
+    if event.keyval == Gtk.GdkKeySyms.Tab
 
-    (comp,dotpos) = completions(cmd, endof(cmd))
-    show_completions(comp,dotpos,widget,cmd)
+        (comp,dotpos) = completions(cmd, endof(cmd))
+        show_completions(comp,dotpos,widget,cmd)
 
-    return convert(Cint,true)
-  end
+        return convert(Cint,true)
+    end
 
-  return convert(Cint,false)
+    return convert(Cint,false)
 end
 signal_connect(entry_key_press_cb, entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
@@ -299,9 +285,9 @@ function show_completions(comp,dotpos,widget,cmd)
 end
 
 ## scroll textview
-function scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
+function console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
   adj = getproperty(console,:vadjustment, GtkAdjustment)
   setproperty!(adj,:value, getproperty(adj,:upper,FloatingPoint) - getproperty(adj,:page_size,FloatingPoint))
   nothing
 end
-signal_connect(scroll_cb, textview, "size-allocate", Void, (Ptr{Gtk.GdkRectangle},), false)
+signal_connect(console_scroll_cb, textview, "size-allocate", Void, (Ptr{Gtk.GdkRectangle},), false)
