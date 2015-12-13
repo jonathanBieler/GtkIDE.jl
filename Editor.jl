@@ -200,6 +200,9 @@ end
 get_text_left_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it,it+1)
 get_text_right_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it+1,it+2)
 
+get_text_left_of_iter(it::Gtk.GtkTextIter) = text_iter_get_text(mutable(it),mutable(it)+1)
+get_text_right_of_iter(it::Gtk.GtkTextIter) = text_iter_get_text(mutable(it)+1,mutable(it)+2)
+
 function starts_word(it::GtkTextIters)
     return getproperty(it,:starts_word,Bool) && !(get_text_left_of_iter(it) == "_")
 end
@@ -231,7 +234,7 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         return convert(Cint,true)
     end
 
-    if Int(event.button) == 1 && Int(event.state) == GdkModifierType.CONTROL #ctrl+right click
+    if Int(event.button) == 1 && event.state == GdkModifierType.MOUSE_CONTROL #ctrl+right click
         open_method(textview)
     end
 

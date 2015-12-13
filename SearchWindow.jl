@@ -41,7 +41,7 @@ function search_entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         end
 
         it = text_buffer_get_iter_at_mark(t.buffer,t.search_mark)
-        it = Gtk.GtkTextIter(t.buffer, getproperty(it,:offset,Int))#FIXME need unmutable here?
+        it = Gtk.GtkTextIter(t.buffer, getproperty(it,:offset,Int)+1)#FIXME need unmutable here?
         (found,its,ite) = search_context_forward(t.search_context,it)
 
         if found

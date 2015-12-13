@@ -22,10 +22,12 @@ baremodule GdkModifierType
     const LOCK 	  	= convert(UInt32,2)
     Main.Base.@windows_only begin # I'm not sure that's the correct way of doing this
         const CONTROL 	= convert(UInt32,4)
+        const MOUSE_CONTROL = convert(UInt32,4)
     end
     Main.Base.@osx_only begin
         const COMMAND 	= convert(UInt32,4)
-        const CONTROL   = convert(UInt32,268435472)
+        const CONTROL   = convert(UInt32,268435472) #that's very weird
+        const MOUSE_CONTROL = convert(UInt32,16)
     end
 end
 
