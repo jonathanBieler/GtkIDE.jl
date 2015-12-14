@@ -1,4 +1,3 @@
-
 type SearchWindow <: GtkFrame
 
     handle::Ptr{Gtk.GObject}
@@ -23,6 +22,13 @@ function open(w::SearchWindow)
     grab_focus(w.entry)
     showall(w)
 end
+
+global search_settings = @GtkSourceSearchSettings()
+setproperty!(search_settings,:wrap_around,true)
+
+import GtkSourceWidget.set_search_text
+set_search_text(s::AbstractString) = set_search_text(search_settings,s)
+
 
 function search_entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     widget = convert(GtkEntry, widgetptr)

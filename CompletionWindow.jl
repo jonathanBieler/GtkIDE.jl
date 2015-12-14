@@ -62,7 +62,7 @@ function insert_autocomplete(out::AbstractString,itstart::GtkTextIters,itend::Gt
         ex = r"(^.*\))( at .+\.jl:[0-9]+$)" #remove the file/line number for methods)
         m = match(ex,out)
         out = m == nothing ? out : m[1]
-        replace_text(buffer,itstart,itend,out)   
+        replace_text(buffer,itstart,itend,out)
 end
 
 function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
@@ -84,7 +84,7 @@ function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
     elseif event.keyval == Gtk.GdkKeySyms.Return || event.keyval == Gtk.GdkKeySyms.Tab
         if visible(completion_window)
 
-            (cmd,itstart,itend) = get_autocomplete_cmd(buffer)
+            (cmd,itstart,itend) = select_word_backward(get_text_iter_at_cursor(buffer),false)
 
             out = completion_window.prefix * completion_window.content[completion_window.idx]
             insert_autocomplete(out,itstart,itend,buffer)

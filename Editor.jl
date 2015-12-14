@@ -1,5 +1,6 @@
 #todo : filename should save the full path
 
+include("EditorUtils.jl")
 include("CompletionWindow.jl")
 include("SearchWindow.jl")
 include("Actions.jl")
@@ -10,9 +11,6 @@ global sourcemap = @GtkSourceMap()
 global ntbook = @GtkNotebook()
     setproperty!(ntbook,:scrollable, true)
     setproperty!(ntbook,:enable_popup, true)
-
-global search_settings = @GtkSourceSearchSettings()
-setproperty!(search_settings,:wrap_around,true)
 
 type EditorTab <: GtkScrolledWindow
 
@@ -156,9 +154,6 @@ function close_tab()
     set_current_page_idx(ntbook,max(idx-1,0))
 end
 
-import GtkSourceWidget.set_search_text
-set_search_text(s::AbstractString) = set_search_text(search_settings,s)
-
 
 #FIXME need to take into account module
 #set the cursos position ?
@@ -221,13 +216,8 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         (x,y) = text_view_window_to_buffer_coords(textview,mousepos[1],mousepos[2])
         iter_end = get_iter_at_position(textview,x,y)
         #iter_end = mutable( get_text_iter_at_cursor(buffer) ) #not using this because the cursor position is modified somewhere
-        iter_start = copy(iter_end)
 
-        ends_word(iter_end) ? nothing : text_iter_forward_word_end(iter_end)
-        starts_word(iter_start) ? nothing : text_iter_backward_word_start(iter_start)
-
-        iter_start = extend_word_backward(iter_start)
-        iter_end = extend_word_forward(iter_end)
+        (w, iter_start, iter_end) = select_word(iter_end)
 
         selection_bounds(buffer,iter_start,iter_end)
 
@@ -241,37 +231,11 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)#false : propagate
 end
 
-function get_autocomplete_cmd(buffer::GtkTextBuffer)
-
-    itstart = mutable( get_text_iter_at_cursor(buffer) )
-    itend = mutable( get_text_iter_at_cursor(buffer) ) +1
-
-    c = text_iter_get_text(itstart,itend)
-    if c == " " || c == "\n" || c == "\t" || c == ""
-        return ("",itstart,itend)
-    end
-
-    cmd = ""
-    if getproperty(itstart,:starts_word,Bool)#FIXME I need my own word start definition to avoid this mess
-        cmd = text_iter_get_text(itstart-1,itend)
-        if can_extend_backward(itstart)
-            itstart = extend_word_backward(itstart)
-            cmd = text_iter_get_text(itstart,itend)
-        end
-    else
-        text_iter_backward_word_start(itstart)
-        itstart = extend_word_backward(itstart)
-
-        cmd = text_iter_get_text(itstart,itend)
-    end
-    return (cmd,itstart,itend)
-end
-
 function editor_autocomplete(view::GtkTextView,replace=true)
 
     buffer = getbuffer(view)
 
-    (cmd,itstart,itend) = get_autocomplete_cmd(buffer)
+    (cmd,itstart,itend) = select_word_backward(get_text_iter_at_cursor(buffer),false)
 
     if cmd == ""
         visible(completion_window,false)
@@ -279,6 +243,7 @@ function editor_autocomplete(view::GtkTextView,replace=true)
     end
 
     (comp,dotpos) = completions(cmd, endof(cmd))
+
     if isempty(comp)
         visible(completion_window,false)
         return convert(Cint, false)
@@ -388,14 +353,28 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)#false : propagate
 end
 
-can_extend_backward(iter) = text_iter_get_text(iter, iter-1) == "_" #FIXME need something more general that also include @
-can_extend_forward(iter) = text_iter_get_text(iter+1, iter) == "_"
+#FIXME when line starts or end with on of these symbol it select the other line
+function can_extend(iter,dir::Bool)
+
+    allowed_in_words = ["_","\\","@"]
+    for c in allowed_in_words
+        if dir #backward
+            @show text_iter_get_text(iter, iter-1)
+            text_iter_get_text(iter, iter-1) == c && return true
+        else #forward
+            text_iter_get_text(iter+1, iter)  == c && return true
+        end
+    end
+    false
+end
+can_extend_backward(iter) = can_extend(iter,true)
+can_extend_forward(iter)  = can_extend(iter,false)
 
 #this is a bit brittle
 function extend_word_backward(iter_start)
 
     while can_extend_backward(iter_start)
-        iter_start = iter_start - 2
+        iter_start = iter_start - 1
         text_iter_backward_word_start(iter_start)
     end
     return iter_start
@@ -404,15 +383,18 @@ end
 function extend_word_forward(iter_end)
 
     while can_extend_forward(iter_end)
-        iter_end = iter_end + 2
+        iter_end = iter_end + 1
         text_iter_forward_word_end(iter_end)
     end
-
     if text_iter_get_text(iter_end+1, iter_end) == "!"
         iter_end = iter_end + 1
     end
     return iter_end
 end
+
+#FIXME merge this
+
+
 
 function get_word_under_cursor(textview::GtkTextView)
 
@@ -429,6 +411,7 @@ function get_word_under_cursor(textview::GtkTextView)
     word = text_iter_get_text(iter_end, iter_start)
     return word
 end
+
 
 function show_data_hint(textview::GtkTextView)
 
