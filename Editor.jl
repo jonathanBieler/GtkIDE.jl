@@ -85,7 +85,7 @@ function save(t::EditorTab)
     try
         f = Base.open(t.filename,"w")
         write(f,get_text(t))
-        write(console,"saved $(t.filename)")
+        write(console,"saved $(t.filename)\n")
         close(f)
         modified(t,false)
     catch err
@@ -217,7 +217,7 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         iter_end = get_iter_at_position(textview,x,y)
         #iter_end = mutable( get_text_iter_at_cursor(buffer) ) #not using this because the cursor position is modified somewhere
 
-        (w, iter_start, iter_end) = select_word(iter_end)
+        (w, iter_start, iter_end) = select_word(iter_end,buffer)
 
         selection_bounds(buffer,iter_start,iter_end)
 
@@ -249,6 +249,9 @@ function editor_autocomplete(view::GtkTextView,replace=true)
         return convert(Cint, false)
     end
 
+    #don't insert prefix when completing a method
+    replace = (cmd[end] == '(' && length(comp)>1 ) ? false : replace
+
     dotpos_ = dotpos
     dotpos = dotpos.start
     prefix = dotpos > 1 ? cmd[1:dotpos-1] : "" #FIXME: redundant with the console code
@@ -272,7 +275,7 @@ function replace_text(buffer::GtkTextBuffer,itstart::GtkTextIters,itend::GtkText
 end
 
 # returns the position of the cursor inside a buffer such that we can position a window there
-function get_cursor_absolute_position(view)
+function get_cursor_absolute_position(view::GtkTextView)
 
     (it,r1,r2) = cursor_locations(view)
     (x,y) = text_view_buffer_to_window_coords(view,1,r1.x,r1.y)
@@ -327,7 +330,8 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
     if doing(Actions.runline, event)
 
-        txt = strip(get_current_line_text(buffer))
+        (txt, itstart, itend) = get_current_line_text(buffer)
+        txt = strip(txt)
         on_return_terminal(entry,txt,false)
 
         return convert(Cint,true)
@@ -353,65 +357,14 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)#false : propagate
 end
 
-#FIXME when line starts or end with on of these symbol it select the other line
-function can_extend(iter,dir::Bool)
-
-    allowed_in_words = ["_","\\","@"]
-    for c in allowed_in_words
-        if dir #backward
-            @show text_iter_get_text(iter, iter-1)
-            text_iter_get_text(iter, iter-1) == c && return true
-        else #forward
-            text_iter_get_text(iter+1, iter)  == c && return true
-        end
-    end
-    false
-end
-can_extend_backward(iter) = can_extend(iter,true)
-can_extend_forward(iter)  = can_extend(iter,false)
-
-#this is a bit brittle
-function extend_word_backward(iter_start)
-
-    while can_extend_backward(iter_start)
-        iter_start = iter_start - 1
-        text_iter_backward_word_start(iter_start)
-    end
-    return iter_start
-end
-
-function extend_word_forward(iter_end)
-
-    while can_extend_forward(iter_end)
-        iter_end = iter_end + 1
-        text_iter_forward_word_end(iter_end)
-    end
-    if text_iter_get_text(iter_end+1, iter_end) == "!"
-        iter_end = iter_end + 1
-    end
-    return iter_end
-end
-
-#FIXME merge this
-
-
-
 function get_word_under_cursor(textview::GtkTextView)
 
     (x,y) = text_view_window_to_buffer_coords(textview,mousepos[1],mousepos[2])
     iter_end = get_iter_at_position(textview,x,y)
-    iter_start = copy(iter_end)
+    (word,itstart,itend) = select_word(iter_end,false)
 
-    getproperty(iter_start,:ends_word,Bool) ? nothing : text_iter_forward_word_end(iter_end)
-    getproperty(iter_start,:starts_word,Bool) ? nothing : text_iter_backward_word_start(iter_start)
-
-    iter_start = extend_word_backward(iter_start)
-    iter_end = extend_word_forward(iter_end)
-
-    word = text_iter_get_text(iter_end, iter_start)
     return word
 end
-
 
 function show_data_hint(textview::GtkTextView)
 
@@ -436,23 +389,6 @@ function show_data_hint(textview::GtkTextView)
       end
 
     end
-end
-
-get_text_iter_at_cursor(buffer::GtkTextBuffer) = Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))
-
-function get_current_line_text(buffer::GtkTextBuffer)
-
-    itstart = get_text_iter_at_cursor(buffer)
-    itend = get_text_iter_at_cursor(buffer)
-
-    itstart = Gtk.GLib.MutableTypes.mutable(itstart)
-    itend = Gtk.GLib.MutableTypes.mutable(itend)
-
-    text_iter_backward_line(itstart)
-    skip(itstart,1,:line)
-    text_iter_forward_to_line_end(itend)
-
-    return text_iter_get_text(itstart, itend)
 end
 
 value(adj::GtkAdjustment) = getproperty(adj,:value,AbstractFloat)

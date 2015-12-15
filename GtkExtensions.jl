@@ -9,6 +9,7 @@
 # const libgtk = Gtk.Gtk.libgtk
 
 import ..Gtk: suffix
+import Gtk.GtkTextIter
 
 ## Widget
 
@@ -35,8 +36,12 @@ typealias MutableGtkTextIter Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}
 typealias GtkTextIters Union{MutableGtkTextIter,Gtk.GtkTextIter}
 mutable(it::Gtk.GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)
 
-function text_iter_get_text(it_start::GtkTextIters,it_end::GtkTextIters)
+function text_iter_get_text(it_start::MutableGtkTextIter,it_end::MutableGtkTextIter)
 	s = ccall((:gtk_text_iter_get_text,Gtk.libgtk),Ptr{Uint8},(Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),it_start,it_end)
+    return s == C_NULL ? "" : bytestring(s)
+end
+function text_iter_get_text(it_start::Gtk.GtkTextIter,it_end::Gtk.GtkTextIter)
+	s = ccall((:gtk_text_iter_get_text,Gtk.libgtk),Ptr{Uint8},(Ref{Gtk.GtkTextIter},Ref{Gtk.GtkTextIter}),it_start,it_end)
     return s == C_NULL ? "" : bytestring(s)
 end
 
@@ -78,12 +83,15 @@ function show_iter(it::MutableGtkTextIter,buffer::GtkTextBuffer,color::Int)
 end
 
 function selection_bounds(buffer::Gtk.GtkTextBuffer)
-    its = mutable(Gtk.GtkTextIter(buffer))
-    ite = mutable(Gtk.GtkTextIter(buffer))
-    return (convert(Bool,ccall((:gtk_text_buffer_get_selection_bounds,Gtk.libgtk),Cint,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),buffer,its,ite)),its,ite)
+    its = Gtk.GtkTextIter(buffer)
+    ite = Gtk.GtkTextIter(buffer)
+    return (convert(Bool,ccall((:gtk_text_buffer_get_selection_bounds,Gtk.libgtk),Cint,(Ptr{Gtk.GObject},
+            Ref{Gtk.GtkTextIter},Ref{Gtk.GtkTextIter}),buffer,its,ite)),its,ite)
 end
-
-function selection_bounds(buffer::Gtk.GtkTextBuffer,ins::GtkTextIters,bound::GtkTextIters)
+function selection_bounds(buffer::Gtk.GtkTextBuffer,ins::GtkTextIter,bound::GtkTextIter)
+    ccall((:gtk_text_buffer_select_range,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ref{Gtk.GtkTextIter},Ref{Gtk.GtkTextIter}),buffer,ins,bound)
+end
+function selection_bounds(buffer::Gtk.GtkTextBuffer,ins::MutableGtkTextIter,bound::MutableGtkTextIter)
     ccall((:gtk_text_buffer_select_range,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),buffer,ins,bound)
 end
 
