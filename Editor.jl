@@ -159,7 +159,7 @@ end
 #set the cursos position ?
 function open_method(textview::GtkTextView)
 
-    word = get_word_under_cursor(textview)
+    word = get_word_under_mouse_cursor(textview)
 
     try
         ex = parse(word)
@@ -235,7 +235,8 @@ function editor_autocomplete(view::GtkTextView,replace=true)
 
     buffer = getbuffer(view)
 
-    (cmd,itstart,itend) = select_word_backward(get_text_iter_at_cursor(buffer),false)
+    (cmd,itstart,itend) = select_word_backward(get_text_iter_at_cursor(buffer),buffer,false)
+    #@show (cmd,itstart,itend)
 
     if cmd == ""
         visible(completion_window,false)
@@ -269,9 +270,10 @@ function editor_autocomplete(view::GtkTextView,replace=true)
     return convert(Cint, true)
 end
 
-function replace_text(buffer::GtkTextBuffer,itstart::GtkTextIters,itend::GtkTextIters,str::AbstractString)
+function replace_text(buffer::GtkTextBuffer,itstart::GtkTextIter,itend::GtkTextIter,str::AbstractString)
+    pos = offset(itstart)+1
     text_buffer_delete(buffer,itstart,itend)
-    insert!(buffer,itstart,str)
+    insert!(buffer,GtkTextIter(buffer,pos),str)
 end
 
 # returns the position of the cursor inside a buffer such that we can position a window there
@@ -357,18 +359,18 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)#false : propagate
 end
 
-function get_word_under_cursor(textview::GtkTextView)
+function get_word_under_mouse_cursor(textview::GtkTextView)
 
     (x,y) = text_view_window_to_buffer_coords(textview,mousepos[1],mousepos[2])
     iter_end = get_iter_at_position(textview,x,y)
-    (word,itstart,itend) = select_word(iter_end,false)
+    (word,itstart,itend) = select_word(iter_end,getproperty(textview,:buffer,GtkTextBuffer),false)
 
     return word
 end
 
 function show_data_hint(textview::GtkTextView)
 
-    word = get_word_under_cursor(textview)
+    word = get_word_under_mouse_cursor(textview)
 
     try
       ex = parse(word)

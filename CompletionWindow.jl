@@ -83,8 +83,8 @@ function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
         end
     elseif event.keyval == Gtk.GdkKeySyms.Return || event.keyval == Gtk.GdkKeySyms.Tab
         if visible(completion_window)
-
-            (cmd,itstart,itend) = select_word_backward(get_text_iter_at_cursor(buffer),false)
+   
+            (cmd,itstart,itend) = select_word_backward(get_text_iter_at_cursor(buffer),buffer,false)
 
             out = completion_window.prefix * completion_window.content[completion_window.idx]
             insert_autocomplete(out,itstart,itend,buffer)

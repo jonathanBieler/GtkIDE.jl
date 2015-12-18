@@ -64,47 +64,52 @@ const _word_bounardy = [' ', '\n','\t','(',')','[',']',',','\'',
                        '&','|','?','!']
 const _word_bounardy_dot = [_word_bounardy; '.']#include dot in function of the context
 
-function is_word_boundary(s::Char,dir::Bool,include_dot::Bool)
+function is_word_boundary(s::Char,include_dot::Bool)
 
     w = include_dot ? _word_bounardy_dot : _word_bounardy
 
     for c in w
-        if dir #backward
-            s == c && return true
-        else #forward
-            s == c && return true
-        end
+        s == c && return true
     end
     false
 end
-is_word_boundary(it::Integer,dir::Bool) = is_word_boundary(it,dir,true)
+is_word_boundary(it::Integer) = is_word_boundary(it,true)
 
-function extend_word(it::Integer,txt::AbstractString,dir::Bool,include_dot::Bool)
+function extend_word_backward(it::Integer,txt::AbstractString,include_dot::Bool)
 
-    (dir && it==1) && return it
-    (!dir && it==length(txt)) && return it
+@show it
+@show txt
 
-    while !is_word_boundary(txt[it],dir,include_dot)
+    it <= 1 && return 1
 
-        it < 3 && return it
-        it > length(txt)-1 && return it
-
-        it = dir ? it-1 : it+1
+    while !is_word_boundary(txt[it],include_dot)
+        it == 1 && return it
+        it = it-1
     end
-
-    return dir ? it+1 : it-1 #I stopped at the boundary
+    return it+1 #I stopped at the boundary
 end
-extend_word(it::Integer,dir::Bool) = extend_word(it,dir,true)
+function extend_word_forward(it::Integer,txt::AbstractString,include_dot::Bool)
+
+    it >= length(txt) && return length(txt)
+
+    while !is_word_boundary(txt[it],include_dot)
+        it == length(txt) && return it
+        it = it+1
+    end
+    return it-1 #I stopped at the boundary
+end
 
 function select_word(it::GtkTextIters,buffer::GtkTextBuffer,include_dot::Bool)#include_dot means we include "." in word boundary def
 
     (txt, line_start, line_end) = get_current_line_text(buffer)
 
-    pos = offset(it) - offset(line_start) + 1 #position of cursor in txt
+    pos = offset(it) - offset(line_start) #position of cursor in txt
+    pos == 0 && return ("",Gtk.GtkTextIter(buffer,offset(it)),
+    Gtk.GtkTextIter(buffer,offset(it)))
 
-    i = extend_word(pos,txt,true,include_dot)
-    j = extend_word(pos,txt,false,include_dot)
-    
+    i = extend_word_backward(pos,txt,include_dot)
+    j = extend_word_forward(pos,txt,include_dot)
+
     if j < length(txt) && txt[j+1] == '!' #allow for a single ! at the end of words
         j = j + 1
     end
@@ -116,9 +121,30 @@ function select_word(it::GtkTextIters,buffer::GtkTextBuffer,include_dot::Bool)#i
 end
 select_word(it::GtkTextIters,buffer::GtkTextBuffer) = select_word(it,buffer,true)
 
+function select_word_backward(it::GtkTextIter,buffer::GtkTextBuffer,include_dot::Bool)
+
+    (txt, line_start, line_end) = get_current_line_text(buffer)
+    pos = offset(it) - offset(line_start) #position of cursor in txt
+    pos == 0 && return ("",Gtk.GtkTextIter(buffer,offset(it)),
+    Gtk.GtkTextIter(buffer,offset(it)))
+
+    #allow for autocomplete on functions
+    pos = txt[pos] == '(' ? pos-1 : pos
+
+    i = extend_word_backward(pos,txt,include_dot)
+
+    its = Gtk.GtkTextIter(buffer, i + offset(line_start) )
+    ite = Gtk.GtkTextIter(buffer, offset(it))
+
+    return (txt[i:pos],its,it)
+end
+#select_word_backward(it::Gtk.GtkTextIter,include_dot::Bool) = select_word_backward(mutable(it),include_dot)
+
+
 ##
 
-get_text_iter_at_cursor(buffer::GtkTextBuffer) = Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))
+get_text_iter_at_cursor(buffer::GtkTextBuffer) =
+Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int)+1) #+1 because there's a -1 in gtk.jl
 
 function get_current_line_text(buffer::GtkTextBuffer)
 
@@ -127,11 +153,11 @@ function get_current_line_text(buffer::GtkTextBuffer)
 
     itstart, itend = mutable(itstart), mutable(itend)
 
-    text_iter_backward_line(itstart)
-    skip(itstart,1,:line)
+    li = getproperty(itstart,:line,Integer)
+
+    text_iter_backward_line(itstart)#seems there's no skip to line start
+    li != getproperty(itstart,:line,Integer) && skip(itstart,1,:line)#for fist line
     text_iter_forward_to_line_end(itend)
 
     return (text_iter_get_text(itstart, itend), itstart, itend)
 end
-
-offset(it::GtkTextIters) = getproperty(it,:offset,Integer)

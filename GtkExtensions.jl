@@ -36,6 +36,11 @@ typealias MutableGtkTextIter Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}
 typealias GtkTextIters Union{MutableGtkTextIter,Gtk.GtkTextIter}
 mutable(it::Gtk.GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)
 
+offset(it::GtkTextIters) = getproperty(it,:offset,Integer)
+
+import Base.show
+show(io::IO, it::GtkTextIter) = println("GtkTextIter($(offset(it)))")
+
 function text_iter_get_text(it_start::MutableGtkTextIter,it_end::MutableGtkTextIter)
 	s = ccall((:gtk_text_iter_get_text,Gtk.libgtk),Ptr{Uint8},(Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),it_start,it_end)
     return s == C_NULL ? "" : bytestring(s)
@@ -116,7 +121,10 @@ function text_buffer_get_iter_at_mark(buffer::GtkTextBuffer,mark::GtkTextMark)
     return iter
 end
 
-text_buffer_delete(buffer::GtkTextBuffer,itstart::GtkTextIters,itend::GtkTextIters)  = ccall((:gtk_text_buffer_delete,  Gtk.libgtk),Void,
+text_buffer_delete(buffer::GtkTextBuffer,itstart::GtkTextIter,itend::GtkTextIter)  = ccall((:gtk_text_buffer_delete,  Gtk.libgtk),Void,
+(Ptr{Gtk.GObject},Ref{Gtk.GtkTextIter},Ref{Gtk.GtkTextIter}),buffer,itstart,itend)
+
+text_buffer_delete(buffer::GtkTextBuffer,itstart::MutableGtkTextIter,itend::MutableGtkTextIter)  = ccall((:gtk_text_buffer_delete,  Gtk.libgtk),Void,
 (Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),buffer,itstart,itend)
 
 ## TextView
