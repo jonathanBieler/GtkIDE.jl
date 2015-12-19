@@ -123,11 +123,11 @@ function highlight_cells()
     end
 end
 
-function get_selected_text()
-    t = get_current_tab()
+function get_selected_text(t::EditorTab)
     (found,it_start,it_end) = selection_bounds(t.buffer)
     return found ? text_iter_get_text(it_start,it_end) : ""
 end
+get_selected_text() = get_selected_text(get_current_tab())
 
 function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
@@ -363,7 +363,8 @@ function get_word_under_mouse_cursor(textview::GtkTextView)
 
     (x,y) = text_view_window_to_buffer_coords(textview,mousepos[1],mousepos[2])
     iter_end = get_iter_at_position(textview,x,y)
-    (word,itstart,itend) = select_word(iter_end,getproperty(textview,:buffer,GtkTextBuffer),false)
+    buffer = getproperty(textview,:buffer,GtkTextBuffer)
+    (word,itstart,itend) = select_word(iter_end,buffer,false)
 
     return word
 end

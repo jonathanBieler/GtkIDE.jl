@@ -32,11 +32,12 @@ baremodule GdkModifierType
     end
 end
 
-typealias MutableGtkTextIter Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}
+typealias MutableGtkTextIter Union{Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}}
 typealias GtkTextIters Union{MutableGtkTextIter,Gtk.GtkTextIter}
 mutable(it::Gtk.GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)
 
 offset(it::GtkTextIters) = getproperty(it,:offset,Integer)
+notmutable(buffer::GtkTextBuffer,it::MutableGtkTextIter) = GtkTextIter(buffer,offset(it)+1)#this allows to convert to GtkTextBuffer without the -1 definition in Gtk.jl
 
 import Base.show
 show(io::IO, it::GtkTextIter) = println("GtkTextIter($(offset(it)))")
@@ -133,9 +134,10 @@ get_iter_at_position(text_view::Gtk.GtkTextView,iter::MutableGtkTextIter,trailin
 	(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Cint},Cint,Cint),text_view,iter,trailing,x,y)
 
 function get_iter_at_position(text_view::Gtk.GtkTextView,x::Integer,y::Integer)
-	 iter = mutable(Gtk.GtkTextIter(getproperty(text_view,:buffer,GtkTextBuffer)))
-	 get_iter_at_position(text_view::Gtk.GtkTextView,iter,C_NULL,Int32(x),Int32(y))
-	 return iter
+    buffer = getproperty(text_view,:buffer,GtkTextBuffer)
+    iter = mutable(Gtk.GtkTextIter(buffer))
+    get_iter_at_position(text_view::Gtk.GtkTextView,iter,C_NULL,Int32(x),Int32(y))
+    return notmutable(buffer,iter)
 end
 
 function text_view_window_to_buffer_coords(text_view::Gtk.GtkTextView,wintype::Integer,window_x::Integer,window_y::Integer)
