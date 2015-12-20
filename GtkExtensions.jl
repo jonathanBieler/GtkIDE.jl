@@ -32,7 +32,7 @@ baremodule GdkModifierType
     end
 end
 
-typealias MutableGtkTextIter Union{Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}}
+typealias MutableGtkTextIter Gtk.GLib.MutableTypes.Mutable{Gtk.GtkTextIter}
 typealias GtkTextIters Union{MutableGtkTextIter,Gtk.GtkTextIter}
 mutable(it::Gtk.GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)
 
