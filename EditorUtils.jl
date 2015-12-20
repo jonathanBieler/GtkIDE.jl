@@ -89,6 +89,8 @@ end
 
 ## Utility functions
 
+get_buffer(view::GtkTextView) = getproperty(view,:buffer,GtkTextBuffer)
+
 get_text_iter_at_cursor(buffer::GtkTextBuffer) =
 GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int)+1) #+1 because there's a -1 in gtk.jl
 

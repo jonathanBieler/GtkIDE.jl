@@ -1,4 +1,3 @@
-#todo : filename should save the full path
 
 include("EditorUtils.jl")
 include("CompletionWindow.jl")
@@ -22,10 +21,13 @@ type EditorTab <: GtkScrolledWindow
     search_context::GtkSourceSearchContext
     search_mark
     scroll_target::AbstractFloat
+    scroll_target_line::Integer
 
     function EditorTab(filename::AbstractString)
 
         lang = haskey(languageDefinitions,extension(filename)) ? languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
+
+        filename = isabspath(filename) ? filename : joinpath(pwd(),filename)
 
         b = @GtkSourceBuffer(lang)
         setproperty!(b,:style_scheme,style)
@@ -34,7 +36,7 @@ type EditorTab <: GtkScrolledWindow
         highlight_matching_brackets(b,true)
 
         show_line_numbers!(v,true)
-	      auto_indent!(v,true)
+	    auto_indent!(v,true)
         highlight_current_line!(v, true)
         setproperty!(v,:wrap_mode,0)
 
@@ -96,7 +98,7 @@ end
 save_current_tab() = save(get_current_tab())
 
 function open_in_new_tab(filename::AbstractString)
-    filename = ispath(filename) ? filename : joinpath(pwd(),filename)
+    
     t = add_tab(filename)
     open(t,filename)
     return t
@@ -155,11 +157,12 @@ function close_tab()
 end
 
 
-#FIXME need to take into account module
-#set the cursos position ?
-function open_method(textview::GtkTextView)
+# FIXME need to take into account module
+# set the cursos position ?
+# check if the file is already open
+function open_method(view::GtkTextView)
 
-    word = get_word_under_mouse_cursor(textview)
+    word = get_word_under_mouse_cursor(view)
 
     try
         ex = parse(word)
@@ -171,17 +174,21 @@ function open_method(textview::GtkTextView)
         file = ispath(file) ? file : joinpath( joinpath(splitdir(JULIA_HOME)[1],"share\\julia\\base"), file)
         if ispath(file)
             t = open_in_new_tab(file)
+            t.scroll_target_line = line
 
-            iter = mutable(Gtk.GtkTextIter(t.buffer))
-            setproperty!(iter,:line,line)
-
-            @schedule begin
-                sleep(0.5) #FIXME
-                scroll_to_iter(t.view,iter)
-            end
         end
     end
 
+end
+
+function line_to_adj_value(buffer::GtkTextBuffer,adj::GtkAdjustment,l::Integer)
+
+    tot = line_count(buffer)
+
+    scaling = getproperty(adj,:upper,AbstractFloat) -
+              getproperty(adj,:page_size,AbstractFloat)
+
+    return l/tot * scaling
 end
 
 function get_text_left_of_cursor(buffer::GtkTextBuffer)
@@ -397,17 +404,30 @@ end
 value(adj::GtkAdjustment) = getproperty(adj,:value,AbstractFloat)
 value(adj::GtkAdjustment,v::AbstractFloat) = setproperty!(adj,:value,v)
 
+# maybe I should replace this by a task that check for the
+# end of loading and then call a function
 function tab_adj_changed_cb(adjptr::Ptr, user_data)
 
+    #FIXME need to check if the scroll target is valid somehow
     adj = convert(GtkAdjustment, adjptr)
     t = user_data
-    if t.scroll_target != 0
+    if t.scroll_target != 0 && t.scroll_target_line == 0
         if value(adj) != t.scroll_target
             value(adj,t.scroll_target)
         else
             t.scroll_target = 0
         end
     end
+
+    if t.scroll_target_line != 0
+        v = line_to_adj_value(get_buffer(t.view),adj,t.scroll_target_line)
+        if value(adj) != v
+            value(adj,v)
+        else
+            t.scroll_target_line = 0
+        end
+    end
+
     return nothing
 end
 
@@ -434,7 +454,8 @@ end
 
 function add_tab(filename::AbstractString)
     t = EditorTab(filename);
-    t.scroll_target = 0
+    t.scroll_target = 0.
+    t.scroll_target_line = 0
 
     idx = get_current_page_idx(ntbook)+1
     insert!(ntbook, idx, t, "Page $idx")

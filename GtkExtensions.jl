@@ -128,6 +128,8 @@ text_buffer_delete(buffer::GtkTextBuffer,itstart::GtkTextIter,itend::GtkTextIter
 text_buffer_delete(buffer::GtkTextBuffer,itstart::MutableGtkTextIter,itend::MutableGtkTextIter)  = ccall((:gtk_text_buffer_delete,  Gtk.libgtk),Void,
 (Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),buffer,itstart,itend)
 
+line_count(buffer::GtkTextBuffer) = ccall((:gtk_text_buffer_get_line_count,Gtk.libgtk),Cint,(Ptr{GObject},),buffer)
+
 ## TextView
 
 get_iter_at_position(text_view::Gtk.GtkTextView,iter::MutableGtkTextIter,trailing,x::Int32,y::Int32) = ccall((:gtk_text_view_get_iter_at_position,Gtk.libgtk),Void,
