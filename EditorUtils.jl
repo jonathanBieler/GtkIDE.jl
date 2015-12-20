@@ -85,7 +85,6 @@ function select_word_backward(it::GtkTextIter,buffer::GtkTextBuffer,include_dot:
 
     return (txt[i:j],its,it)
 end
-#select_word_backward(it::Gtk.GtkTextIter,include_dot::Bool) = select_word_backward(mutable(it),include_dot)
 
 ## Utility functions
 
@@ -109,3 +108,20 @@ function get_line_text(buffer::GtkTextBuffer,it::GtkTextIter)
 
     return (text_iter_get_text(itstart, itend), itstart, itend)
 end
+
+function get_text_left_of_cursor(buffer::GtkTextBuffer)
+    it = mutable(get_text_iter_at_cursor(buffer))
+    return text_iter_get_text(it,it+1)
+end
+function get_text_right_of_cursor(buffer::GtkTextBuffer)
+    it = mutable(get_text_iter_at_cursor(buffer))
+    return text_iter_get_text(it+1,it+2)
+end
+get_text_left_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it,it+1)
+get_text_right_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it+1,it+2)
+
+get_text_left_of_iter(it::GtkTextIter) = text_iter_get_text(mutable(it),mutable(it)+1)
+get_text_right_of_iter(it::GtkTextIter) = text_iter_get_text(mutable(it)+1,mutable(it)+2)
+
+
+

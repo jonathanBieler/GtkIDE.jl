@@ -16,7 +16,7 @@ type Console <: GtkScrolledWindow
 
         tag = Gtk.create_tag(buffer, "error", font="Normal 16")
         setproperty!(tag,:foreground,"gray")
-        Gtk.apply_tag(buffer, "error", Gtk.GtkTextIter(buffer,1) , Gtk.GtkTextIter(buffer,23) )
+        Gtk.apply_tag(buffer, "error", GtkTextIter(buffer,1) , GtkTextIter(buffer,23) )
 
         Gtk.create_tag(buffer, "cursor", font="Normal $fontsize",foreground="green")
         Gtk.create_tag(buffer, "plaintext", font="Normal $fontsize")
@@ -167,8 +167,8 @@ function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
 
     pos_start = length(buffer)+1
     write(console,">julia $cmd\n",() -> begin
-        Gtk.apply_tag(buffer, "cursor", Gtk.GtkTextIter(buffer,pos_start), Gtk.GtkTextIter(buffer,pos_start+7) )
-        Gtk.apply_tag(buffer, "plaintext", Gtk.GtkTextIter(buffer,1), Gtk.GtkTextIter(buffer,length(buffer)+1) )
+        Gtk.apply_tag(buffer, "cursor", GtkTextIter(buffer,pos_start), GtkTextIter(buffer,pos_start+7) )
+        Gtk.apply_tag(buffer, "plaintext", GtkTextIter(buffer,1), GtkTextIter(buffer,length(buffer)+1) )
     end)
 
     ex = Base.parse_input_line(cmd)

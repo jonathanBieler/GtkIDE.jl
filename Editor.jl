@@ -117,7 +117,7 @@ end
 
 function highlight_cells()
 
-    Gtk.apply_tag(srcbuffer, "background", Gtk.GtkTextIter(srcbuffer,1) , Gtk.GtkTextIter(srcbuffer,length(srcbuffer)+1) )
+    Gtk.apply_tag(srcbuffer, "background", GtkTextIter(srcbuffer,1) , GtkTextIter(srcbuffer,length(srcbuffer)+1) )
     (found,it_start,it_end) = get_cell(srcbuffer)
 
     if found
@@ -189,27 +189,6 @@ function line_to_adj_value(buffer::GtkTextBuffer,adj::GtkAdjustment,l::Integer)
               getproperty(adj,:page_size,AbstractFloat)
 
     return l/tot * scaling
-end
-
-function get_text_left_of_cursor(buffer::GtkTextBuffer)
-    it = mutable(get_text_iter_at_cursor(buffer))
-    return text_iter_get_text(it,it+1)
-end
-function get_text_right_of_cursor(buffer::GtkTextBuffer)
-    it = mutable(get_text_iter_at_cursor(buffer))
-    return text_iter_get_text(it+1,it+2)
-end
-get_text_left_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it,it+1)
-get_text_right_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it+1,it+2)
-
-get_text_left_of_iter(it::Gtk.GtkTextIter) = text_iter_get_text(mutable(it),mutable(it)+1)
-get_text_right_of_iter(it::Gtk.GtkTextIter) = text_iter_get_text(mutable(it)+1,mutable(it)+2)
-
-function starts_word(it::GtkTextIters)
-    return getproperty(it,:starts_word,Bool) && !(get_text_left_of_iter(it) == "_")
-end
-function ends_word(it::GtkTextIters)
-    return getproperty(it,:ends_word,Bool) && !(get_text_right_of_iter(it) == "_")
 end
 
 #clicks
