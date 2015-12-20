@@ -37,7 +37,7 @@ typealias GtkTextIters Union{MutableGtkTextIter,Gtk.GtkTextIter}
 mutable(it::Gtk.GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)
 
 offset(it::GtkTextIters) = getproperty(it,:offset,Integer)
-notmutable(buffer::GtkTextBuffer,it::MutableGtkTextIter) = GtkTextIter(buffer,offset(it)+1)#this allows to convert to GtkTextBuffer without the -1 definition in Gtk.jl
+nonmutable(buffer::GtkTextBuffer,it::MutableGtkTextIter) = GtkTextIter(buffer,offset(it)+1)#this allows to convert to GtkTextBuffer without the -1 definition in Gtk.jl
 
 import Base.show
 show(io::IO, it::GtkTextIter) = println("GtkTextIter($(offset(it)))")
@@ -107,9 +107,9 @@ function end_iter(buffer::Gtk.GtkTextBuffer)
     return iter
 end
 
-text_buffer_place_cursor(buffer::GtkTextBuffer,it::MutableGtkTextIter)  = ccall((:gtk_text_buffer_place_cursor,  Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter}),buffer,it)
-text_buffer_place_cursor(buffer::GtkTextBuffer,pos::Int) = text_buffer_place_cursor(srcbuffer,mutable(Gtk.GtkTextIter(srcbuffer,pos)))
-text_buffer_place_cursor(buffer::GtkTextBuffer,it::Gtk.GtkTextIter) = text_buffer_place_cursor(srcbuffer,mutable(it))
+text_buffer_place_cursor(buffer::GtkTextBuffer,it::GtkTextIter)  = ccall((:gtk_text_buffer_place_cursor,  Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ref{GtkTextIter}),buffer,it)
+text_buffer_place_cursor(buffer::GtkTextBuffer,pos::Int) = text_buffer_place_cursor(buffer,GtkTextIter(buffer,pos+1))
+text_buffer_place_cursor(buffer::GtkTextBuffer,it::MutableGtkTextIter) = text_buffer_place_cursor(buffer,nonmutable(buffer,it))
 
 text_buffer_create_mark(buffer::GtkTextBuffer,mark_name,it::GtkTextIters,left_gravity::Bool)  = GtkTextMarkLeaf(ccall((:gtk_text_buffer_create_mark, Gtk.libgtk),Ptr{GObject},
     (Ptr{Gtk.GObject},Ptr{UInt8},GtkTextIters,Cint),buffer,mark_name,it,left_gravity))
@@ -139,7 +139,7 @@ function get_iter_at_position(text_view::Gtk.GtkTextView,x::Integer,y::Integer)
     buffer = getproperty(text_view,:buffer,GtkTextBuffer)
     iter = mutable(Gtk.GtkTextIter(buffer))
     get_iter_at_position(text_view::Gtk.GtkTextView,iter,C_NULL,Int32(x),Int32(y))
-    return notmutable(buffer,iter)
+    return nonmutable(buffer,iter)
 end
 
 function text_view_window_to_buffer_coords(text_view::Gtk.GtkTextView,wintype::Integer,window_x::Integer,window_y::Integer)

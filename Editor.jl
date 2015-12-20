@@ -98,9 +98,9 @@ end
 save_current_tab() = save(get_current_tab())
 
 function open_in_new_tab(filename::AbstractString)
-    
+
     t = add_tab(filename)
-    open(t,filename)
+    open(t,t.filename)
     return t
 end
 
@@ -184,7 +184,6 @@ end
 function line_to_adj_value(buffer::GtkTextBuffer,adj::GtkAdjustment,l::Integer)
 
     tot = line_count(buffer)
-
     scaling = getproperty(adj,:upper,AbstractFloat) -
               getproperty(adj,:page_size,AbstractFloat)
 
@@ -275,6 +274,12 @@ function get_cursor_absolute_position(view::GtkTextView)
 
 end
 
+function run_line(buffer::GtkTextBuffer)
+    (txt, itstart, itend) = get_current_line_text(buffer)
+    txt = strip(txt)
+    on_return_terminal(entry,txt,false)
+end
+
 function tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
@@ -318,10 +323,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
     if doing(Actions.runline, event)
 
-        (txt, itstart, itend) = get_current_line_text(buffer)
-        txt = strip(txt)
-        on_return_terminal(entry,txt,false)
-
+        run_line(buffer)
         return convert(Cint,true)
     end
 
