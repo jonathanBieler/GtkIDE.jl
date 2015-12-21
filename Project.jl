@@ -43,7 +43,6 @@ function load(w::Project)
         return
     end
     j = JSON.parsefile(HOMEDIR * "config\\project")
-    @show j
     w.path = j["path"]
     w.files = j["files"]
     w.scroll_position = j["scroll_position"]

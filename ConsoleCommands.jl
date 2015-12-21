@@ -28,7 +28,7 @@ add_console_command(r"^pwd",(m) -> begin
     return true
 end)
 add_console_command(r"^ls\s*(.*)",(m) -> begin
-    
+
 	try
         files = m.captures[1] == "" ? readdir() : readdir(m.captures[1])
         s = ""
@@ -54,7 +54,7 @@ add_console_command(r"^cd (.*)",(m) -> begin
     return true
 end)
 
-function check_console_commands(cmd::String)
+function check_console_commands(cmd::AbstractString)
     for c in console_commands
         m = match(c.r,cmd)
         if m != nothing

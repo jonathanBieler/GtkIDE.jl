@@ -4,7 +4,7 @@ include("../Main.jl")
 
 ##
 
-sleep_time = 0.5
+sleep_time = 1
 
 open_in_new_tab("test/testfile.jl")
 sleep(0.5)#time for loading

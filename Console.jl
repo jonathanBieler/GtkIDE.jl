@@ -53,7 +53,7 @@ function wait(c::Console)
     Base.wait(t)
 end
 import Base.write
-function write(c::Console,s::String)
+function write(c::Console,s::AbstractString)
     @schedule begin
         wait(c)
         lock(c)
@@ -64,7 +64,7 @@ function write(c::Console,s::String)
         end
     end
 end
-function write(c::Console,s::String,f::Function)
+function write(c::Console,s::AbstractString,f::Function)
     @schedule begin
         wait(c)
         lock(c)
@@ -109,6 +109,7 @@ include("ConsoleCommands.jl")
 if REDIRECT_STDOUT
 
 stdout = STDOUT
+stderr = STDERR
 function send_stream(rd::IO, name::AbstractString)
     nb = nb_available(rd)
     if nb > 0
@@ -135,7 +136,8 @@ function watch_stream(rd::IO, name::AbstractString)
         # the IPython manager may send us a SIGINT if the user
         # chooses to interrupt the kernel; don't crash on this
         if isa(e, InterruptException)
-            watch_stream(rd, name)
+            #watch_stream(rd, name)
+            return
         else
             rethrow()
         end
@@ -145,14 +147,22 @@ end
 global read_stdout
 read_stdout, wr = redirect_stdout()
 function watch_stdio()
-    @async watch_stream(read_stdout, "stdout")
+    return @async watch_stream(read_stdout, "stdout")
 end
-watch_stdio()
+global console_redirect = watch_stdio()
+
+function stop_console_redirect(t::Task,out,err)
+    redirect_stdout(out)
+    redirect_stderr(err)
+
+    Base.throwto(t, InterruptException())
+end
+
 #this makes get_current_line_text crash, probably because it modifies the buffer and render textIters invalid
 
 end#REDIRECT_STDOUT
 
-function on_return_terminal(widget::GtkEntry,cmd::String,doClear)
+function on_return_terminal(widget::GtkEntry,cmd::AbstractString,doClear)
 
     cmd = strip(cmd)
     buffer = console.buffer
@@ -287,7 +297,7 @@ end
 ## scroll textview
 function console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
   adj = getproperty(console,:vadjustment, GtkAdjustment)
-  setproperty!(adj,:value, getproperty(adj,:upper,FloatingPoint) - getproperty(adj,:page_size,FloatingPoint))
+  setproperty!(adj,:value, getproperty(adj,:upper,AbstractFloat) - getproperty(adj,:page_size,AbstractFloat))
   nothing
 end
 signal_connect(console_scroll_cb, textview, "size-allocate", Void, (Ptr{Gtk.GdkRectangle},), false)

@@ -43,11 +43,11 @@ import Base.show
 show(io::IO, it::GtkTextIter) = println("GtkTextIter($(offset(it)))")
 
 function text_iter_get_text(it_start::MutableGtkTextIter,it_end::MutableGtkTextIter)
-	s = ccall((:gtk_text_iter_get_text,Gtk.libgtk),Ptr{Uint8},(Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),it_start,it_end)
+	s = ccall((:gtk_text_iter_get_text,Gtk.libgtk),Ptr{UInt8},(Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),it_start,it_end)
     return s == C_NULL ? "" : bytestring(s)
 end
 function text_iter_get_text(it_start::Gtk.GtkTextIter,it_end::Gtk.GtkTextIter)
-	s = ccall((:gtk_text_iter_get_text,Gtk.libgtk),Ptr{Uint8},(Ref{Gtk.GtkTextIter},Ref{Gtk.GtkTextIter}),it_start,it_end)
+	s = ccall((:gtk_text_iter_get_text,Gtk.libgtk),Ptr{UInt8},(Ref{Gtk.GtkTextIter},Ref{Gtk.GtkTextIter}),it_start,it_end)
     return s == C_NULL ? "" : bytestring(s)
 end
 
@@ -58,12 +58,12 @@ text_iter_forward_to_line_end(it::MutableGtkTextIter) = ccall((:gtk_text_iter_fo
 text_iter_forward_word_end(it::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_word_end, Gtk.libgtk),Cint,(Ptr{Gtk.GtkTextIter},),it)
 text_iter_backward_word_start(it::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_word_start, Gtk.libgtk),Cint,(Ptr{Gtk.GtkTextIter},),it)
 
-text_iter_forward_search(it::MutableGtkTextIter, txt::String, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_search, Gtk.libgtk),
+text_iter_forward_search(it::MutableGtkTextIter, txt::AbstractString, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_search, Gtk.libgtk),
   Cint,
-  (Ptr{Gtk.GtkTextIter},Ptr{Uint8},Cint,Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),
+  (Ptr{Gtk.GtkTextIter},Ptr{UInt8},Cint,Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),
   it,bytestring(txt),Int32(2),start,stop,limit
 )
-function text_iter_forward_search(buffer::GtkTextBuffer, txt::String)
+function text_iter_forward_search(buffer::GtkTextBuffer, txt::AbstractString)
   its = mutable(Gtk.GtkTextIter(buffer))
   ite = mutable(Gtk.GtkTextIter(buffer))
   found = text_iter_forward_search(mutable( Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))),txt,its,ite,mutable(Gtk.GtkTextIter(buffer,length(buffer))))
@@ -71,12 +71,12 @@ function text_iter_forward_search(buffer::GtkTextBuffer, txt::String)
   return (found,its,ite)
 end
 
-text_iter_backward_search(it::MutableGtkTextIter, txt::String, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_search, Gtk.libgtk),
+text_iter_backward_search(it::MutableGtkTextIter, txt::AbstractString, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_search, Gtk.libgtk),
   Cint,
-  (Ptr{Gtk.GtkTextIter},Ptr{Uint8},Cint,Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),
+  (Ptr{Gtk.GtkTextIter},Ptr{UInt8},Cint,Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),
   it,bytestring(txt),Int32(2),start,stop,limit
 )
-function text_iter_backward_search(buffer::GtkTextBuffer, txt::String)
+function text_iter_backward_search(buffer::GtkTextBuffer, txt::AbstractString)
   its = mutable(Gtk.GtkTextIter(buffer))
   ite = mutable(Gtk.GtkTextIter(buffer))
   found = text_iter_backward_search(mutable( Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))),txt,its,ite,mutable(Gtk.GtkTextIter(buffer,1)))
@@ -193,7 +193,7 @@ get_tab(notebook::Gtk.GtkNotebook,page_num::Int) = convert(Gtk.GtkWidget,ccall((
 	(Ptr{Gtk.GObject},Cint),notebook,page_num-1))
 
 set_tab_label_text(notebook::Gtk.GtkNotebook,child,tab_text) = ccall((:gtk_notebook_set_tab_label_text,Gtk.Gtk.libgtk),Void,(Ptr{Gtk.GObject},
-Ptr{Gtk.GObject},Ptr{Uint8}),notebook,child,tab_text)
+Ptr{Gtk.GObject},Ptr{UInt8}),notebook,child,tab_text)
 
 ## entry
 
@@ -220,17 +220,17 @@ baremodule GdkAtoms
     const SELECTION_CLIPBOARD = 0x0045
 end
 
-GtkClipboardLeaf(selection::Uint16) =  GtkClipboardLeaf(ccall((:gtk_clipboard_get,Gtk.libgtk), Ptr{GObject},
-    (Uint16,), selection))
+GtkClipboardLeaf(selection::UInt16) =  GtkClipboardLeaf(ccall((:gtk_clipboard_get,Gtk.libgtk), Ptr{GObject},
+    (UInt16,), selection))
 GtkClipboardLeaf() = GtkClipboardLeaf(GdkAtoms.SELECTION_CLIPBOARD)
-clipboard_set_text(clip::GtkClipboard,text::String) = ccall((:gtk_clipboard_set_text,Gtk.libgtk), Void,
-    (Ptr{GObject}, Ptr{Uint8},Cint), clip, text, sizeof(text))
+clipboard_set_text(clip::GtkClipboard,text::AbstractString) = ccall((:gtk_clipboard_set_text,Gtk.libgtk), Void,
+    (Ptr{GObject}, Ptr{UInt8},Cint), clip, text, sizeof(text))
 clipboard_store(clip::GtkClipboard) = ccall((:gtk_clipboard_store,Gtk.libgtk), Void,
     (Ptr{GObject},), clip)
 
 #note: this needs main_loops to run
 function clipboard_wait_for_text(clip::GtkClipboard)
-    ptr = ccall((:gtk_clipboard_wait_for_text,Gtk.libgtk), Ptr{Uint8},
+    ptr = ccall((:gtk_clipboard_wait_for_text,Gtk.libgtk), Ptr{UInt8},
         (Ptr{GObject},), clip)
     return ptr == C_NULL ? "" : bytestring(ptr)
 end

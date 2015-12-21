@@ -10,7 +10,7 @@ import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
 
 const HOMEDIR = dirname(Base.source_path()) * "/"
-const REDIRECT_STDOUT = false
+const REDIRECT_STDOUT = true
 
 ## more sure antialiasing is working on windows
 if OS_NAME == :Windows
@@ -53,7 +53,6 @@ fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
 end
 
 global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
-
 
 #Order matters
 include("Project.jl")
@@ -161,21 +160,36 @@ function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     event = convert(Gtk.GdkEvent, eventptr)
 
-    if event.keyval == keyval("r") && Int(event.state) == 4
+    if event.keyval == keyval("r") && Int(event.state) == GdkModifierType.CONTROL
         restart()
     end
 
     return Cint(false)
 end
 signal_connect(window_key_press_cb,win, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-
+##
 function restart(new_workspace=false)
-    save(project)
-    win_ = win
-    new_workspace && workspace()
-    include(HOMEDIR * "Main.jl")
-    destroy(win_)
+
+    #@schedule begin
+        println("restarting...")
+        sleep(0.5)
+        wait(console)
+        lock(console)
+        stop_console_redirect(console_redirect,stdout,stderr)
+        unlock(console)
+        println("stdout freed") 
+
+        save(project)
+        win_ = win
+
+        new_workspace && workspace()
+        include(HOMEDIR * "Main.jl")
+        destroy(win_)
+    #end
+
 end
+
+##
 
 #end#module
 
