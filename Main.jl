@@ -161,7 +161,11 @@ function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     event = convert(Gtk.GdkEvent, eventptr)
 
     if event.keyval == keyval("r") && Int(event.state) == GdkModifierType.CONTROL
-        restart()
+        @schedule begin
+            #crashes if we are still in the callback
+            sleep(0.2)
+            eval(Main,:(restart()))
+        end
     end
 
     return Cint(false)
@@ -172,12 +176,12 @@ function restart(new_workspace=false)
 
     #@schedule begin
         println("restarting...")
-        sleep(0.5)
+        sleep(0.1)
         wait(console)
         lock(console)
         stop_console_redirect(console_redirect,stdout,stderr)
         unlock(console)
-        println("stdout freed") 
+        println("stdout freed")
 
         save(project)
         win_ = win

@@ -64,9 +64,9 @@ text_iter_forward_search(it::MutableGtkTextIter, txt::AbstractString, start::Mut
   it,bytestring(txt),Int32(2),start,stop,limit
 )
 function text_iter_forward_search(buffer::GtkTextBuffer, txt::AbstractString)
-  its = mutable(Gtk.GtkTextIter(buffer))
-  ite = mutable(Gtk.GtkTextIter(buffer))
-  found = text_iter_forward_search(mutable( Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))),txt,its,ite,mutable(Gtk.GtkTextIter(buffer,length(buffer))))
+  its = mutable(GtkTextIter(buffer))
+  ite = mutable(GtkTextIter(buffer))
+  found = text_iter_forward_search(mutable( GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))),txt,its,ite,mutable(GtkTextIter(buffer,length(buffer)+1)))
 
   return (found,its,ite)
 end
