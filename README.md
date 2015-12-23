@@ -5,7 +5,7 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 
 ## Installation
 
-1. Install the dependencies, [Gtk.jl](https://github.com/JuliaLang/Gtk.jl), [JSON.jl](https://github.com/JuliaLang/JSON.jl) and GtkSourceWidget.jl
+1. Install the dependencies, [Gtk.jl](https://github.com/JuliaLang/Gtk.jl), [JSON.jl](https://github.com/JuliaLang/JSON.jl) and [GtkSourceWidget.jl](https://github.com/jonathanBieler/GtkSourceWidget.jl)
 
 2. Clone the repository.
 
