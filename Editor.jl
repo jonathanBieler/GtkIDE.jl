@@ -1,6 +1,6 @@
 
 include("EditorUtils.jl")
-include("CompletionWindow.jl")
+
 include("SearchWindow.jl")
 include("Actions.jl")
 
@@ -62,6 +62,8 @@ get_text(t::EditorTab) = getproperty(t.buffer,:text,AbstractString)
 getbuffer(textview::GtkTextView) = getproperty(textview,:buffer,GtkSourceBuffer)
 get_current_tab() = get_tab(ntbook,get_current_page_idx(ntbook))
 
+include("CompletionWindow.jl")
+
 import Base.open
 function open(t::EditorTab, filename::AbstractString)
     try
@@ -101,6 +103,7 @@ function open_in_new_tab(filename::AbstractString)
 
     t = add_tab(filename)
     open(t,t.filename)
+    
     return t
 end
 
@@ -112,7 +115,12 @@ end
 function get_cell(buffer::GtkTextBuffer)
     (foundb,itb_start,itb_end) = text_iter_backward_search(buffer,"\n##")
     (foundf,itf_start,itf_end) = text_iter_forward_search(buffer,"\n##")
-     return((foundf == 1 && foundb == 1), itb_start, itf_end)
+
+    if foundf && !foundb
+        return(true, mutable(GtkTextIter(buffer,1)), itf_end) #start of file
+    end
+
+    return((foundf && foundb), itb_start, itf_end)
 end
 
 function highlight_cells()
@@ -160,9 +168,11 @@ end
 # FIXME need to take into account module
 # set the cursos position ?
 # check if the file is already open
+
 function open_method(view::GtkTextView)
 
     word = get_word_under_mouse_cursor(view)
+    write(console,word)
 
     try
         ex = parse(word)
@@ -171,7 +181,8 @@ function open_method(view::GtkTextView)
 
         tv, decls, file, line = Base.arg_decl_parts(value.defs)
         file = string(file)
-        file = ispath(file) ? file : joinpath( joinpath(splitdir(JULIA_HOME)[1],"share\\julia\\base"), file)
+        write(console,word)
+        file = ispath(file) ? file : joinpath( joinpath(splitdir(JULIA_HOME)[1],"share/julia/base"), file)
         if ispath(file)
             t = open_in_new_tab(file)
             t.scroll_target_line = line
@@ -228,7 +239,9 @@ function editor_autocomplete(view::GtkTextView,replace=true)
         return convert(Cint, false)  #we go back to normal behavior if there's nothing on the left of the cursor
     end
 
-    (comp,dotpos) = completions(cmd, endof(cmd))
+    #(comp,dotpos) = completions(cmd, endof(cmd))
+    #FIXME shouldn't parse each time
+    (comp,dotpos) = extcompletions(cmd,collect_symbols(get_current_tab()))
 
     if isempty(comp)
         visible(completion_window,false)

@@ -127,6 +127,66 @@ function build_completion_window(comp,view,prefix)
     showall(completion_window)
 end
 
+## Add symbols from current files to completions
+
+function clean_symbols(S::Array{Symbol,1})
+    S = unique(S)
+    S = map(x -> string(x), S)
+    S = filter(x -> length(x) > 1, S)
+    sort(S)
+end
+
+function collect_symbols(t::EditorTab)
+    txt = getproperty(t.buffer,:text,AbstractString)
+    S = Array(Symbol,0) 
+     
+    for l in split(txt,"\n")
+        try
+            ex = parse(l)
+            S = [S; collect_symbols(ex)::Array{Symbol,1}]
+        end
+    end
+    clean_symbols(S)
+end
+
+function collect_symbols(ex::Expr)
+    S = Array(Symbol,0)
+    for i=1:length(ex.args)
+        s  = collect_symbols(ex.args[i]) 
+        if typeof(s) == Symbol
+            push!(S,s)
+        elseif typeof(s) == Array{Symbol,1}
+            for el in s
+                push!(S,el)
+            end
+        end
+    end
+    S
+end
+collect_symbols(s::Symbol) = s
+collect_symbols(other) = nothing
+
+##
+function complete_additional_symbols(str,S)
+    comp = Array(AbstractString,0)
+    for s in S
+        startswith(s,str) && push!(comp,s)
+    end
+    comp
+end
+
+function extcompletions(cmd,S)
+
+    (comp,dotpos) = completions(cmd, endof(cmd))
+    comp2 = complete_additional_symbols(cmd,S)
+    
+    for c in comp2
+        push!(comp,c)
+    end
+    
+    return (comp,dotpos)
+end
+
 ##
 global completion_window = CompletionWindow()
 visible(completion_window,false)

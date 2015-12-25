@@ -68,7 +68,7 @@ function text_iter_forward_search(buffer::GtkTextBuffer, txt::AbstractString)
   ite = mutable(GtkTextIter(buffer))
   found = text_iter_forward_search(mutable( GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))),txt,its,ite,mutable(GtkTextIter(buffer,length(buffer)+1)))
 
-  return (found,its,ite)
+  return (found==1,its,ite)
 end
 
 text_iter_backward_search(it::MutableGtkTextIter, txt::AbstractString, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_search, Gtk.libgtk),
@@ -81,7 +81,7 @@ function text_iter_backward_search(buffer::GtkTextBuffer, txt::AbstractString)
   ite = mutable(Gtk.GtkTextIter(buffer))
   found = text_iter_backward_search(mutable( Gtk.GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))),txt,its,ite,mutable(Gtk.GtkTextIter(buffer,1)))
 
-  return (found,its,ite)
+  return (found==1,its,ite)
 end
 
 function show_iter(it::MutableGtkTextIter,buffer::GtkTextBuffer,color::Int)
