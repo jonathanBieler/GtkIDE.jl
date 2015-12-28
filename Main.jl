@@ -6,6 +6,13 @@ using JSON
 #export plot, drawnow
 
 using Winston
+
+if Winston.output_surface != :gtk
+    #could do that automatically?
+    pth = joinpath(Pkg.dir(),"Winston","src")
+    error("You need to set output_surface to gtk in Winston.ini ($pth)")
+end
+
 import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
 
@@ -29,7 +36,12 @@ end
 sourceStyleManager = @GtkSourceStyleSchemeManager()
 GtkSourceWidget.set_search_path(sourceStyleManager,
   Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
+  
 global style = style_scheme(sourceStyleManager,"autumn")
+
+@linux_only begin
+    global style = style_scheme(sourceStyleManager,"tango")
+end
 
 global languageDefinitions = Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}()
 sourceLanguageManager = @GtkSourceLanguageManager()
@@ -38,16 +50,24 @@ GtkSourceWidget.set_search_path(sourceLanguageManager,
 languageDefinitions[".jl"] = GtkSourceWidget.language(sourceLanguageManager,"julia")
 languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"markdown")
 
-global fontsize = 13
-
-fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
-    font-family: Consolas, Courier, monospace;
-    font-size: $(fontsize)
-}"""
+@windows_only begin
+    global fontsize = 13
+    fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
+        font-family: Consolas, Courier, monospace;
+        font-size: $(fontsize)
+    }"""
+end
 @osx_only begin
     global fontsize = 13
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Monaco, Consolas, Courier, monospace;
+        font-size: $(fontsize)
+    }"""
+end
+@linux_only begin
+    global fontsize = 12
+    fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
+        font-family: Consolas, Courier, monospace;
         font-size: $(fontsize)
     }"""
 end
@@ -58,6 +78,10 @@ global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 include("Project.jl")
 include("Console.jl")
 include("Editor.jl")
+
+if sourcemap == nothing
+    sourcemap = @GtkBox(:v)
+end
 
 #-
 mb = @GtkMenuBar() |>

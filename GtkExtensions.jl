@@ -16,12 +16,15 @@ import Gtk.GtkTextIter
 grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , Gtk.libgtk),Void,(Ptr{Gtk.GObject},),w)#this should work?
 grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , Gtk.libgtk),Void,(Ptr{Gtk.GObject},),w)
 
+#import Gtk.GConstants: GdkModifierType
+
+# something is wrong with this
 baremodule GdkModifierType
     using Main.Base.convert
 
     const SHIFT		= convert(UInt32,1)
     const LOCK 	  	= convert(UInt32,2)
-    Main.Base.@windows_only begin # I'm not sure that's the correct way of doing this
+    Main.Base.@windows_only begin 
         const CONTROL 	= convert(UInt32,4)
         const MOUSE_CONTROL = convert(UInt32,4)
     end
@@ -29,6 +32,10 @@ baremodule GdkModifierType
         const COMMAND 	= convert(UInt32,4)
         const CONTROL   = convert(UInt32,268435472) #that's very weird
         const MOUSE_CONTROL = convert(UInt32,16)
+    end
+    Main.Base.@linux_only begin 
+        const CONTROL 	= convert(UInt32,33554436)
+        const MOUSE_CONTROL = convert(UInt32,33554432)
     end
 end
 

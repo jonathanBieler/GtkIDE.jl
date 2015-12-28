@@ -6,7 +6,13 @@ include("Actions.jl")
 
 extension(f::AbstractString) = splitext(f)[2]
 
-global sourcemap = @GtkSourceMap()
+sourcemap = nothing
+if GtkSourceWidget.SOURCE_MAP 
+    sourcemap = eval( :(@GtkSourceMap()) )
+else
+    set_view() = nothing    
+end
+
 global ntbook = @GtkNotebook()
     setproperty!(ntbook,:scrollable, true)
     setproperty!(ntbook,:enable_popup, true)
@@ -142,7 +148,7 @@ get_selected_text() = get_selected_text(get_current_tab())
 function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
     page = convert(Gtk.GtkWidget, pageptr)
-    if typeof(page) == EditorTab
+    if typeof(page) == EditorTab && GtkSourceWidget.SOURCE_MAP 
         set_view(sourcemap, page.view)
     end
     nothing
@@ -220,7 +226,7 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         return convert(Cint,true)
     end
 
-    if Int(event.button) == 1 && event.state == GdkModifierType.MOUSE_CONTROL #ctrl+right click
+    if Int(event.button) == 1 && event.state == GdkModifierType.CONTROL #ctrl+right click
         open_method(textview)
     end
 
@@ -311,6 +317,9 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getbuffer(textview)
+    
+    write(console,string( event.state) * "\n" )
+    write(console,string( Actions.save.state) * "\n" )
 
     if doing(Actions.save, event)
         save_current_tab()
@@ -492,7 +501,7 @@ function load_tabs(project::Project)
         set_current_page_idx(ntbook,ntbook_idx)
     end
     t = get_current_tab()
-    set_view(sourcemap,t.view)
+    GtkSourceWidget.SOURCE_MAP && set_view(sourcemap,t.view)
 end
 
 load_tabs(project)

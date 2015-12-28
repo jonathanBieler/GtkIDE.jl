@@ -9,7 +9,7 @@ type Action
 end
 
 function doing(a::Action, event::Gtk.GdkEvent)
-    return event.keyval == a.keyval && Int(event.state) == a.state
+    return event.keyval == a.keyval && Int(event.state) == Int(a.state)
 end
 
 baremodule Actions
