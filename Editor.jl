@@ -318,8 +318,8 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getbuffer(textview)
     
-    write(console,string( event.state) * "\n" )
-    write(console,string( Actions.save.state) * "\n" )
+    #write(console,string( event.state) * "\n" )
+    #write(console,string( Actions.save.state) * "\n" )
 
     if doing(Actions.save, event)
         save_current_tab()
