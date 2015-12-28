@@ -226,7 +226,7 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         return convert(Cint,true)
     end
 
-    if Int(event.button) == 1 && event.state == GdkModifierType.CONTROL #ctrl+right click
+    if Int(event.button) == 1 && event.state == GdkModifierType.MOUSE_CONTROL #ctrl+right click
         open_method(textview)
     end
 
