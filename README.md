@@ -9,6 +9,7 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 1. Install [GtkSourceWidget.jl](https://github.com/jonathanBieler/GtkSourceWidget.jl)
 
     `Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")`
+    
     `using GtkSourceWidget` 
     
 2. Install the package
