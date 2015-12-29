@@ -7,10 +7,10 @@ include("Actions.jl")
 extension(f::AbstractString) = splitext(f)[2]
 
 sourcemap = nothing
-if GtkSourceWidget.SOURCE_MAP 
+if GtkSourceWidget.SOURCE_MAP
     sourcemap = eval( :(@GtkSourceMap()) )
 else
-    set_view() = nothing    
+    set_view() = nothing
 end
 
 global ntbook = @GtkNotebook()
@@ -109,7 +109,7 @@ function open_in_new_tab(filename::AbstractString)
 
     t = add_tab(filename)
     open(t,t.filename)
-    
+
     return t
 end
 
@@ -148,7 +148,7 @@ get_selected_text() = get_selected_text(get_current_tab())
 function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
     page = convert(Gtk.GtkWidget, pageptr)
-    if typeof(page) == EditorTab && GtkSourceWidget.SOURCE_MAP 
+    if typeof(page) == EditorTab && GtkSourceWidget.SOURCE_MAP
         set_view(sourcemap, page.view)
     end
     nothing
@@ -317,7 +317,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getbuffer(textview)
-    
+
     #write(console,string( event.state) * "\n" )
     #write(console,string( Actions.save.state) * "\n" )
 
@@ -496,7 +496,7 @@ function load_tabs(project::Project)
     end
 
     if length(ntbook)==0
-        add_tab()
+        open_in_new_tab(joinpath(Pkg.dir(),"GtkIDE","README.md"))
     elseif ntbook_idx <= length(ntbook)
         set_current_page_idx(ntbook,ntbook_idx)
     end

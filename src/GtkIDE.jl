@@ -1,17 +1,36 @@
+using Winston
+#this need to run before gtk
+if Winston.output_surface != :gtk
+    #could do that automatically?
+    pth = joinpath(Pkg.dir(),"Winston","src")
+
+    warn("Patching Winston.ini")
+    sleep(0.5)
+    pth = joinpath(Pkg.dir(),"Winston","src","Winston.ini")
+    try
+        f = open(pth,"r")
+        s = readall(f)
+        s = replace(s, r"output_surface          = tk",
+                        "output_surface          = gtk")
+        close(f)
+
+        f = open(pth,"w")
+        write(f,s)
+        close(f)
+    catch err
+        warning("failed to patch Winston")
+        close(f)
+        rethrow(err)
+    end
+    error("Winston has been patched. Type workspace() and restart GtkIDE.")
+end
+
 using Gtk
 using GtkSourceWidget
 using JSON
 
 #module J
 #export plot, drawnow
-
-using Winston
-
-if Winston.output_surface != :gtk
-    #could do that automatically?
-    pth = joinpath(Pkg.dir(),"Winston","src")
-    error("You need to set output_surface to gtk in Winston.ini ($pth)")
-end
 
 import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
@@ -36,7 +55,7 @@ end
 sourceStyleManager = @GtkSourceStyleSchemeManager()
 GtkSourceWidget.set_search_path(sourceStyleManager,
   Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
-  
+
 global style = style_scheme(sourceStyleManager,"autumn")
 
 @linux_only begin
