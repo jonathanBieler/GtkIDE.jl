@@ -5,13 +5,18 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 
 ## Installation
 
-1. Install the dependencies, [Gtk.jl](https://github.com/JuliaLang/Gtk.jl), [JSON.jl](https://github.com/JuliaLang/JSON.jl), [Winston.jl](https://github.com/nolta/Winston.jl) and [GtkSourceWidget.jl](https://github.com/jonathanBieler/GtkSourceWidget.jl),
 
-2. Configure [Winston to use Gtk](https://github.com/nolta/Winston.jl/blob/master/src/Winston.ini#L1): tk -> gtk
+1. Install [GtkSourceWidget.jl](https://github.com/jonathanBieler/GtkSourceWidget.jl)
 
-3. Clone the repository.
+    Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")
+    
+2. Install the package
 
-4. Run `Main.jl`
+    Pkg.clone("https://github.com/jonathanBieler/GtkIDE.jl.git")
+    
+3. Run it
+
+    using GtkIDE
 
 ## Issues
 

@@ -211,10 +211,14 @@ function restart(new_workspace=false)
         win_ = win
 
         new_workspace && workspace()
-        include(HOMEDIR * "Main.jl")
+        include(HOMEDIR * "GtkIDE.jl")
         destroy(win_)
     #end
 
+end
+
+function run_tests()
+    include( joinpath(HOMEDIR,"test","runtests.jl") )
 end
 
 ##

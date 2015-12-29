@@ -12,7 +12,8 @@ end
 
 function setup_history()
     #load history, etc
-    h = HistoryProvider(AbstractString["x = pi"], HOMEDIR * "history", 1)
+    h = HistoryProvider(AbstractString["x = pi"],
+        joinpath(HOMEDIR,"config","history"), 1)
 
     if isfile(h.filename)
         h.history = parse_history(h)

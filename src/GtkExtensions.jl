@@ -95,11 +95,12 @@ function show_iter(it::MutableGtkTextIter,buffer::GtkTextBuffer,color::Int)
     Gtk.apply_tag(buffer, color > 0 ? "debug1" : "debug2",it, it+1)
 end
 
+##
 function selection_bounds(buffer::Gtk.GtkTextBuffer)
-    its = Gtk.GtkTextIter(buffer)
-    ite = Gtk.GtkTextIter(buffer)
+    its = mutable( GtkTextIter(buffer) )
+    ite = mutable( GtkTextIter(buffer) )
     return (convert(Bool,ccall((:gtk_text_buffer_get_selection_bounds,Gtk.libgtk),Cint,(Ptr{Gtk.GObject},
-            Ref{Gtk.GtkTextIter},Ref{Gtk.GtkTextIter}),buffer,its,ite)),its,ite)
+            Ptr{GtkTextIter},Ptr{GtkTextIter}),buffer,its,ite)),its,ite)
 end
 function selection_bounds(buffer::Gtk.GtkTextBuffer,ins::GtkTextIter,bound::GtkTextIter)
     ccall((:gtk_text_buffer_select_range,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ref{Gtk.GtkTextIter},Ref{Gtk.GtkTextIter}),buffer,ins,bound)
@@ -107,7 +108,7 @@ end
 function selection_bounds(buffer::Gtk.GtkTextBuffer,ins::MutableGtkTextIter,bound::MutableGtkTextIter)
     ccall((:gtk_text_buffer_select_range,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}),buffer,ins,bound)
 end
-
+##
 function end_iter(buffer::Gtk.GtkTextBuffer)
     iter = Gtk.mutable(Gtk.GtkTextIter)
     ccall((:gtk_text_buffer_get_end_iter,Gtk.libgtk),Void,(Ptr{Gtk.GObject},Ptr{Gtk.GtkTextIter}),buffer,iter)

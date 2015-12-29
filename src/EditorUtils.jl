@@ -104,7 +104,7 @@ function get_line_text(buffer::GtkTextBuffer,it::GtkTextIter)
 
     text_iter_backward_line(itstart)#seems there's no skip to line start
     li != getproperty(itstart,:line,Integer) && skip(itstart,1,:line)#for fist line
-    text_iter_forward_to_line_end(itend)
+    !getproperty(itend,:ends_line,Bool) && text_iter_forward_to_line_end(itend)
 
     return (text_iter_get_text(itstart, itend), itstart, itend)
 end

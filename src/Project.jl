@@ -31,18 +31,22 @@ end
 
 function save(w::Project)
     update!(w::Project)
-    open(HOMEDIR * "config\\project","w") do io
+    
+    !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
+    open( joinpath(HOMEDIR,"config","project") ,"w") do io
         JSON.print(io,w)
     end
 end
 
 function load(w::Project)
 
-    if !isfile( HOMEDIR * "config\\project" )
+    !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
+
+    if !isfile( joinpath(HOMEDIR,"config","project") )
         w.path = pwd()
         return
     end
-    j = JSON.parsefile(HOMEDIR * "config\\project")
+    j = JSON.parsefile( joinpath(HOMEDIR,"config","project") )
     w.path = j["path"]
     w.files = j["files"]
     w.scroll_position = j["scroll_position"]
