@@ -1,11 +1,10 @@
 
-include("../Main.jl")
-
+include(joinpath(Pkg.dir(),"GtkIDE","src","GtkIDE.jl"))
 
 ##
 
-sleep_time = 1
-
+sleep_time = 0.5
+sleep(0.5)#time for loading
 open_in_new_tab("test/testfile.jl")
 sleep(0.5)#time for loading
 
@@ -30,22 +29,21 @@ goto_line(buffer,1)
     sleep(sleep_time)
 run_line(buffer)
     sleep(sleep_time)
-    
+
 @assert x == 2
 
-goto_line(buffer,2) 
+goto_line(buffer,2)
 to_line_end(buffer)
 editor_autocomplete(t.view)
 sleep(0.1)
 
 (txt,its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer) )
-    
+
 @assert txt == "_test_completion_232_"
-    
+
 sleep(sleep_time)
 close_tab()
 
 
 
 ##
-
