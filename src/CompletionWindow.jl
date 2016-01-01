@@ -57,12 +57,18 @@ function selection_down(w::CompletionWindow)
     display(w)
 end
 
-function insert_autocomplete(out::AbstractString,itstart::GtkTextIters,itend::GtkTextIters,buffer::GtkTextBuffer)
+function insert_autocomplete(s::AbstractString,itstart::GtkTextIters,itend::GtkTextIters,buffer::GtkTextBuffer)
 
-        ex = r"(^.*\))( at .+\.jl:[0-9]+$)" #remove the file/line number for methods)
-        m = match(ex,out)
-        out = m == nothing ? out : m[1]
-        replace_text(buffer,itstart,itend,out)
+    s = remove_filename_from_methods_def(s)
+    replace_text(buffer,itstart,itend,s)
+end
+
+function remove_filename_from_methods_def(s::AbstractString)
+
+    ex = r"(^.*\))( at .+\.jl:[0-9]+$)" #remove the file/line number for methods)
+    m = match(ex,s)
+    s = m == nothing ? s : m[1]
+    return s
 end
 
 function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
@@ -183,6 +189,7 @@ function extcompletions(cmd,S)
     for c in comp2
         push!(comp,c)
     end
+    comp = unique(comp)
     
     return (comp,dotpos)
 end

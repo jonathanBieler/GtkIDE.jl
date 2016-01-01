@@ -11,6 +11,9 @@
 import ..Gtk: suffix
 import Gtk.GtkTextIter
 
+const PROPAGATE = convert(Cint,false)
+const INTERRUPT = convert(Cint,true)
+
 ## Widget
 
 grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , Gtk.libgtk),Void,(Ptr{Gtk.GObject},),w)#this should work?

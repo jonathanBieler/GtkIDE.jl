@@ -71,6 +71,15 @@ function select_word_backward(it::GtkTextIter,buffer::GtkTextBuffer,include_dot:
         GtkTextIter(buffer,offset(it)))
     end
 
+    (i,j) = select_word_backward(txt,pos,include_dot)   
+
+    its = GtkTextIter(buffer, i + offset(line_start) )
+    ite = GtkTextIter(buffer, offset(it))
+
+    return (txt[i:j],its,it)
+end
+function select_word_backward(txt::AbstractString,pos::Integer,include_dot::Bool)
+
     #allow for autocomplete on functions
     j = pos
     pos = txt[pos] == '(' ? pos-1 : pos
@@ -79,12 +88,10 @@ function select_word_backward(it::GtkTextIter,buffer::GtkTextBuffer,include_dot:
 
     #allow for \alpha and such
     i = (i > 1 && txt[i-1] == '\\') ? i-1 : i
-
-    its = GtkTextIter(buffer, i + offset(line_start) )
-    ite = GtkTextIter(buffer, offset(it))
-
-    return (txt[i:j],its,it)
+    
+    return (i,j)
 end
+  
 
 ## Utility functions
 

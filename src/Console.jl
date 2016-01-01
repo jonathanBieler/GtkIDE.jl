@@ -231,33 +231,60 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
         !history_up(history,prefix,cmd) && return convert(Cint,true)
         set_entry_text(history_get_current(history))
-        return convert(Cint,true)
+        return INTERRUPT
     end
     if event.keyval == Gtk.GdkKeySyms.Down
 
         history_down(history,prefix,cmd)
         set_entry_text(history_get_current(history))
-        return convert(Cint,true)
+        return INTERRUPT
     end
 
     if event.keyval == Gtk.GdkKeySyms.Tab
-
-        (comp,dotpos) = completions(cmd, endof(cmd))
-        show_completions(comp,dotpos,widget,cmd)
-
-        return convert(Cint,true)
+        console_autocomplete(cmd,pos)
+        return INTERRUPT
     end
 
-    return convert(Cint,false)
+    return PROPAGATE
 end
 signal_connect(entry_key_press_cb, entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
- # signal_connect(entry, "grab-notify") do widget
+# signal_connect(entry, "grab-notify") do widget
 #     println(widget, "lose focus")
 # end
 
-#print completions in console, FIXME: adjust with console width
-function show_completions(comp,dotpos,widget,cmd)
+function console_autocomplete(cmd::AbstractString,pos::Integer)
+
+    isempty(cmd) && return
+    pos > length(cmd) && return
+
+    (i,j) = select_word_backward(cmd,pos,false)
+
+    (ctx, m) = console_commands_context(cmd)
+
+    firstpart = cmd[1:i-1]
+    cmd = cmd[i:j]
+
+    if ctx == :normal
+        (comp,dotpos) = completions(cmd, endof(cmd))
+    end
+    if ctx == :file
+
+        (root,file) = splitdir(m.captures[1])
+
+        S = root == "" ? readdir() : readdir(root)
+        comp = complete_additional_symbols(cmd, S)
+        dotpos = 1:1
+    end
+
+    update_console_completions(comp,dotpos,cmd,firstpart)
+end
+
+## print completions in console, FIXME: adjust with console width
+# cmd is the word, including dots we are trying to comlete
+# firstpart is words that come before it
+
+function update_console_completions(comp,dotpos,cmd,firstpart)
 
     isempty(comp) && return
     @schedule begin
@@ -285,10 +312,11 @@ function show_completions(comp,dotpos,widget,cmd)
             out = prefix * comp[1]
         end
 
-        if widget != nothing
-            setproperty!(widget,:text,out)
-            set_position!(widget,endof(out))
-        end
+        #update entry
+        out = firstpart * out
+        out = remove_filename_from_methods_def(out)
+        setproperty!(console.entry,:text,out)
+        set_position!(console.entry,endof(out))
 
         unlock(console)
     end

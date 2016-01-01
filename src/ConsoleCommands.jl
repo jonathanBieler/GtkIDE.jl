@@ -4,16 +4,18 @@
 type Console_command
 	r::Regex
 	f::Function
+	completion_context::Symbol
 end
 
 global console_commands = Array(Console_command,0)
-add_console_command(r::Regex,f::Function) = push!(console_commands,Console_command(r,f))
+add_console_command(r::Regex,f::Function) = push!(console_commands,Console_command(r,f,:normal))
+add_console_command(r::Regex,f::Function,c::Symbol) = push!(console_commands,Console_command(r,f,c))
 
 add_console_command(r"^edit (.*)",(m) -> begin
     open_in_new_tab(m.captures[1])
     clear_entry()
     return true
-end)
+end,:file)
 add_console_command(r"^$",(m) -> begin
     write(console,"\n")
     return true
@@ -42,7 +44,8 @@ add_console_command(r"^ls\s*(.*)",(m) -> begin
 
     clear_entry()
     return true
-end)
+end,:file)
+
 add_console_command(r"^cd (.*)",(m) -> begin
 	try
 	    cd(m.captures[1])
@@ -52,7 +55,17 @@ add_console_command(r"^cd (.*)",(m) -> begin
 	end
     clear_entry()
     return true
-end)
+end,:file)
+
+function console_commands_context(cmd::AbstractString)
+    for c in console_commands
+        m = match(c.r,cmd)
+        if m != nothing
+            return (c.completion_context,m)
+        end
+    end
+    return (:normal,nothing)
+end
 
 function check_console_commands(cmd::AbstractString)
     for c in console_commands
