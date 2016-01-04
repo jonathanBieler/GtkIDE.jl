@@ -38,19 +38,6 @@ include("GtkExtensions.jl"); #using GtkExtenstions
 const HOMEDIR = dirname(Base.source_path()) * "/"
 const REDIRECT_STDOUT = true
 
-## more sure antialiasing is working on windows
-if OS_NAME == :Windows
-    s = Pkg.dir() * "\\WinRPM\\deps\\usr\\x86_64-w64-mingw32\\sys-root\\mingw\\etc\\gtk-3.0\\"
-    if isdir(s) && !isfile(s * "settings.ini")
-        f = open(s * "settings.ini","w")
-        write(f,
-"[Settings]
-gtk-xft-antialias = 1
-gtk-xft-rgba = rgb)")
-        close(f)
-    end
-end
-
 ## globals
 sourceStyleManager = @GtkSourceStyleSchemeManager()
 GtkSourceWidget.set_search_path(sourceStyleManager,
