@@ -295,9 +295,13 @@ function get_cursor_absolute_position(view::GtkTextView)
 end
 
 function run_line(buffer::GtkTextBuffer)
-    (txt, itstart, itend) = get_current_line_text(buffer)
-    txt = strip(txt)
-    on_return_terminal(entry,txt,false)
+
+    cmd = get_selected_text()
+    if cmd == ""
+        (cmd, itstart, itend) = get_current_line_text(buffer)
+        cmd = strip(cmd)
+    end
+    on_return_terminal(cmd,false)
 end
 
 function tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
@@ -361,14 +365,14 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
                 cmd = getproperty(buffer,:text,AbstractString)
             end
         end
-        on_return_terminal(entry,cmd,false)
+        on_return_terminal(cmd,false)
         return convert(Cint,true)
     end
     if doing(Actions.runfile, event)
         cmd = "include(\"$(t.filename)\")"
         cmd = replace(cmd,"\\", "/")
         setproperty!(console.entry,:text,cmd)
-        on_return_terminal(console.entry,cmd,true)
+        on_return_terminal(cmd,true)
     end
 
     !update_completion_window(event,buffer) && return convert(Cint,true)

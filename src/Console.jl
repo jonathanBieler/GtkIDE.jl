@@ -162,8 +162,9 @@ end
 
 end#REDIRECT_STDOUT
 
-function on_return_terminal(entry::GtkEntry,cmd::AbstractString,doClear)
+function on_return_terminal(cmd::AbstractString,doClear)
 
+    entry = console.entry
     cmd = strip(cmd)
     buffer = console.buffer
 
@@ -223,7 +224,7 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
 
     if event.keyval == Gtk.GdkKeySyms.Return
-        on_return_terminal(widget,cmd,true)
+        on_return_terminal(cmd,true)
     end
 
     if event.keyval == Gtk.GdkKeySyms.Up
@@ -270,9 +271,12 @@ function console_autocomplete(cmd::AbstractString,pos::Integer)
     if ctx == :file
 
         (root,file) = splitdir(m.captures[1])
-
-        S = root == "" ? readdir() : readdir(root)
-        comp = complete_additional_symbols(cmd, S)
+        comp = Array(AbstractString,0)
+        try
+            S = root == "" ? readdir() : readdir(root)
+            comp = complete_additional_symbols(cmd, S)
+        catch err
+        end
         dotpos = 1:1
     end
 

@@ -10,8 +10,6 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 
     `Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")`
     
-    `using GtkSourceWidget` 
-    
 2. Install the package
 
     `Pkg.clone("https://github.com/jonathanBieler/GtkIDE.jl.git")`
@@ -19,8 +17,31 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 3. Run it
 
     `using GtkIDE`
+    
+## Usage
 
-## Issues
+**Warning:** make sure to backup or commit your work before editing files, as a crash could 
+wipe them out.
 
-- Print commands and error are sent to the Julia REPL by default.
+### Opening files
+
+Use cd, ls, pwd to navigate in the console, and type `open filename` to open a file. 
+If `filename` does not exists it will be created instead.
+
+See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
+
+### Running code
+
+- `F5`: Include the current file
+- `Ctrl+Return`: Run selected code, or run code between two `## ' (like Matlab's code sections).
+- `Ctrl+Shift+Return`: Run selected code, or run current line.
+
+### Shortcuts
+
+See [Actions.jl](src/Actions.jl)
+
+### Issues
+
+- Prints and error outputs are a bit buggy.
+- Random crashes.
 - Too many issues to list.
