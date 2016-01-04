@@ -34,6 +34,7 @@ type EditorTab <: GtkScrolledWindow
         lang = haskey(languageDefinitions,extension(filename)) ? languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
 
         filename = isabspath(filename) ? filename : joinpath(pwd(),filename)
+        filename = normpath(filename)
 
         b = @GtkSourceBuffer(lang)
         setproperty!(b,:style_scheme,style)
@@ -317,6 +318,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getbuffer(textview)
+    t = user_data
 
     #write(console,string( event.state) * "\n" )
     #write(console,string( Actions.save.state) * "\n" )
@@ -348,7 +350,6 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         run_line(buffer)
         return convert(Cint,true)
     end
-
     if doing(Actions.runcode, event)
 
         cmd = get_selected_text()
@@ -362,6 +363,12 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         end
         on_return_terminal(entry,cmd,false)
         return convert(Cint,true)
+    end
+    if doing(Actions.runfile, event)
+        cmd = "include(\"$(t.filename)\")"
+        cmd = replace(cmd,"\\", "/")
+        setproperty!(console.entry,:text,cmd)
+        on_return_terminal(console.entry,cmd,true)
     end
 
     !update_completion_window(event,buffer) && return convert(Cint,true)
@@ -469,7 +476,7 @@ function add_tab(filename::AbstractString)
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
     set_font(t)
 
-    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false) #we need to use the view here to capture all the keystrokes
+    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t) #we need to use the view here to capture all the keystrokes
     signal_connect(tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 

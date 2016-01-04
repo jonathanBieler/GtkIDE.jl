@@ -1,11 +1,15 @@
 
-include(joinpath(Pkg.dir(),"GtkIDE","src","GtkIDE.jl"))
+#include(joinpath(Pkg.dir(),"GtkIDE","src","GtkIDE.jl"))
 
-##
+###############
+## EDITOR
 
-sleep_time = 0.5
+cd(joinpath(Pkg.dir(),"GtkIDE"))
+update_pathEntry()
+
+sleep_time = 0.5 
 sleep(0.5)#time for loading
-open_in_new_tab("test/testfile.jl")
+open_in_new_tab(joinpath("test","testfile.jl"))
 sleep(0.5)#time for loading
 
 t = get_current_tab()
@@ -22,7 +26,7 @@ function to_line_end(buffer::GtkTextBuffer)
     text_iter_forward_to_line_end(it)
     text_buffer_place_cursor(buffer,it)
 end
-function _test_completion_232_(x::Int,y::Float64)
+function _test_completion_232_(x::Int64, y::Float64)
 end
 
 goto_line(buffer,1)
@@ -44,6 +48,47 @@ sleep(0.1)
 sleep(sleep_time)
 close_tab()
 
+###############
+## CONSOLE
 
+#don't know how to get the hardware_keycode
+function emit_keypress(w)
 
+    keyevent = Gtk.GdkEventKey(Gtk.GdkEventType.KEY_PRESS, Gtk.gdk_window(w),
+               Int8(0), UInt32(0), UInt32(0), Gtk.GdkKeySyms.Return, UInt32(0),
+               convert(Ptr{Uint8},C_NULL), UInt16(13), UInt8(0), UInt32(0) )
+   
+    signal_emit(w, "key-press-event", Bool, keyevent)
+end
+
+setproperty!(console.entry,:text,"x = 3")
+    sleep(sleep_time)
+emit_keypress(console.entry)
+    sleep(sleep_time)
+@assert x == 3
+
+setproperty!(console.entry,:text,"_test_completion_")
+cmd = getproperty(console.entry,:text,AbstractString)
+    sleep(sleep_time)
+console_autocomplete(cmd, length(cmd))
+    sleep(sleep_time)
+
+@assert getproperty(console.entry,:text,AbstractString) == "_test_completion_232_"
+
+cmd = getproperty(console.entry,:text,AbstractString)
+setproperty!(console.entry,:text,cmd * "(")
+cmd = getproperty(console.entry,:text,AbstractString)
+    sleep(sleep_time)
+console_autocomplete(cmd, length(cmd))
+    sleep(sleep_time)
+
+@assert getproperty(console.entry,:text,AbstractString) == "_test_completion_232_(x::Int64, y::Float64)"
+
+clear_entry()
+
+setproperty!(console.entry,:text,"clc")
+    sleep(sleep_time)
+emit_keypress(console.entry)
+    sleep(sleep_time)
+    
 ##

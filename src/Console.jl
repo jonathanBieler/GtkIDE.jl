@@ -162,7 +162,7 @@ end
 
 end#REDIRECT_STDOUT
 
-function on_return_terminal(widget::GtkEntry,cmd::AbstractString,doClear)
+function on_return_terminal(entry::GtkEntry,cmd::AbstractString,doClear)
 
     cmd = strip(cmd)
     buffer = console.buffer
@@ -184,7 +184,7 @@ function on_return_terminal(widget::GtkEntry,cmd::AbstractString,doClear)
     ex = Base.parse_input_line(cmd)
     ex = expand(ex)
 
-    doClear ? setproperty!(widget,:text,"") : nothing
+    doClear ? setproperty!(entry,:text,"") : nothing
 
     evalout = ""
     value = :()
@@ -214,7 +214,6 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     event = convert(Gtk.GdkEvent, eventptr)
 
     cmd = getproperty(widget,:text,AbstractString)
-    cmd = strip(cmd)
 
     pos = getproperty(entry,:cursor_position,Int)
     prefix = length(cmd) >= pos ? cmd[1:pos] : ""

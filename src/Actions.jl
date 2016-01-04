@@ -5,11 +5,16 @@ type Action
 
     Action(k::Integer,s::Integer) = new(k,s,"")
     Action(k::Integer,s::Integer,d::AbstractString) = new(k,s,d)
+    Action(k::Integer,d::AbstractString) = new(k,-1,d)
     Action(k::AbstractString,s::Integer,d::AbstractString) = new(keyval(k),s,d)
 end
 
 function doing(a::Action, event::Gtk.GdkEvent)
-    return event.keyval == a.keyval && Int(event.state) == Int(a.state)
+    if a.state == -1
+        return event.keyval == a.keyval
+    else
+        return event.keyval == a.keyval && Int(event.state) == Int(a.state)
+    end
 end
 
 baremodule Actions
@@ -22,5 +27,5 @@ baremodule Actions
     const search   = Action(keyval("f"), GdkModifierType.CONTROL, "Search")
     const runline  = Action(Gtk.GdkKeySyms.Return, GdkModifierType.CONTROL + GdkModifierType.SHIFT, "Execute current line")
     const runcode  = Action(Gtk.GdkKeySyms.Return, GdkModifierType.CONTROL, "Execute code")
-
+    const runfile  = Action(Gtk.GdkKeySyms.F5,"Run current file")
 end
