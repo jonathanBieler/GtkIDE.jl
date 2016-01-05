@@ -97,10 +97,7 @@ end
 
 clear_entry() = setproperty!(console.entry,:text,"")
 
-# FIXME remove all these variables
 console = Console()
-entry = console.entry
-textview = console.view
 
 include("CommandHistory.jl")
 history = setup_history()
@@ -216,7 +213,7 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     cmd = getproperty(widget,:text,AbstractString)
 
-    pos = getproperty(entry,:cursor_position,Int)
+    pos = getproperty(console.entry,:cursor_position,Int)
     prefix = length(cmd) >= pos ? cmd[1:pos] : ""
 
     if event.keyval == keyval("c") && Int(event.state) == GdkModifierType.CONTROL
@@ -247,9 +244,9 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     return PROPAGATE
 end
-signal_connect(entry_key_press_cb, entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+signal_connect(entry_key_press_cb, console.entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
-# signal_connect(entry, "grab-notify") do widget
+# signal_connect(console.entry, "grab-notify") do widget
 #     println(widget, "lose focus")
 # end
 
@@ -284,7 +281,7 @@ function console_autocomplete(cmd::AbstractString,pos::Integer)
 end
 
 ## print completions in console, FIXME: adjust with console width
-# cmd is the word, including dots we are trying to comlete
+# cmd is the word, including dots we are trying to complete
 # firstpart is words that come before it
 
 function update_console_completions(comp,dotpos,cmd,firstpart)
@@ -325,10 +322,10 @@ function update_console_completions(comp,dotpos,cmd,firstpart)
     end
 end
 
-## scroll textview
+## auto-scroll the textview 
 function console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
   adj = getproperty(console,:vadjustment, GtkAdjustment)
   setproperty!(adj,:value, getproperty(adj,:upper,AbstractFloat) - getproperty(adj,:page_size,AbstractFloat))
   nothing
 end
-signal_connect(console_scroll_cb, textview, "size-allocate", Void, (Ptr{Gtk.GdkRectangle},), false)
+signal_connect(console_scroll_cb, console.view, "size-allocate", Void, (Ptr{Gtk.GdkRectangle},), false)

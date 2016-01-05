@@ -179,7 +179,7 @@ end
 function open_method(view::GtkTextView)
 
     word = get_word_under_mouse_cursor(view)
-    write(console,word)
+    #write(console,word)
 
     try
         ex = parse(word)
@@ -188,15 +188,12 @@ function open_method(view::GtkTextView)
 
         tv, decls, file, line = Base.arg_decl_parts(value.defs)
         file = string(file)
-        write(console,word)
         file = ispath(file) ? file : joinpath( joinpath(splitdir(JULIA_HOME)[1],"share/julia/base"), file)
         if ispath(file)
             t = open_in_new_tab(file)
             t.scroll_target_line = line
-
         end
     end
-
 end
 
 function line_to_adj_value(buffer::GtkTextBuffer,adj::GtkAdjustment,l::Integer)

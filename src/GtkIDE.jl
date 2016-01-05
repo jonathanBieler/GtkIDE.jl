@@ -29,7 +29,7 @@ using Gtk
 using GtkSourceWidget
 using JSON
 
-#module J
+#module G
 #export plot, drawnow
 
 import Base.REPLCompletions.completions
@@ -89,7 +89,7 @@ if sourcemap == nothing
     sourcemap = @GtkBox(:v)
 end
 
-#-
+##
 mb = @GtkMenuBar() |>
     (file = @GtkMenuItem("_File"))
 
@@ -111,7 +111,7 @@ mainPan |>
         (canvas = Gtk.@Canvas())  |>
         ((rightBox = @GtkBox(:v)) |>
             console |>
-            entry
+            console.entry
         )
     ) |>
     ((editorVBox = @GtkBox(:v)) |>
@@ -122,20 +122,21 @@ mainPan |>
         search_window
     )
 
+#FIXME is right left?
 ##setproperty!(ntbook, :width_request, 800)
 
 setproperty!(ntbook,:vexpand,true)
 setproperty!(editorBox,:expand,ntbook,true)
 setproperty!(mainPan,:margin,0)
 Gtk.G_.position(mainPan,600)
-Gtk.G_.position(rightPan,400)
+Gtk.G_.position(rightPan,450)
 #-
 
-sc = Gtk.G_.style_context(entry)
+sc = Gtk.G_.style_context(console.entry)
 push!(sc, provider, 600)
 sc = Gtk.G_.style_context(pathEntry)
 push!(sc, provider, 600)
-sc = Gtk.G_.style_context(textview)
+sc = Gtk.G_.style_context(console.view)
 push!(sc, provider, 600)
 
 ## the current path is shown in an entry on top
@@ -209,7 +210,7 @@ function restart(new_workspace=false)
         sleep(0.1)
         wait(console)
         lock(console)
-        stop_console_redirect(console_redirect,stdout,stderr)
+        REDIRECT_STDOUT && stop_console_redirect(console_redirect,stdout,stderr)
         unlock(console)
         println("stdout freed")
 
@@ -224,11 +225,25 @@ function restart(new_workspace=false)
 end
 
 function run_tests()
-    include( joinpath(HOMEDIR,"test","runtests.jl") )
+    include( joinpath(Pkg.dir(),"GtkIDE","test","runtests.jl") )
+end
+
+@schedule begin
+    th = linspace(0,8*π,500)
+    for i = 1:500
+
+        p = text(-1,0.6, "GtkIDE.jl")
+
+        plot( sin(1*th*1/10+i/200).*cos((1+i/1000)*th),exp(-th/12).*sin(th),
+            xrange=(-1.1,1.1),
+            yrange=(-0.75,0.95)
+        )
+        drawnow()
+    end
 end
 
 ##
 
 #end#module
 
-#importall J
+#importall G
