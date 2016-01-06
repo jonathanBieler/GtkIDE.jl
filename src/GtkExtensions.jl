@@ -186,9 +186,13 @@ function cursor_locations(text_view::Gtk.GtkTextView)
     return (iter,strong[],weak[])
 end
 
-scroll_to_iter(text_view::Gtk.GtkTextView,iter::GtkTextIters,within_margin::Number,use_align::Bool,xalign::Number,yalign::Number) = ccall((:gtk_text_view_scroll_to_iter,libgtk),Cint,
-	(Ptr{Gtk.GObject},Ptr{GtkTextIter},Cdouble,Cint,Cdouble,Cdouble),
+scroll_to_iter(text_view::Gtk.GtkTextView,iter::GtkTextIter,within_margin::Number,use_align::Bool,xalign::Number,yalign::Number) = ccall((:gtk_text_view_scroll_to_iter,libgtk),Cint,
+	(Ptr{Gtk.GObject},Ref{GtkTextIter},Cdouble,Cint,Cdouble,Cdouble),
     text_view,iter,within_margin,use_align,xalign,yalign)
+    
+scroll_to_iter(text_view::Gtk.GtkTextView,iter::MutableGtkTextIter,within_margin::Number,use_align::Bool,xalign::Number,yalign::Number) = ccall((:gtk_text_view_scroll_to_iter,libgtk),Cint,
+	(Ptr{Gtk.GObject},Ptr{GtkTextIter},Cdouble,Cint,Cdouble,Cdouble),
+    text_view,iter,within_margin,use_align,xalign,yalign)    
 
 scroll_to_iter(text_view::Gtk.GtkTextView,iter::GtkTextIters) = scroll_to_iter(text_view,iter,0.0,true,1.0,0.1)
 

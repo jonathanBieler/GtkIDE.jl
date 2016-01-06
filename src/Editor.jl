@@ -179,21 +179,42 @@ end
 function open_method(view::GtkTextView)
 
     word = get_word_under_mouse_cursor(view)
-    #write(console,word)
 
     try
         ex = parse(word)
-        value = eval(Main,ex)
-        value = typeof(value) == Function ? methods(value) : value
 
-        tv, decls, file, line = Base.arg_decl_parts(value.defs)
+        v = eval(Main,ex)
+        v = typeof(v) == Function ? methods(v) : v
+
+        tv, decls, file, line = Base.arg_decl_parts(v.defs)
         file = string(file)
         file = ispath(file) ? file : joinpath( joinpath(splitdir(JULIA_HOME)[1],"share/julia/base"), file)
+        file = normpath(file)
         if ispath(file)
+            #first look in existing tabs if the file is already open
+            for i = 1:length(ntbook)
+                n = ntbook[i]
+                if typeof(n) == EditorTab && n.filename == file
+
+                    set_current_page_idx(ntbook,i)
+                    it = GtkTextIter(n.buffer,line,1)
+                    scroll_to_iter(n.view, it)
+                    text_buffer_place_cursor(n.buffer,it)
+                    grab_focus(n.view)
+
+                    return true
+                end
+            end
+            #otherwise open it
             t = open_in_new_tab(file)
             t.scroll_target_line = line
+
+            return true
         end
+    catch 
+        
     end
+    return false
 end
 
 function line_to_adj_value(buffer::GtkTextBuffer,adj::GtkAdjustment,l::Integer)
@@ -225,10 +246,10 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
 
     if Int(event.button) == 1 && event.state == GdkModifierType.CONTROL #ctrl+right click
-        open_method(textview)
+        open_method(textview) && return INTERRUPT
     end
 
-    return convert(Cint,false)#false : propagate
+    return PROPAGATE
 end
 
 function editor_autocomplete(view::GtkTextView,replace=true)

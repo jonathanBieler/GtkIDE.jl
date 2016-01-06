@@ -186,6 +186,7 @@ function on_return_terminal(cmd::AbstractString,doClear)
 
     evalout = ""
     value = :()
+    
     @async begin
         try
             value = eval(Main,ex)
@@ -198,7 +199,7 @@ function on_return_terminal(cmd::AbstractString,doClear)
             close(io)
         end
 
-        finalOutput = "$evalout\n\n";
+        finalOutput = evalout == "" ? "\n" : "$evalout\n\n";
         write(console,finalOutput)
 
         update_pathEntry()#if there was any cd
@@ -322,7 +323,7 @@ function update_console_completions(comp,dotpos,cmd,firstpart)
     end
 end
 
-## auto-scroll the textview 
+## auto-scroll the textview
 function console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
   adj = getproperty(console,:vadjustment, GtkAdjustment)
   setproperty!(adj,:value, getproperty(adj,:upper,AbstractFloat) - getproperty(adj,:page_size,AbstractFloat))
