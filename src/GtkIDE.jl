@@ -232,7 +232,7 @@ end
     th = linspace(0,8*π,500)
     for i = 1:500
 
-        p = text(-1,0.6, "GtkIDE.jl")
+        #p = text(-1,0.6, "GtkIDE.jl")
 
         plot( sin(1*th*1/10+i/200).*cos((1+i/1000)*th),exp(-th/12).*sin(th),
             xrange=(-1.1,1.1),

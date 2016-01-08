@@ -25,7 +25,7 @@ wipe them out.
 
 ### Opening files
 
-Use cd, ls, pwd to navigate in the console, and type `open filename` to open a file. 
+Use cd, ls, pwd to navigate in the console, and type `edit filename` to open a file. 
 If `filename` does not exists it will be created instead.
 
 See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
@@ -37,6 +37,11 @@ See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
 - `Ctrl+Shift+Return`: Run selected code, or run current line.
 
 ### Shortcuts
+
+In the editor :
+
+- `Ctrl+D` when the cursor is above a word will show you some info on it.
+- `Ctrl+Click`on a method will jump to its first definition.
 
 See [Actions.jl](src/Actions.jl)
 

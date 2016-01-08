@@ -31,6 +31,7 @@ type CompletionWindow <: GtkWindow #FIXME not the right container?
 end
 
 ##
+import  Base.Multimedia.display
 function display(w::CompletionWindow)
 
     str = ""
@@ -89,7 +90,7 @@ function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
         end
     elseif event.keyval == Gtk.GdkKeySyms.Return || event.keyval == Gtk.GdkKeySyms.Tab
         if visible(completion_window)
-   
+
             (cmd,itstart,itend) = select_word_backward(get_text_iter_at_cursor(buffer),buffer,false)
 
             out = completion_window.prefix * completion_window.content[completion_window.idx]
@@ -114,7 +115,7 @@ function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuf
     event.keyval == Gtk.GdkKeySyms.Tab && return false
 
     t = get_current_tab()
-    visible(completion_window) && editor_autocomplete(t.view,false)
+    visible(completion_window) && editor_autocomplete(t.view,t,false)
     return true
 end
 
@@ -142,14 +143,39 @@ function clean_symbols(S::Array{Symbol,1})
     sort(S)
 end
 
-function collect_symbols(t::EditorTab)
+#FIXME need something a smarter than parsing line by line
+function _collect_symbols(t::EditorTab)
     txt = getproperty(t.buffer,:text,AbstractString)
-    S = Array(Symbol,0) 
-     
+    S = Array(Symbol,0)
+
     for l in split(txt,"\n")
         try
             ex = parse(l)
-            S = [S; collect_symbols(ex)::Array{Symbol,1}]
+            if ex != nothing
+                S = [S; collect_symbols(ex)::Array{Symbol,1}]
+            end
+        catch err
+            write(console,string(err))
+        end
+    end
+    clean_symbols(S)
+end
+
+function collect_symbols(t::EditorTab)
+    str = getproperty(t.buffer,:text,AbstractString)
+    S = Array(Symbol,0)
+
+    i = start(str)
+    while !done(str,i)#thanks Lint.jl
+        try
+            (ex,i) = parse(str,i)
+            if ex != nothing
+                S = [S; collect_symbols(ex)::Array{Symbol,1}]
+            end
+        catch err 
+            write(console,"error while parsing $(t.filename)")
+            write(console,string(err))
+            break
         end
     end
     clean_symbols(S)
@@ -158,7 +184,7 @@ end
 function collect_symbols(ex::Expr)
     S = Array(Symbol,0)
     for i=1:length(ex.args)
-        s  = collect_symbols(ex.args[i]) 
+        s  = collect_symbols(ex.args[i])
         if typeof(s) == Symbol
             push!(S,s)
         elseif typeof(s) == Array{Symbol,1}
@@ -185,12 +211,12 @@ function extcompletions(cmd,S)
 
     (comp,dotpos) = completions(cmd, endof(cmd))
     comp2 = complete_additional_symbols(cmd,S)
-    
+
     for c in comp2
         push!(comp,c)
     end
     comp = unique(comp)
-    
+
     return (comp,dotpos)
 end
 
