@@ -38,7 +38,7 @@ run_line(buffer)
 
 goto_line(buffer,2)
 to_line_end(buffer)
-editor_autocomplete(t.view)
+editor_autocomplete(t.view,t)
 sleep(0.1)
 
 (txt,its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer) )
