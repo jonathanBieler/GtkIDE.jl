@@ -154,23 +154,28 @@ function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, use
     end
     nothing
 end
-signal_connect(ntbook_switch_page_cb,ntbook, "switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
+signal_connect(ntbook_switch_page_cb,ntbook,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
 
 global mousepos = zeros(Int,2)
 global mousepos_root = zeros(Int,2)
-signal_connect(ntbook, "motion-notify-event") do widget, event, args...
+
+#FIXME do I really need this?
+function ntbook_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
+    event = convert(Gtk.GdkEvent, eventptr)
+
     mousepos[1] = round(Int,event.x)
     mousepos[2] = round(Int,event.y)
     mousepos_root[1] = round(Int,event.x_root)
     mousepos_root[2] = round(Int,event.y_root)
+    return PROPAGATE
 end
+signal_connect(ntbook_motion_notify_event_cb,ntbook,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
 
 function close_tab()
     idx = get_current_page_idx(ntbook)
     splice!(ntbook,idx)
     set_current_page_idx(ntbook,max(idx-1,0))
 end
-
 
 # FIXME need to take into account module
 # set the cursos position ?

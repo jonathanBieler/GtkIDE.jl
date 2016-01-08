@@ -35,7 +35,7 @@ using JSON
 import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
 
-const HOMEDIR = dirname(Base.source_path()) * "/"
+const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
 const REDIRECT_STDOUT = true
 
 ## globals
@@ -218,7 +218,7 @@ function restart(new_workspace=false)
         win_ = win
 
         new_workspace && workspace()
-        include(HOMEDIR * "GtkIDE.jl")
+        include( joinpath(HOMEDIR,"GtkIDE.jl") )
         destroy(win_)
     #end
 
