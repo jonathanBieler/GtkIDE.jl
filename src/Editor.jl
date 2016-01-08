@@ -28,6 +28,7 @@ type EditorTab <: GtkScrolledWindow
     search_mark
     scroll_target::AbstractFloat
     scroll_target_line::Integer
+    autocomplete_words::Array{AbstractString,1}
 
     function EditorTab(filename::AbstractString)
 
@@ -99,6 +100,7 @@ function save(t::EditorTab)
         write(console,"saved $(t.filename)\n")
         close(f)
         modified(t,false)
+        t.autocomplete_words = collect_symbols(t)
     catch err
         @show err
     end
@@ -176,10 +178,11 @@ end
 # set the cursos position ?
 # check if the file is already open
 
+
 function open_method(view::GtkTextView)
 
     word = get_word_under_mouse_cursor(view)
-
+   
     try
         ex = parse(word)
 
@@ -211,8 +214,8 @@ function open_method(view::GtkTextView)
 
             return true
         end
-    catch 
-        
+    catch
+
     end
     return false
 end
@@ -252,7 +255,7 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return PROPAGATE
 end
 
-function editor_autocomplete(view::GtkTextView,replace=true)
+function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
 
     buffer = getbuffer(view)
 
@@ -265,8 +268,10 @@ function editor_autocomplete(view::GtkTextView,replace=true)
     end
 
     #(comp,dotpos) = completions(cmd, endof(cmd))
-    #FIXME shouldn't parse each time
-    (comp,dotpos) = extcompletions(cmd,collect_symbols(get_current_tab()))
+    if !isdefined(t,:autocomplete_words) #parse current document and collect words
+        t.autocomplete_words = collect_symbols(t)
+    end
+    (comp,dotpos) = extcompletions(cmd,t.autocomplete_words)
 
     if isempty(comp)
         visible(completion_window,false)
@@ -364,7 +369,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
         if !visible(completion_window)
-            return editor_autocomplete(textview)
+            return editor_autocomplete(textview,t)
         end
     end
     if doing(Actions.runline, event)

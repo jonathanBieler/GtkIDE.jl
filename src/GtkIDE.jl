@@ -36,7 +36,7 @@ import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
 
 const HOMEDIR = dirname(Base.source_path()) * "/"
-const REDIRECT_STDOUT = true
+const REDIRECT_STDOUT = false
 
 ## globals
 sourceStyleManager = @GtkSourceStyleSchemeManager()

@@ -186,7 +186,7 @@ function on_return_terminal(cmd::AbstractString,doClear)
 
     evalout = ""
     value = :()
-    
+
     @async begin
         try
             value = eval(Main,ex)
@@ -250,6 +250,8 @@ signal_connect(entry_key_press_cb, console.entry, "key-press-event", Cint, (Ptr{
 # signal_connect(console.entry, "grab-notify") do widget
 #     println(widget, "lose focus")
 # end
+
+#FIXME: end of words get deleted
 
 function console_autocomplete(cmd::AbstractString,pos::Integer)
 
