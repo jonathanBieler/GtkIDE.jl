@@ -38,7 +38,7 @@ See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
 
 ### Shortcuts
 
-In the edit :
+In the editor :
 
 - `Ctrl+D` when the cursor is above a word will show you some info on it.
 - `Ctrl+Click`on a method will jump to its first definition.
