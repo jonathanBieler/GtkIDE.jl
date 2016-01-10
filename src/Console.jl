@@ -105,57 +105,57 @@ include("ConsoleCommands.jl")
 
 if REDIRECT_STDOUT
 
-stdout = STDOUT
-stderr = STDERR
-function send_stream(rd::IO, name::AbstractString)
-    nb = nb_available(rd)
-    if nb > 0
-        d = readbytes(rd, nb)
-        s = try
-            bytestring(d)
-        catch
-            # FIXME: what should we do here?
-            string("<ERROR: invalid UTF8 data ", d, ">")
-        end
-        if !isempty(s)
-            write(console,s)
-        end
-    end
-end
-
-function watch_stream(rd::IO, name::AbstractString)
-    try
-        while !eof(rd) # blocks until something is available
-            send_stream(rd, name)
-            sleep(0.05) # a little delay to accumulate output
-        end
-    catch e
-        # the IPython manager may send us a SIGINT if the user
-        # chooses to interrupt the kernel; don't crash on this
-        if isa(e, InterruptException)
-            #watch_stream(rd, name)
-            return
-        else
-            rethrow()
+    stdout = STDOUT
+    stderr = STDERR
+    function send_stream(rd::IO, name::AbstractString)
+        nb = nb_available(rd)
+        if nb > 0
+            d = readbytes(rd, nb)
+            s = try
+                bytestring(d)
+            catch
+                # FIXME: what should we do here?
+                string("<ERROR: invalid UTF8 data ", d, ">")
+            end
+            if !isempty(s)
+                write(console,s)
+            end
         end
     end
-end
 
-global read_stdout
-read_stdout, wr = redirect_stdout()
-function watch_stdio()
-    return @async watch_stream(read_stdout, "stdout")
-end
-global console_redirect = watch_stdio()
+    function watch_stream(rd::IO, name::AbstractString)
+        try
+            while !eof(rd) # blocks until something is available
+                send_stream(rd, name)
+                sleep(0.05) # a little delay to accumulate output
+            end
+        catch e
+            # the IPython manager may send us a SIGINT if the user
+            # chooses to interrupt the kernel; don't crash on this
+            if isa(e, InterruptException)
+                #watch_stream(rd, name)
+                return
+            else
+                rethrow()
+            end
+        end
+    end
 
-function stop_console_redirect(t::Task,out,err)
-    redirect_stdout(out)
-    redirect_stderr(err)
+    global read_stdout
+    read_stdout, wr = redirect_stdout()
+    function watch_stdio()
+        return @async watch_stream(read_stdout, "stdout")
+    end
+    global console_redirect = watch_stdio()
 
-    Base.throwto(t, InterruptException())
-end
+    function stop_console_redirect(t::Task,out,err)
+        redirect_stdout(out)
+        redirect_stderr(err)
 
-#this makes get_current_line_text crash, probably because it modifies the buffer and render textIters invalid
+        Base.throwto(t, InterruptException())
+    end
+
+    #this makes get_current_line_text crash, probably because it modifies the buffer and render textIters invalid
 
 end#REDIRECT_STDOUT
 

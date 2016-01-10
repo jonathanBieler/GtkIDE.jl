@@ -94,10 +94,10 @@ mb = @GtkMenuBar() |>
     (file = @GtkMenuItem("_File"))
 
 filemenu = @GtkMenu(file) |>
-    (new_ = @GtkMenuItem("New")) |>
-    (open_ = @GtkMenuItem("Open")) |>
+    (newMenuItem = @GtkMenuItem("New")) |>
+    (openMenuItem = @GtkMenuItem("Open")) |>
     @GtkSeparatorMenuItem() |>
-    (quit = @GtkMenuItem("Quit"))
+    (quitMenuItem = @GtkMenuItem("Quit"))
 
 win = @GtkWindow("Julia IDE",1800,1200) |>
     ((mainVbox = @GtkBox(:v)) |>
@@ -157,6 +157,32 @@ function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 end
 signal_connect(pathEntry_key_press_cb, pathEntry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
+################
+## MENU THINGS
+
+function quitMenuItem_activate_cb(widgetptr::Ptr, user_data)
+    #widget = convert(GtkMenuItem, widgetptr)
+    destroy(win)
+    return nothing
+end
+signal_connect(quitMenuItem_activate_cb, quitMenuItem, "activate", Void, (), false)
+
+function newMenuItem_activate_cb(widgetptr::Ptr, user_data)
+    add_tab()
+    save(project)##FIXME this souldn't be here
+    return nothing
+end
+signal_connect(newMenuItem_activate_cb, newMenuItem, "activate", Void, (), false)
+
+function openMenuItem_activate_cb(widgetptr::Ptr, user_data)
+    f = open_dialog("Pick a file", win, ("*.jl","*.md"))
+    if isfile(f)
+        open_in_new_tab(f)
+    end
+    return nothing
+end
+signal_connect(openMenuItem_activate_cb, openMenuItem, "activate", Void, (), false)
+
 
 ################
 ## WINSTON
@@ -180,6 +206,7 @@ function quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
     if typeof(project) == Project
         save(project)
     end
+    REDIRECT_STDOUT && stop_console_redirect(console_redirect,stdout,stderr)
     return convert(Cint,false)
 end
 signal_connect(quit_cb, win, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
@@ -228,19 +255,21 @@ function run_tests()
     include( joinpath(Pkg.dir(),"GtkIDE","test","runtests.jl") )
 end
 
-@schedule begin
-    th = linspace(0,8*π,500)
-    for i = 1:500
 
-        #p = text(-1,0.6, "GtkIDE.jl")
 
-        plot( sin(1*th*1/10+i/200).*cos((1+i/1000)*th),exp(-th/12).*sin(th),
-            xrange=(-1.1,1.1),
-            yrange=(-0.75,0.95)
-        )
-        drawnow()
-    end
-end
+# @schedule begin
+#     th = linspace(0,8*π,500)
+#     for i = 1:500
+#
+#         #p = text(-1,0.6, "GtkIDE.jl")
+#
+#         plot( sin(1*th*1/10+i/200).*cos((1+i/1000)*th),exp(-th/12).*sin(th),
+#             xrange=(-1.1,1.1),
+#             yrange=(-0.75,0.95)
+#         )
+#         drawnow()
+#     end
+# end
 
 ##
 
