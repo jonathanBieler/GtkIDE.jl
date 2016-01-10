@@ -402,6 +402,10 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         setproperty!(console.entry,:text,cmd)
         on_return_terminal(cmd,true)
     end
+    if event.keyval == Gtk.GdkKeySyms.Escape
+        set_search_text("")
+        visible(search_window,false)
+    end
 
     !update_completion_window(event,buffer) && return convert(Cint,true)
 

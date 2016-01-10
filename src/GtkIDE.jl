@@ -90,7 +90,7 @@ if sourcemap == nothing
 end
 
 ##
-mb = @GtkMenuBar() |>
+menubar = @GtkMenuBar() |>
     (file = @GtkMenuItem("_File"))
 
 filemenu = @GtkMenu(file) |>
@@ -101,12 +101,16 @@ filemenu = @GtkMenu(file) |>
 
 win = @GtkWindow("Julia IDE",1800,1200) |>
     ((mainVbox = @GtkBox(:v)) |>
-        mb |>
-        (pathEntry = @GtkEntry()) |>
-        (mainPan = @GtkPaned(:h))
+        menubar |>
+        (topBarBox = @GtkBox(:h) |>
+            (sidePanelButton = @GtkButton("F1")) |>
+            (pathEntry = @GtkEntry()) |>
+            (editorButton = @GtkButton("F2"))
+        ) |>
+        (sidePan = @GtkPaned(:h))
     )
 
-mainPan |>
+(mainPan = @GtkPaned(:h)) |>
     (rightPan = @GtkPaned(:v) |>
         (canvas = Gtk.@Canvas())  |>
         ((rightBox = @GtkBox(:v)) |>
@@ -122,8 +126,15 @@ mainPan |>
         search_window
     )
 
+sidePan |>
+    (sidepanel_ntbook = @GtkNotebook()) |>
+    mainPan
+
 #FIXME is right left?
 ##setproperty!(ntbook, :width_request, 800)
+
+include("SidePanels.jl")
+Gtk.G_.position(sidePan,160)
 
 setproperty!(ntbook,:vexpand,true)
 setproperty!(editorBox,:expand,ntbook,true)
@@ -131,6 +142,9 @@ setproperty!(mainPan,:margin,0)
 Gtk.G_.position(mainPan,600)
 Gtk.G_.position(rightPan,450)
 #-
+
+setproperty!(topBarBox,:hexpand,true)
+setproperty!(pathEntry,:hexpand,true)
 
 sc = Gtk.G_.style_context(console.entry)
 push!(sc, provider, 600)
@@ -213,6 +227,20 @@ signal_connect(quit_cb, win, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
 showall(win)
 visible(search_window,false)
+visible(sidepanel_ntbook,false)
+
+function toggle_sidepanel()
+    visible(sidepanel_ntbook,!visible(sidepanel_ntbook))
+end
+
+function toggle_editor()#use visible ?
+    if Gtk.G_.position(mainPan) > 0
+        mainPanPos = Gtk.G_.position(mainPan)
+        Gtk.G_.position(mainPan,0)
+    else
+        Gtk.G_.position(mainPan,650) #FIXME need a layout type to save all these things
+    end
+end
 
 function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
@@ -225,10 +253,30 @@ function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
             eval(Main,:(restart()))
         end
     end
+    if event.keyval == Gtk.GdkKeySyms.F1
+      toggle_sidepanel()
+    end
+    if event.keyval == Gtk.GdkKeySyms.F2
+        toggle_editor()
+    end
 
     return Cint(false)
 end
 signal_connect(window_key_press_cb,win, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+
+function sidePanelButton_clicked_cb(widgetptr::Ptr, user_data)
+    toggle_sidepanel()
+    return nothing
+end
+signal_connect(sidePanelButton_clicked_cb, sidePanelButton, "clicked", Void, (), false)
+
+function editorButtonclicked_cb(widgetptr::Ptr, user_data)
+    toggle_editor()
+    return nothing
+end
+signal_connect(editorButtonclicked_cb, editorButton, "clicked", Void, (), false)
+
+
 ##
 function restart(new_workspace=false)
 
@@ -254,8 +302,6 @@ end
 function run_tests()
     include( joinpath(Pkg.dir(),"GtkIDE","test","runtests.jl") )
 end
-
-
 
 # @schedule begin
 #     th = linspace(0,8*π,500)
