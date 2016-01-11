@@ -169,7 +169,7 @@ function on_return_terminal(cmd::AbstractString,doClear)
     history_seek_end(history)
 
     if check_console_commands(cmd)
-        update_pathEntry()
+        on_path_change()
         return
     end
 
@@ -202,7 +202,7 @@ function on_return_terminal(cmd::AbstractString,doClear)
         finalOutput = evalout == "" ? "\n" : "$evalout\n\n";
         write(console,finalOutput)
 
-        update_pathEntry()#if there was any cd
+        on_path_change()#if there was any cd
     end
 end
 

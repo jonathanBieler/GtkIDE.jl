@@ -406,6 +406,15 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         set_search_text("")
         visible(search_window,false)
     end
+    if doing(Actions.copy,event)
+        signal_emit(textview, "copy-clipboard", Void)
+    end
+    if doing(Actions.paste,event)
+        signal_emit(textview, "paste-clipboard", Void)
+    end
+    if doing(Actions.cut,event)
+        signal_emit(textview, "cut-clipboard", Void)
+    end
 
     !update_completion_window(event,buffer) && return convert(Cint,true)
 

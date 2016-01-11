@@ -2,7 +2,7 @@
 # maybe not the most efficient way of doing this.
 const _word_bounardy = [' ', '\n','\t','(',')','[',']',',','\'',
                        '*','+','/','\\','%','{','}','#',':',
-                       '&','|','?','!']
+                       '&','|','?','!','"','$','=']
 const _word_bounardy_dot = [_word_bounardy; '.']#include dot in function of the context
 
 function is_word_boundary(s::Char,include_dot::Bool)

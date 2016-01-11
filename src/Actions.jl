@@ -28,4 +28,7 @@ baremodule Actions
     const runline  = Action(Gtk.GdkKeySyms.Return, GdkModifierType.CONTROL + GdkModifierType.SHIFT, "Execute current line")
     const runcode  = Action(Gtk.GdkKeySyms.Return, GdkModifierType.CONTROL, "Execute code")
     const runfile  = Action(Gtk.GdkKeySyms.F5,"Run current file")
+    const copy     = Action("c", GdkModifierType.CONTROL,"Copy")
+    const paste    = Action("v", GdkModifierType.CONTROL,"Paste")
+    const cut      = Action("x", GdkModifierType.CONTROL,"Cut")
 end

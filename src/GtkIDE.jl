@@ -163,8 +163,8 @@ function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     event = convert(Gtk.GdkEvent, eventptr)
 
     if event.keyval == Gtk.GdkKeySyms.Return
-        cd(getproperty(widget,:text,AbstractString))
-        write(console,getproperty(widget,:text,AbstractString) * "\n")
+        cd(getproperty(widget,:text,AbstractString))    
+        on_path_change()
     end
 
     return convert(Cint,false)
@@ -276,6 +276,11 @@ function editorButtonclicked_cb(widgetptr::Ptr, user_data)
 end
 signal_connect(editorButtonclicked_cb, editorButton, "clicked", Void, (), false)
 
+function on_path_change()
+
+    update_pathEntry()
+    update!(filespanel)    
+end
 
 ##
 function restart(new_workspace=false)
