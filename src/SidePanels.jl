@@ -3,41 +3,25 @@ function add_side_panel(w::Gtk.GtkWidget,title::AbstractString)
     set_tab_label_text(sidepanel_ntbook,w,title)
 end
 
-function give_me_a_treeview(n)
+function give_me_a_treeview(n,rownames)
 
     t = ntuple(i->AbstractString,n)
     list = @GtkListStore(t...)
 
     tv = @GtkTreeView(GtkTreeModel(list))
 
+    cols = Array(GtkTreeViewColumn,0)
+
     for i=1:n
         r1 = @GtkCellRendererText()
-        c1 = @GtkTreeViewColumn("", r1, Dict([("text",i-1)]))
+        c1 = @GtkTreeViewColumn(rownames[i], r1, Dict([("text",i-1)]))
+        Gtk.G_.sort_column_id(c1,i-1)
+        push!(cols,c1)
         Gtk.G_.max_width(c1,Int(200/n))
         push!(tv,c1)
     end
 
-    return (tv,list)
-end
-
-#### FILES PANEL
-
-type FilesPanel <: GtkScrolledWindow
-
-    handle::Ptr{Gtk.GObject}
-    list::GtkListStore
-    tree_view::GtkTreeView
-
-    function FilesPanel()
-
-        (tv,list) = give_me_a_treeview(1)
-
-        sc = @GtkScrolledWindow()
-        push!(sc,tv)
-
-        t = new(sc.handle,list,tv)
-        Gtk.gobject_move_ref(t,sc)
-    end
+    return (tv,list,cols)
 end
 
 import Gtk.selected
@@ -60,10 +44,65 @@ function select_value(tree_view::GtkTreeView,list::GtkListStore,v)
     end
 end
 
+#### FILES PANEL
+
+function open_file(treeview::GtkTreeView,list::GtkListStore)
+
+    v = selected(treeview, list)
+    if v != nothing && length(v) == 1
+        isfile(v[1]) && open_in_new_tab(v[1])
+    end
+end
+
+function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+    treeview = convert(GtkTreeView, widgetptr)
+    event = convert(Gtk.GdkEvent, eventptr)
+    list = user_data
+    
+    if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
+        open_file(treeview,list)
+    end    
+    return PROPAGATE
+end
+
+function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+    treeview = convert(GtkTreeView, widgetptr)
+    event = convert(Gtk.GdkEvent, eventptr)
+    list = user_data
+    
+    if event.keyval == Gtk.GdkKeySyms.Return
+        open_file(treeview,list)
+    end
+    
+    return PROPAGATE
+end
+
+type FilesPanel <: GtkScrolledWindow
+
+    handle::Ptr{Gtk.GObject}
+    list::GtkListStore
+    tree_view::GtkTreeView
+
+    function FilesPanel()
+
+        (tv,list,cols) = give_me_a_treeview(1,["Name"])
+
+        signal_connect(filespanel_treeview_clicked_cb,tv, "button-press-event", 
+        Cint, (Ptr{Gtk.GdkEvent},), false,list)
+        signal_connect(filespanel_treeview_keypress_cb,tv, "key-press-event", 
+        Cint, (Ptr{Gtk.GdkEvent},), false,list)
+
+        sc = @GtkScrolledWindow()
+        push!(sc,tv)
+
+        t = new(sc.handle,list,tv)
+        Gtk.gobject_move_ref(t,sc)
+    end
+end
+
 function update!(w::FilesPanel)
 
     n = readdir()
-
     sel_val = selected(w.tree_view,w.list)
 
     empty!(w.list)
@@ -79,8 +118,9 @@ update!(filespanel)
 add_side_panel(filespanel,"F")
 
 #FIXME I should stop all tasks when exiting
+#this can make it crash if it runs while sorting
 @schedule begin
-    while(true)
+    while(false)
         sleep(1.0)
         update!(filespanel)
     end
@@ -96,7 +136,7 @@ type WorkspacePanel <: GtkScrolledWindow
 
     function WorkspacePanel()
 
-        (tv,list) = give_me_a_treeview(2)
+        (tv,list,cols) = give_me_a_treeview(2,["Name","Type"])
 
         sc = @GtkScrolledWindow()
         push!(sc,tv)
@@ -109,6 +149,7 @@ end
 function update!(w::WorkspacePanel)
 
     ##
+    
     function gettype(s::Symbol)
         try
             return string(typeof(getfield(Main,s)))
@@ -119,6 +160,11 @@ function update!(w::WorkspacePanel)
     n = sort!(names(Main))
     t = map(gettype,n)
     n = map(string,n)
+    M = sortrows([t n])#FIXME use tree view sorting?
+    n = M[:,2]
+    t = M[:,1]
+    
+    ##
 
     sel_val = selected(w.tree_view,w.list)
 

@@ -122,9 +122,11 @@ function set_font(t::EditorTab)
 end
 
 function get_cell(buffer::GtkTextBuffer)
-    (foundb,itb_start,itb_end) = text_iter_backward_search(buffer,"\n##")
-    (foundf,itf_start,itf_end) = text_iter_forward_search(buffer,"\n##")
 
+
+    (foundb,itb_start,itb_end) = text_iter_backward_search(buffer, "##")
+    (foundf,itf_start,itf_end) = text_iter_forward_search(buffer, "##")
+    
     if foundf && !foundb
         return(true, mutable(GtkTextIter(buffer,1)), itf_end) #start of file
     end
