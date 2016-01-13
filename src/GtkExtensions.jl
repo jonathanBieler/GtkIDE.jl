@@ -20,6 +20,16 @@ grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr
 
 import Gtk.GConstants: GdkModifierType
 
+@osx_only begin
+    const PrimaryModifier = 268435472 #seems there's not command key in Gtk.jl...
+end
+@windows_only begin
+    const PrimaryModifier = GdkModifierType.CONTROL
+end
+@linux_only begin
+    const PrimaryModifier = GdkModifierType.CONTROL
+end
+
 # something is wrong with this
 # baremodule GdkModifierType
 #     using Main.Base.convert
@@ -32,7 +42,7 @@ import Gtk.GConstants: GdkModifierType
 #     end
 #     Main.Base.@osx_only begin
 #         const COMMAND 	= convert(UInt32,4)
-#         const CONTROL   = convert(UInt32,268435472) #that's very weird
+#         const CONTROL   = convert(UInt32,268435472) #that's the command key
 #         const MOUSE_CONTROL = convert(UInt32,16)
 #     end
 #     Main.Base.@linux_only begin
@@ -189,10 +199,10 @@ end
 scroll_to_iter(text_view::Gtk.GtkTextView,iter::GtkTextIter,within_margin::Number,use_align::Bool,xalign::Number,yalign::Number) = ccall((:gtk_text_view_scroll_to_iter,libgtk),Cint,
 	(Ptr{Gtk.GObject},Ref{GtkTextIter},Cdouble,Cint,Cdouble,Cdouble),
     text_view,iter,within_margin,use_align,xalign,yalign)
-    
+
 scroll_to_iter(text_view::Gtk.GtkTextView,iter::MutableGtkTextIter,within_margin::Number,use_align::Bool,xalign::Number,yalign::Number) = ccall((:gtk_text_view_scroll_to_iter,libgtk),Cint,
 	(Ptr{Gtk.GObject},Ptr{GtkTextIter},Cdouble,Cint,Cdouble,Cdouble),
-    text_view,iter,within_margin,use_align,xalign,yalign)    
+    text_view,iter,within_margin,use_align,xalign,yalign)
 
 scroll_to_iter(text_view::Gtk.GtkTextView,iter::GtkTextIters) = scroll_to_iter(text_view,iter,0.0,true,1.0,0.1)
 

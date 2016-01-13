@@ -206,7 +206,10 @@ function on_return_terminal(cmd::AbstractString,doClear)
     end
 end
 
-clip = @GtkClipboard()
+#FIXME
+if !isdefined(Main,:clip)
+    clip = @GtkClipboard()
+end
 
 function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     widget = convert(GtkEntry, widgetptr)
@@ -217,7 +220,7 @@ function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     pos = getproperty(console.entry,:cursor_position,Int)
     prefix = length(cmd) >= pos ? cmd[1:pos] : ""
 
-    if event.keyval == keyval("c") && Int(event.state) == GdkModifierType.CONTROL
+    if event.keyval == keyval("c") && Int(event.state) == PrimaryModifier
         text_buffer_copy_clipboard(console.buffer,clip)
     end
 

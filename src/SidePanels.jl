@@ -51,6 +51,10 @@ function open_file(treeview::GtkTreeView,list::GtkListStore)
     v = selected(treeview, list)
     if v != nothing && length(v) == 1
         isfile(v[1]) && open_in_new_tab(v[1])
+        if isdir(v[1])
+            cd(v[1])
+            on_path_change()
+        end
     end
 end
 
@@ -103,6 +107,7 @@ end
 function update!(w::FilesPanel)
 
     n = readdir()
+    push!(n,"..")
     sel_val = selected(w.tree_view,w.list)
 
     empty!(w.list)
