@@ -58,10 +58,10 @@ function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, user_data
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     list = user_data
-    
+
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
         open_file(treeview,list)
-    end    
+    end
     return PROPAGATE
 end
 
@@ -69,11 +69,11 @@ function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, user_dat
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     list = user_data
-    
+
     if event.keyval == Gtk.GdkKeySyms.Return
         open_file(treeview,list)
     end
-    
+
     return PROPAGATE
 end
 
@@ -87,9 +87,9 @@ type FilesPanel <: GtkScrolledWindow
 
         (tv,list,cols) = give_me_a_treeview(1,["Name"])
 
-        signal_connect(filespanel_treeview_clicked_cb,tv, "button-press-event", 
+        signal_connect(filespanel_treeview_clicked_cb,tv, "button-press-event",
         Cint, (Ptr{Gtk.GdkEvent},), false,list)
-        signal_connect(filespanel_treeview_keypress_cb,tv, "key-press-event", 
+        signal_connect(filespanel_treeview_keypress_cb,tv, "key-press-event",
         Cint, (Ptr{Gtk.GdkEvent},), false,list)
 
         sc = @GtkScrolledWindow()
@@ -149,7 +149,7 @@ end
 function update!(w::WorkspacePanel)
 
     ##
-    
+
     function gettype(s::Symbol)
         try
             return string(typeof(getfield(Main,s)))
@@ -163,7 +163,7 @@ function update!(w::WorkspacePanel)
     M = sortrows([t n])#FIXME use tree view sorting?
     n = M[:,2]
     t = M[:,1]
-    
+
     ##
 
     sel_val = selected(w.tree_view,w.list)
