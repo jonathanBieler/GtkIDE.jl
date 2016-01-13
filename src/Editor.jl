@@ -126,7 +126,7 @@ function get_cell(buffer::GtkTextBuffer)
 
     (foundb,itb_start,itb_end) = text_iter_backward_search(buffer, "##")
     (foundf,itf_start,itf_end) = text_iter_forward_search(buffer, "##")
-    
+
     if foundf && !foundb
         return(true, mutable(GtkTextIter(buffer,1)), itf_end) #start of file
     end
@@ -189,7 +189,7 @@ end
 function open_method(view::GtkTextView)
 
     word = get_word_under_mouse_cursor(view)
-   
+
     try
         ex = parse(word)
 
@@ -255,7 +255,7 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         return convert(Cint,true)
     end
 
-    if Int(event.button) == 1 && event.state == GdkModifierType.CONTROL #ctrl+right click
+    if Int(event.button) == 1 && event.state == PrimaryModifier #ctrl+right click
         open_method(textview) && return INTERRUPT
     end
 
@@ -410,12 +410,15 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
     if doing(Actions.copy,event)
         signal_emit(textview, "copy-clipboard", Void)
+        return INTERRUPT
     end
     if doing(Actions.paste,event)
         signal_emit(textview, "paste-clipboard", Void)
+        return INTERRUPT
     end
     if doing(Actions.cut,event)
         signal_emit(textview, "cut-clipboard", Void)
+        return INTERRUPT
     end
 
     !update_completion_window(event,buffer) && return convert(Cint,true)

@@ -246,7 +246,7 @@ function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     event = convert(Gtk.GdkEvent, eventptr)
 
-    if event.keyval == keyval("r") && Int(event.state) == GdkModifierType.CONTROL
+    if event.keyval == keyval("r") && Int(event.state) == PrimaryModifier
         @schedule begin
             #crashes if we are still in the callback
             sleep(0.2)
