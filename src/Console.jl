@@ -1,262 +1,290 @@
-type Console <: GtkScrolledWindow
+type _Console <: GtkScrolledWindow
 
     handle::Ptr{Gtk.GObject}
     view::GtkSourceView
     buffer::GtkSourceBuffer
-    entry::GtkEntry
-    locked::Bool
+    run_task::Task
+    lock::ReentrantLock
+    prompt_position::Integer
 
-    function Console()
+    function _Console()
 
-        entry = @GtkEntry()
-        setproperty!(entry, :text, "")
+        lang = languageDefinitions[".jl"]
 
-        buffer = @GtkSourceBuffer()
-        setproperty!(buffer,:text,"")
+        b = @GtkSourceBuffer(lang)
+        setproperty!(b,:style_scheme,style)
+        v = @GtkSourceView(b)
 
-        tag = Gtk.create_tag(buffer, "error", font="Normal 16")
-        setproperty!(tag,:foreground,"gray")
-        Gtk.apply_tag(buffer, "error", GtkTextIter(buffer,1) , GtkTextIter(buffer,23) )
+        highlight_matching_brackets(b,true)
+        setproperty!(b,:text,">")
 
-        Gtk.create_tag(buffer, "cursor", font="Normal $fontsize",foreground="green")
-        Gtk.create_tag(buffer, "plaintext", font="Normal $fontsize")
+        show_line_numbers!(v,false)
+        auto_indent!(v,true)
+        highlight_current_line!(v, true)
+        setproperty!(v,:wrap_mode,1)
 
-        textview = @GtkSourceView()
-        setproperty!(textview,:buffer, buffer)
-        setproperty!(textview,:editable, false)
-        setproperty!(textview,:can_focus, false)
-        setproperty!(textview,:vexpand, true)
-        setproperty!(textview,:wrap_mode,1)
+        setproperty!(v,:tab_width,4)
+        setproperty!(v,:insert_spaces_instead_of_tabs,true)
 
-        console_scwindow = @GtkScrolledWindow()
-        setproperty!(console_scwindow,:height_request, 100)
-        push!(console_scwindow,textview)
+        setproperty!(v,:margin_bottom,10)
 
+        sc = @GtkScrolledWindow()
+        setproperty!(sc,:hscrollbar_policy,2)
 
-        t = new(console_scwindow.handle,textview,buffer,entry,false)
-        Gtk.gobject_move_ref(t, console_scwindow)
+        push!(sc,v)
+        showall(sc)
+
+        push!(Gtk.G_.style_context(v), provider, 600)
+        t = @async begin end
+        n = new(sc.handle,v,b,t,ReentrantLock(),2)
+        Gtk.gobject_move_ref(n, sc)
     end
 end
 
-import Base: lock, unlock, wait
-function lock(c::Console)
-    c.locked = true
-end
-function unlock(c::Console)
-    c.locked = false
-end
-function wait(c::Console)
-    t = @schedule begin
-        while c.locked
-        end
-    end
-    Base.wait(t)
-end
-import Base.write
-function write(c::Console,s::AbstractString)
-    @schedule begin
-        wait(c)
-        lock(c)
-        try
-            insert!(c.buffer, end_iter(c.buffer),s)
-        finally
-            unlock(c)
-        end
-    end
-end
-function write(c::Console,s::AbstractString,f::Function)
-    @schedule begin
-        wait(c)
-        lock(c)
-        try
-            insert!(c.buffer, end_iter(c.buffer),s)
-            f()
-        finally
-            unlock(c)
-        end
-    end
-end
-function clear(c::Console)
-    @schedule begin
-        wait(c)
-        lock(c)
-        try
-            setproperty!(c.buffer,:text,"")
-            clear_entry()
-        finally
-            unlock(c)
-        end
-    end
-end
-
-function set_entry_text(str::AbstractString)
-    cpos = getproperty(console.entry,:cursor_position,Int)
-    setproperty!(console.entry,:text,str)
-    set_position!(console.entry,cpos)
-end
-
-clear_entry() = setproperty!(console.entry,:text,"")
-
-console = Console()
+_console = _Console()
 
 include("CommandHistory.jl")
 history = setup_history()
 include("ConsoleCommands.jl")
 
-if REDIRECT_STDOUT
+import Base.lock, Base.unlock
+lock(c::_Console) = lock(c.lock)
+unlock(c::_Console) = unlock(c.lock)
 
-    stdout = STDOUT
-    stderr = STDERR
-    function send_stream(rd::IO, name::AbstractString)
-        nb = nb_available(rd)
-        if nb > 0
-            d = readbytes(rd, nb)
-            s = try
-                bytestring(d)
-            catch
-                # FIXME: what should we do here?
-                string("<ERROR: invalid UTF8 data ", d, ">")
-            end
-            if !isempty(s)
-                write(console,s)
-            end
-        end
-    end
-
-    function watch_stream(rd::IO, name::AbstractString)
+import Base.write
+function write(c::_Console,str::AbstractString,set_prompt=false)
+    @async begin
+        lock(c)
         try
-            while !eof(rd) # blocks until something is available
-                send_stream(rd, name)
-                sleep(0.05) # a little delay to accumulate output
-            end
-        catch e
-            # the IPython manager may send us a SIGINT if the user
-            # chooses to interrupt the kernel; don't crash on this
-            if isa(e, InterruptException)
-                #watch_stream(rd, name)
-                return
+            if set_prompt
+                insert!(c.buffer, end_iter(c.buffer),str * "\n>")
+                c.prompt_position = length(c.buffer)+1
+                text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
             else
-                rethrow()
+                insert!(c.buffer, end_iter(c.buffer),str)
             end
+        finally
+            unlock(c)
         end
     end
+end
+write(c::_Console,x,set_prompt=false) = write(c,string(x),set_prompt)
 
-    global read_stdout
-    read_stdout, wr = redirect_stdout()
-    function watch_stdio()
-        return @async watch_stream(read_stdout, "stdout")
+function clear(c::_Console)
+    @async begin
+        lock(c)
+        try
+            setproperty!(c.buffer,:text,"")
+            #c.prompt_position = 2
+        finally
+            unlock(c)
+        end
     end
-    global console_redirect = watch_stdio()
+end
+##
 
-    function stop_console_redirect(t::Task,out,err)
-        redirect_stdout(out)
-        redirect_stderr(err)
 
-        Base.throwto(t, InterruptException())
-    end
+function on_return(c::_Console,cmd::AbstractString)
 
-    #this makes get_current_line_text crash, probably because it modifies the buffer and render textIters invalid
-
-end#REDIRECT_STDOUT
-
-function on_return_terminal(cmd::AbstractString,doClear)
-
-    entry = console.entry
     cmd = strip(cmd)
-    buffer = console.buffer
+    buffer = c.buffer
 
     history_add(history,cmd)
     history_seek_end(history)
 
-    if check_console_commands(cmd)
-        on_path_change()
-        return
-    end
+    print("\n")
 
-    pos_start = length(buffer)+1
-    write(console,">julia $cmd\n",() -> begin
-        Gtk.apply_tag(buffer, "cursor", GtkTextIter(buffer,pos_start), GtkTextIter(buffer,pos_start+7) )
-        Gtk.apply_tag(buffer, "plaintext", GtkTextIter(buffer,1), GtkTextIter(buffer,length(buffer)+1) )
-    end)
+    (found,t) = check_console_commands(cmd)
 
-    ex = Base.parse_input_line(cmd)
-    ex = expand(ex)
+    if found
 
-    doClear ? setproperty!(entry,:text,"") : nothing
+    else
 
-    evalout = ""
-    value = :()
+        ex = Base.parse_input_line(cmd)
+        ex = expand(ex)
 
-    @async begin
-        try
-            value = eval(Main,ex)
-            eval(Main, :(ans = $(Expr(:quote, value))))
-            evalout = value == nothing ? "" : sprint(Base.showlimited,value)
-        catch err
-            io = IOBuffer()
-            showerror(io,err)
-            evalout = takebuf_string(io)
-            close(io)
+        evalout = ""
+        v = :()
+
+        t = @async begin
+            try
+                v = eval(Main,ex)
+                eval(Main, :(ans = $(Expr(:quote, v))))
+                evalout = v == nothing ? "" : sprint(Base.showlimited,v)
+            catch err
+                io = IOBuffer()
+                showerror(io,err)
+                evalout = takebuf_string(io)
+                close(io)
+            end
+
+            finalOutput = evalout == "" ? "" : "$evalout\n"
+            on_path_change()#if there was any cd
+            return finalOutput
         end
 
-        finalOutput = evalout == "" ? "\n" : "$evalout\n\n";
-        write(console,finalOutput)
+    end
+    _console.run_task = t
 
-        on_path_change()#if there was any cd
+    @async write_output_to_console(c)
+
+end
+
+function write_output_to_console(c::_Console)
+
+    t = c.run_task
+    wait(t)
+    sleep(0.1)#wait for prints
+    finalOutput = t.result == nothing ? "" : t.result
+    on_path_change()
+
+    write(c,finalOutput,true)
+end
+
+
+##
+
+function prompt(c::_Console)
+    t = @async begin
+        lock(c)
+        cmd = ""
+        try
+            its = GtkTextIter(c.buffer,c.prompt_position)
+            ite = GtkTextIter(c.buffer,length(c.buffer)+1)
+            cmd = text_iter_get_text(its,ite)
+        finally
+            unlock(c)
+        end
+        return cmd
+    end
+    wait(t)
+    return t.result
+end
+function prompt(c::_Console,str::AbstractString,offset::Integer)
+    @async begin
+        lock(c)
+        try
+            its = GtkTextIter(c.buffer,c.prompt_position)
+            ite = GtkTextIter(c.buffer,length(c.buffer)+1)
+            replace_text(c.buffer,its,ite, str)
+            if offset >= 0 && c.prompt_position+offset-1 <= length(c.buffer)
+                text_buffer_place_cursor(c.buffer,c.prompt_position+offset-1)
+            end
+
+        finally
+            unlock(c)
+        end
     end
 end
+prompt(c::_Console,str::AbstractString) = prompt(c,str,-1)
 
-#FIXME
-if !isdefined(Main,:clip)
-    clip = @GtkClipboard()
+new_prompt(c::_Console) = write(c,"",true)
+
+#return cursor position in the prompt text
+function cursor_position(c::_Console)
+    a = c.prompt_position
+    b = cursor_position(c.buffer)
+    b-a+1
 end
 
-function entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
-    widget = convert(GtkEntry, widgetptr)
+##
+ismodkey(event::Gtk.GdkEvent) =
+    any(x -> Int(x) == Int(event.keyval),[
+        Gtk.GdkKeySyms.Control_L, Gtk.GdkKeySyms.Control_R,
+        Gtk.GdkKeySyms.Meta_L,Gtk.GdkKeySyms.Meta_R,
+        Gtk.GdkKeySyms.Hyper_L,Gtk.GdkKeySyms.Hyper_R,
+        Gtk.GdkKeySyms.Shift_L,Gtk.GdkKeySyms.Shift_R
+    ]) ||
+    any(x -> Int(x) == Int(event.state),[
+        GdkModifierType.CONTROL,Gtk.GdkKeySyms.Meta_L,Gtk.GdkKeySyms.Meta_R,
+        PrimaryModifier, GdkModifierType.SHIFT, GdkModifierType.GDK_MOD1_MASK])
+
+
+function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+#    widget = convert(GtkSourceView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
+    _console = user_data
 
-    cmd = getproperty(widget,:text,AbstractString)
-
-    pos = getproperty(console.entry,:cursor_position,Int)
+    cmd = prompt(_console)
+    pos = cursor_position(_console)
     prefix = length(cmd) >= pos ? cmd[1:pos] : ""
 
-    if event.keyval == keyval("c") && Int(event.state) == PrimaryModifier
-        text_buffer_copy_clipboard(console.buffer,clip)
+    before_prompt() =
+    getproperty(_console.buffer,:cursor_position,Int)+1 < _console.prompt_position
+    before_or_at_prompt() =
+    getproperty(_console.buffer,:cursor_position,Int)+1 <= _console.prompt_position
+
+    #put back the cursor after the prompt
+    if before_prompt()
+
+        #write(_console,string(Int(event.keyval)) * "\n" )
+
+        #chekc that we are not trying to copy or something of the sort
+        if !ismodkey(event)
+            text_buffer_place_cursor(_console.buffer,end_iter(_console.buffer))
+        end
+    end
+
+    if event.keyval == Gtk.GdkKeySyms.BackSpace ||
+       event.keyval == Gtk.GdkKeySyms.Left ||
+       event.keyval == Gtk.GdkKeySyms.Delete ||
+       event.keyval == Gtk.GdkKeySyms.Clear
+
+        before_or_at_prompt() && return INTERRUPT
     end
 
     if event.keyval == Gtk.GdkKeySyms.Return
-        on_return_terminal(cmd,true)
+
+        if _console.run_task.state == :done
+            on_return(_console,cmd)
+        end
+        return INTERRUPT
     end
 
     if event.keyval == Gtk.GdkKeySyms.Up
-
         !history_up(history,prefix,cmd) && return convert(Cint,true)
-        set_entry_text(history_get_current(history))
+        prompt(_console,history_get_current(history),length(prefix))
+
         return INTERRUPT
     end
     if event.keyval == Gtk.GdkKeySyms.Down
-
         history_down(history,prefix,cmd)
-        set_entry_text(history_get_current(history))
+        prompt(_console,history_get_current(history),length(prefix))
+
         return INTERRUPT
     end
 
     if event.keyval == Gtk.GdkKeySyms.Tab
-        console_autocomplete(cmd,pos)
+        #convert cursor position into index
+        pos = clamp(pos+1,1,length(cmd))
+        autocomplete(_console,cmd,pos)
         return INTERRUPT
     end
 
     return PROPAGATE
 end
-signal_connect(entry_key_press_cb, console.entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+signal_connect(console_key_press_cb, _console.view, "key-press-event",
+Cint, (Ptr{Gtk.GdkEvent},), false,_console)
 
-# signal_connect(console.entry, "grab-notify") do widget
-#     println(widget, "lose focus")
-# end
+##
 
-#FIXME: end of words get deleted
+## auto-scroll the textview
+function _console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
 
-function console_autocomplete(cmd::AbstractString,pos::Integer)
+    c = user_data
+    adj = getproperty(c,:vadjustment, GtkAdjustment)
+    setproperty!(adj,:value,
+        getproperty(adj,:upper,AbstractFloat) -
+        getproperty(adj,:page_size,AbstractFloat)
+    )
+    nothing
+end
+signal_connect(_console_scroll_cb, _console.view, "size-allocate", Void,
+    (Ptr{Gtk.GdkRectangle},), false,_console)
+
+## Auto-complete
+
+function autocomplete(c::_Console,cmd::AbstractString,pos::Integer)
 
     isempty(cmd) && return
     pos > length(cmd) && return
@@ -283,55 +311,92 @@ function console_autocomplete(cmd::AbstractString,pos::Integer)
         dotpos = 1:1
     end
 
-    update_console_completions(comp,dotpos,cmd,firstpart)
+    update_completions(c,comp,dotpos,cmd,firstpart)
 end
 
 ## print completions in console, FIXME: adjust with console width
 # cmd is the word, including dots we are trying to complete
 # firstpart is words that come before it
 
-function update_console_completions(comp,dotpos,cmd,firstpart)
+function update_completions(c::_Console,comp,dotpos,cmd,firstpart)
 
     isempty(comp) && return
-    @schedule begin
-        wait(console)
-        lock(console)
 
-        dotpos = dotpos.start
-        prefix = dotpos > 1 ? cmd[1:dotpos-1] : ""
+    dotpos = dotpos.start
+    prefix = dotpos > 1 ? cmd[1:dotpos-1] : ""
 
-        if(length(comp)>1)
+    if(length(comp)>1)
 
-            maxLength = maximum(map(length,comp))
-            out = "\n"
-            for i=1:length(comp)
-                spacing = repeat(" ",maxLength-length(comp[i]))
-                out = "$out $(comp[i]) $spacing"
-                if mod(i,4) == 0
-                    out = out * "\n"
-                end
+        maxLength = maximum(map(length,comp))
+        out = "\n"
+        for i=1:length(comp)
+            spacing = repeat(" ",maxLength-length(comp[i]))
+            out = "$out $(comp[i]) $spacing"
+            if mod(i,4) == 0
+                out = out * "\n"
             end
-            out = out * "\n"
-            insert!(console.buffer,out)
-            out = prefix * Base.LineEdit.common_prefix(comp)
-        else
-            out = prefix * comp[1]
         end
+        write(c,out,true)
+        #warn(out)
+        out = prefix * Base.LineEdit.common_prefix(comp)
+    else
+        out = prefix * comp[1]
+    end
 
-        #update entry
-        out = firstpart * out
-        out = remove_filename_from_methods_def(out)
-        setproperty!(console.entry,:text,out)
-        set_position!(console.entry,endof(out))
+    #update entry
+    out = firstpart * out
+    out = remove_filename_from_methods_def(out)
+    prompt(c,out)
+    #set_position!(console.entry,endof(out))
 
-        unlock(console)
+end
+
+
+##
+
+stdout = STDOUT
+stderr = STDERR
+function send_stream(rd::IO, name::AbstractString,c::_Console)
+    nb = nb_available(rd)
+    if nb > 0
+        d = readbytes(rd, nb)
+        s = try
+            bytestring(d)
+        catch
+            # FIXME: what should we do here?
+            string("<ERROR: invalid UTF8 data ", d, ">")
+        end
+        if !isempty(s)
+            write(c,s)
+        end
     end
 end
 
-## auto-scroll the textview
-function console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
-  adj = getproperty(console,:vadjustment, GtkAdjustment)
-  setproperty!(adj,:value, getproperty(adj,:upper,AbstractFloat) - getproperty(adj,:page_size,AbstractFloat))
-  nothing
+function watch_stream(rd::IO, name::AbstractString,c::_Console)
+    try
+        while !eof(rd) # blocks until something is available
+            send_stream(rd, name,c)
+            sleep(0.05) # a little delay to accumulate output
+        end
+    catch e
+        # the IPython manager may send us a SIGINT if the user
+        # chooses to interrupt the kernel; don't crash on this
+        if isa(e, InterruptException)
+            #watch_stream(rd, name)
+            return
+        else
+            rethrow()
+        end
+    end
 end
-signal_connect(console_scroll_cb, console.view, "size-allocate", Void, (Ptr{Gtk.GdkRectangle},), false)
+if true
+    global read_stdout
+    read_stdout, wr = redirect_stdout()
+    function watch_stdio()
+        return @async watch_stream(read_stdout, "stdout",_console)
+    end
+    global console_redirect = watch_stdio()
+end
+
+
+##

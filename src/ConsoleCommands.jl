@@ -13,21 +13,14 @@ add_console_command(r::Regex,f::Function,c::Symbol) = push!(console_commands,Con
 
 add_console_command(r"^edit (.*)",(m) -> begin
     open_in_new_tab(m.captures[1])
-    clear_entry()
-    return true
+    nothing
 end,:file)
-add_console_command(r"^$",(m) -> begin
-    write(console,"\n")
-    return true
-end)
 add_console_command(r"^clc$",(m) -> begin
-    clear(console)
-    return true
+    clear(_console)
+    nothing 
 end)
 add_console_command(r"^pwd",(m) -> begin
-    write(console,"\n$(pwd())\n")
-    clear_entry()
-    return true
+    return pwd() * "\n"
 end)
 add_console_command(r"^ls\s*(.*)",(m) -> begin
 
@@ -37,24 +30,19 @@ add_console_command(r"^ls\s*(.*)",(m) -> begin
         for f in files
             s = string(s,"\n",f)
         end
-        write(console, s * "\n")
+        println(s)
 	catch err
-		write(console,sprint(show,err) * "\n")
+		println(sprint(show,err))
 	end
-
-    clear_entry()
-    return true
 end,:file)
 
 add_console_command(r"^cd (.*)",(m) -> begin
 	try
 	    cd(m.captures[1])
-		write(console,"\n$(pwd())\n")
+		return "\n" * pwd()
 	catch err
-		write(console,sprint(show,err) * "\n")
+		println(sprint(show,err))
 	end
-    clear_entry()
-    return true
 end,:file)
 
 function console_commands_context(cmd::AbstractString)
@@ -71,8 +59,8 @@ function check_console_commands(cmd::AbstractString)
     for c in console_commands
         m = match(c.r,cmd)
         if m != nothing
-            return c.f(m)
+            return (true, @schedule begin c.f(m) end)
         end
     end
-    return false
+    return (false, nothing)
 end
