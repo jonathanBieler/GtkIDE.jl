@@ -97,7 +97,7 @@ function save(t::EditorTab)
     try
         f = Base.open(t.filename,"w")
         write(f,get_text(t))
-        write(console,"saved $(t.filename)\n")
+        #println("saved $(t.filename)")
         close(f)
         modified(t,false)
         t.autocomplete_words = collect_symbols(t)
@@ -255,7 +255,9 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         return convert(Cint,true)
     end
 
-    if Int(event.button) == 1 && event.state == PrimaryModifier #ctrl+right click
+    #write(_console,string(event.state) * "\n")
+    
+    if Int(event.button) == 1 && Int(event.state) == PrimaryModifierMouse 
         open_method(textview) && return INTERRUPT
     end
 
@@ -305,7 +307,7 @@ function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
     return convert(Cint, true)
 end
 
-function replace_text(buffer::GtkTextBuffer,itstart::GtkTextIter,itend::GtkTextIter,str::AbstractString)
+function replace_text{T<:GtkTextIters}(buffer::GtkTextBuffer,itstart::T,itend::T,str::AbstractString)
     pos = offset(itstart)+1
     text_buffer_delete(buffer,itstart,itend)
     insert!(buffer,GtkTextIter(buffer,pos),str)
@@ -331,7 +333,14 @@ function run_line(buffer::GtkTextBuffer)
         (cmd, itstart, itend) = get_current_line_text(buffer)
         cmd = strip(cmd)
     end
-    on_return_terminal(cmd,false)
+    run_command(_console,cmd)
+end
+
+function run_command(c::_Console,cmd::AbstractString)
+    @schedule begin #I'm not sure why I need a task here
+        prompt(c,cmd)
+        on_return(c,cmd)
+    end
 end
 
 function tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
@@ -395,14 +404,13 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
                 cmd = getproperty(buffer,:text,AbstractString)
             end
         end
-        on_return_terminal(cmd,false)
-        return convert(Cint,true)
+        run_command(_console,cmd)
+        return INTERRUPT
     end
     if doing(Actions.runfile, event)
         cmd = "include(\"$(t.filename)\")"
         cmd = replace(cmd,"\\", "/")
-        setproperty!(console.entry,:text,cmd)
-        on_return_terminal(cmd,true)
+        run_command(_console,cmd)
     end
     if event.keyval == Gtk.GdkKeySyms.Escape
         set_search_text("")

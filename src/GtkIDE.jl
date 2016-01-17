@@ -36,7 +36,7 @@ import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
 
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
-const REDIRECT_STDOUT = true
+const REDIRECT_STDOUT = false
 
 ## globals
 sourceStyleManager = @GtkSourceStyleSchemeManager()
@@ -83,6 +83,7 @@ global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 #Order matters
 include("Project.jl")
 include("Console.jl")
+
 include("Editor.jl")
 
 if sourcemap == nothing
@@ -107,16 +108,14 @@ win = @GtkWindow("Julia IDE",1800,1200) |>
             (pathEntry = @GtkEntry()) |>
             (editorButton = @GtkButton("F2"))
         ) |>
-        (sidePan = @GtkPaned(:h))
+        (sidePan = @GtkPaned(:h)) |>
+        (statusBar = @GtkStatusbar())
     )
 
 (mainPan = @GtkPaned(:h)) |>
     (rightPan = @GtkPaned(:v) |>
         (canvas = Gtk.@Canvas())  |>
-        ((rightBox = @GtkBox(:v)) |>
-            console |>
-            console.entry
-        )
+        _console
     ) |>
     ((editorVBox = @GtkBox(:v)) |>
         ((editorBox = @GtkBox(:h)) |>
@@ -134,6 +133,14 @@ sidePan |>
 ##setproperty!(ntbook, :width_request, 800)
 
 include("SidePanels.jl")
+
+
+setproperty!(statusBar,:margin,2)
+
+sbidx = Gtk.context_id(statusBar, "context")
+push!(statusBar,sbidx,"Julia $VERSION")
+
+
 Gtk.G_.position(sidePan,160)
 
 setproperty!(ntbook,:vexpand,true)
@@ -146,17 +153,16 @@ Gtk.G_.position(rightPan,450)
 setproperty!(topBarBox,:hexpand,true)
 setproperty!(pathEntry,:hexpand,true)
 
-sc = Gtk.G_.style_context(console.entry)
-push!(sc, provider, 600)
+
 sc = Gtk.G_.style_context(pathEntry)
 push!(sc, provider, 600)
-sc = Gtk.G_.style_context(console.view)
-push!(sc, provider, 600)
+
 
 ## the current path is shown in an entry on top
 setproperty!(pathEntry, :widht_request, 600)
 update_pathEntry() = setproperty!(pathEntry, :text, pwd())
 update_pathEntry()
+
 
 function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     widget = convert(GtkEntry, widgetptr)
@@ -283,10 +289,10 @@ end
 signal_connect(editorButtonclicked_cb, editorButton, "clicked", Void, (), false)
 
 function on_path_change()
-
     update_pathEntry()
     update!(filespanel)
 end
+
 
 ##
 function restart(new_workspace=false)
@@ -294,10 +300,9 @@ function restart(new_workspace=false)
     #@schedule begin
         println("restarting...")
         sleep(0.1)
-        wait(console)
-        lock(console)
-        REDIRECT_STDOUT && stop_console_redirect(console_redirect,stdout,stderr)
-        unlock(console)
+
+        #REDIRECT_STDOUT && stop_console_redirect(console_redirect,stdout,stderr)
+ 
         println("stdout freed")
 
         save(project)
@@ -313,6 +318,10 @@ end
 function run_tests()
     include( joinpath(Pkg.dir(),"GtkIDE","test","runtests.jl") )
 end
+
+versioninfo()
+sleep(0.2)
+new_prompt(_console)
 
 # @schedule begin
 #     th = linspace(0,8*π,500)

@@ -30,6 +30,18 @@ end
     const PrimaryModifier = GdkModifierType.CONTROL
 end
 
+#why is this different for the mouse?
+@osx_only begin
+    const PrimaryModifierMouse = GdkModifierType.MOD2
+end
+@windows_only begin
+    const PrimaryModifierMouse = GdkModifierType.CONTROL
+end
+@linux_only begin
+    const PrimaryModifierMouse = GdkModifierType.CONTROL
+end
+
+
 # something is wrong with this
 # baremodule GdkModifierType
 #     using Main.Base.convert
