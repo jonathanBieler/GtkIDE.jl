@@ -77,6 +77,10 @@ text_iter_forward_to_line_end(it::MutableGtkTextIter) = ccall((:gtk_text_iter_fo
 text_iter_forward_word_end(it::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_word_end, libgtk),Cint,(Ptr{GtkTextIter},),it)
 text_iter_backward_word_start(it::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_word_start, libgtk),Cint,(Ptr{GtkTextIter},),it)
 
+text_iter_backward_sentence_start(it::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_sentence_start, libgtk),Cint,(Ptr{GtkTextIter},),it)
+text_iter_forward_sentence_end(it::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_sentence_end, libgtk),Cint,(Ptr{GtkTextIter},),it)
+
+
 text_iter_forward_search(it::MutableGtkTextIter, txt::AbstractString, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_search, libgtk),
   Cint,
   (Ptr{GtkTextIter},Ptr{UInt8},Cint,Ptr{GtkTextIter},Ptr{GtkTextIter},Ptr{GtkTextIter}),

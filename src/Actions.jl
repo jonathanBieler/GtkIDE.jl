@@ -9,6 +9,7 @@ type Action
     Action(k::AbstractString,s::Integer,d::AbstractString) = new(keyval(k),s,d)
 end
 
+#FIXME https://developer.gnome.org/gtk3/unstable/checklist-modifiers.html
 function doing(a::Action, event::Gtk.GdkEvent)
     if a.state == -1
         return event.keyval == a.keyval
@@ -31,4 +32,6 @@ baremodule Actions
     const copy     = Action("c", PrimaryModifier,"Copy")
     const paste    = Action("v", PrimaryModifier,"Paste")
     const cut      = Action("x", PrimaryModifier,"Cut")
+    const move_to_line_start    = Action("a", GdkModifierType.GDK_MOD1_MASK,"Move cursor to line start")
+    const move_to_line_end      = Action("e", GdkModifierType.GDK_MOD1_MASK,"Move cursor to line end")
 end

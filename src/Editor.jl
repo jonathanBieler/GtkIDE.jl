@@ -420,6 +420,12 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         signal_emit(textview, "cut-clipboard", Void)
         return INTERRUPT
     end
+    if(doing(Actions.move_to_line_start,event))
+        move_cursor_to_sentence_start(buffer)
+    end
+    if(doing(Actions.move_to_line_end,event))
+        move_cursor_to_sentence_end(buffer)
+    end
 
     !update_completion_window(event,buffer) && return convert(Cint,true)
 

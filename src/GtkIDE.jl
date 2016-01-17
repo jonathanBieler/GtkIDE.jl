@@ -163,7 +163,13 @@ function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     event = convert(Gtk.GdkEvent, eventptr)
 
     if event.keyval == Gtk.GdkKeySyms.Return
-        cd(getproperty(widget,:text,AbstractString))
+        pth = getproperty(widget,:text,AbstractString)
+        try 
+            cd(pth)
+            
+        catch err
+            write(console,string(err) * "\n")
+        end
         on_path_change()
     end
 
