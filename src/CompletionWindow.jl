@@ -65,7 +65,7 @@ function insert_autocomplete(s::AbstractString,itstart::GtkTextIters,itend::GtkT
 end
 
 function remove_filename_from_methods_def(s::AbstractString)
-
+r
     ex = r"(^.*\))( at .+\.jl:[0-9]+$)" #remove the file/line number for methods)
     m = match(ex,s)
     s = m == nothing ? s : m[1]
@@ -155,7 +155,7 @@ function _collect_symbols(t::EditorTab)
                 S = [S; collect_symbols(ex)::Array{Symbol,1}]
             end
         catch err
-            write(console,string(err))
+            println(string(err))
         end
     end
     clean_symbols(S)
@@ -164,7 +164,8 @@ end
 function collect_symbols(t::EditorTab)
     str = getproperty(t.buffer,:text,AbstractString)
     S = Array(Symbol,0)
-
+    pos = findin(str,"\n")
+    
     i = start(str)
     while !done(str,i)#thanks Lint.jl
         try
@@ -172,9 +173,13 @@ function collect_symbols(t::EditorTab)
             if ex != nothing
                 S = [S; collect_symbols(ex)::Array{Symbol,1}]
             end
-        catch err 
-            write(console,"error while parsing $(t.filename)")
-            write(console,string(err))
+        catch err
+            idx = findfirst(x -> x > i, pos)#FIXME doesn't work inside scopes
+            line = idx > 0 ? idx-1 : length(pos)
+            println("error while parsing $(t.filename) near line $line")
+            println(err)
+            sleep(0.05)
+            new_prompt(_console)
             break
         end
     end

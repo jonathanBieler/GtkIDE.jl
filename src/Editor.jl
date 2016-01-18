@@ -144,11 +144,17 @@ function highlight_cells()
     end
 end
 
+import Gtk.hasselection
+function hasselection(t::EditorTab)
+    (found,it_start,it_end) = selection_bounds(t.buffer)
+    found
+end
 function get_selected_text(t::EditorTab)
     (found,it_start,it_end) = selection_bounds(t.buffer)
     return found ? text_iter_get_text(it_start,it_end) : ""
 end
 get_selected_text() = get_selected_text(get_current_tab())
+
 
 function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
@@ -367,7 +373,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     #write(console,string( Actions.save.state) * "\n" )
 
     if doing(Actions.save, event)
-        save_current_tab()
+        save(t)
     end
     if doing(Actions.closetab, event)
         close_tab()
@@ -384,7 +390,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         open(search_window)
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
-        if !visible(completion_window)
+        if !visible(completion_window) && !hasselection(t)
             return editor_autocomplete(textview,t)
         end
     end
