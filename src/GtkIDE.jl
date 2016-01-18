@@ -170,11 +170,10 @@ function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     if event.keyval == Gtk.GdkKeySyms.Return
         pth = getproperty(widget,:text,AbstractString)
-        try 
+        try
             cd(pth)
-            
         catch err
-            write(console,string(err) * "\n")
+            println(string(err))
         end
         on_path_change()
     end
@@ -302,7 +301,7 @@ function restart(new_workspace=false)
         sleep(0.1)
 
         #REDIRECT_STDOUT && stop_console_redirect(console_redirect,stdout,stderr)
- 
+
         println("stdout freed")
 
         save(project)

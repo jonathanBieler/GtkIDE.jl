@@ -22,6 +22,7 @@ type _Console <: GtkScrolledWindow
         auto_indent!(v,true)
         highlight_current_line!(v, true)
         setproperty!(v,:wrap_mode,1)
+        #setproperty!(v,:expand,true)
 
         setproperty!(v,:tab_width,4)
         setproperty!(v,:insert_spaces_instead_of_tabs,true)
@@ -29,7 +30,7 @@ type _Console <: GtkScrolledWindow
         setproperty!(v,:margin_bottom,10)
 
         sc = @GtkScrolledWindow()
-        setproperty!(sc,:hscrollbar_policy,2)
+        setproperty!(sc,:hscrollbar_policy,1)
 
         push!(sc,v)
         showall(sc)
@@ -200,6 +201,9 @@ ismodkey(event::Gtk.GdkEvent) =
         PrimaryModifier, GdkModifierType.SHIFT, GdkModifierType.GDK_MOD1_MASK])
 
 
+#FIXME disable drag and drop text above cursor
+# ctrl-a to clear prompt
+
 function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 #    widget = convert(GtkSourceView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
@@ -277,6 +281,9 @@ function _console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
         getproperty(adj,:upper,AbstractFloat) -
         getproperty(adj,:page_size,AbstractFloat)
     )
+    adj = getproperty(c,:hadjustment, GtkAdjustment)
+    setproperty!(adj,:value,0)
+    
     nothing
 end
 signal_connect(_console_scroll_cb, _console.view, "size-allocate", Void,
@@ -376,7 +383,7 @@ function watch_stream(rd::IO, name::AbstractString,c::_Console)
     try
         while !eof(rd) # blocks until something is available
             send_stream(rd, name,c)
-            sleep(0.05) # a little delay to accumulate output
+            sleep(0.01) # a little delay to accumulate output
         end
     catch e
         # the IPython manager may send us a SIGINT if the user

@@ -92,7 +92,6 @@ function select_word_backward(txt::AbstractString,pos::Integer,include_dot::Bool
     return (i,j)
 end
   
-
 ## Utility functions
 
 get_buffer(view::GtkTextView) = getproperty(view,:buffer,GtkTextBuffer)
