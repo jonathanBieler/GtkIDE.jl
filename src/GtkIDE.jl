@@ -36,7 +36,7 @@ import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
 
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
-const REDIRECT_STDOUT = false
+const REDIRECT_STDOUT = true
 
 ## globals
 sourceStyleManager = @GtkSourceStyleSchemeManager()
@@ -231,7 +231,7 @@ function quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
     if typeof(project) == Project
         save(project)
     end
-    REDIRECT_STDOUT && stop_console_redirect(console_redirect,stdout,stderr)
+    #REDIRECT_STDOUT && stop_console_redirect(console_redirect,stdout,stderr)
     return convert(Cint,false)
 end
 signal_connect(quit_cb, win, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)

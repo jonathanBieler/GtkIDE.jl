@@ -100,9 +100,12 @@ function save(t::EditorTab)
         #println("saved $(t.filename)")
         close(f)
         modified(t,false)
-        t.autocomplete_words = collect_symbols(t)
+        if extension(t.filename) == ".jl"
+            t.autocomplete_words = collect_symbols(t)
+        end
     catch err
-        @show err
+        warn("Error while saving $(t.filename)")
+        warn(err)
     end
 end
 
@@ -191,7 +194,6 @@ end
 # set the cursos position ?
 # check if the file is already open
 
-
 function open_method(view::GtkTextView)
 
     word = get_word_under_mouse_cursor(view)
@@ -262,39 +264,41 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
 
     #write(_console,string(event.state) * "\n")
-    
-    if Int(event.button) == 1 && Int(event.state) == PrimaryModifierMouse 
+
+    if Int(event.button) == 1 && Int(event.state) == PrimaryModifierMouse
         open_method(textview) && return INTERRUPT
     end
 
     return PROPAGATE
 end
 
+#FIXME: this should be reworked a bit with CompletionWindow code
 function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
 
     buffer = getbuffer(view)
+    it = get_text_iter_at_cursor(buffer)
 
-    (cmd,itstart,itend) = select_word_backward(get_text_iter_at_cursor(buffer),buffer,false)
-    #@show (cmd,itstart,itend)
+    (cmd,itstart,itend) = select_word_backward(it,buffer,false)
 
     if cmd == ""
-        visible(completion_window,false)
-        return convert(Cint, false)  #we go back to normal behavior if there's nothing on the left of the cursor
+        if get_text_left_of_cursor(buffer) == ")"
+            return tuple_autocomplete(it,buffer,completion_window,view)
+        else
+            visible(completion_window,false)
+            return PROPAGATE #we go back to normal behavior if there's nothing to do
+        end
     end
 
-    #(comp,dotpos) = completions(cmd, endof(cmd))
-    if !isdefined(t,:autocomplete_words) #parse current document and collect words
-        t.autocomplete_words = collect_symbols(t)
+    if !isdefined(t,:autocomplete_words)
+        t.autocomplete_words = [""]
     end
+
     (comp,dotpos) = extcompletions(cmd,t.autocomplete_words)
 
     if isempty(comp)
         visible(completion_window,false)
-        return convert(Cint, false)
+        return PROPAGATE
     end
-
-    #don't insert prefix when completing a method
-    replace = (cmd[end] == '(' && length(comp)>1 ) ? false : replace
 
     dotpos_ = dotpos
     dotpos = dotpos.start
@@ -308,9 +312,30 @@ function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
         visible(completion_window) && build_completion_window(comp,view,prefix)
     end
 
+    #don't insert prefix when completing a method
+    replace = (cmd[end] == '(' && length(comp)>1) ? false : replace
     replace && insert_autocomplete(out,itstart,itend,buffer)
 
     return convert(Cint, true)
+end
+
+function tuple_autocomplete(it::GtkTextIter,buffer::GtkTextBuffer,completion_window::CompletionWindow,view::GtkTextView)
+
+    (found,tu,itstart) = select_tuple(it, buffer)
+    !found && return PROPAGATE
+
+    args = tuple_to_types(tu)
+    isempty(args) && return PROPAGATE
+
+    comp = map(string,methods_with_tuple(args))
+
+    if isempty(comp)
+        visible(completion_window,false)
+        return PROPAGATE
+    end
+    
+    build_completion_window(comp,view,"")
+    return INTERRUPT
 end
 
 function replace_text{T<:GtkTextIters}(buffer::GtkTextBuffer,itstart::T,itend::T,str::AbstractString)

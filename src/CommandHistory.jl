@@ -101,7 +101,7 @@ function history_down(h::HistoryProvider,prefix::AbstractString,cmd::AbstractStr
 
         if length(prefix) > 0
             h.idx_search = h.idx_search-1
-            if h.idx_search == 0
+            if h.idx_search <= 0
                 history_seek_end(h)
                 return
             end

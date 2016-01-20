@@ -71,7 +71,7 @@ function select_word_backward(it::GtkTextIter,buffer::GtkTextBuffer,include_dot:
         GtkTextIter(buffer,offset(it)))
     end
 
-    (i,j) = select_word_backward(txt,pos,include_dot)   
+    (i,j) = select_word_backward(txt,pos,include_dot)
 
     its = GtkTextIter(buffer, i + offset(line_start) )
     ite = GtkTextIter(buffer, offset(it))
@@ -88,10 +88,31 @@ function select_word_backward(txt::AbstractString,pos::Integer,include_dot::Bool
 
     #allow for \alpha and such
     i = (i > 1 && txt[i-1] == '\\') ? i-1 : i
-    
+
     return (i,j)
 end
-  
+
+##
+
+function select_tuple(it::GtkTextIter,buffer::GtkTextBuffer)
+
+    (txt, line_start, line_end) = get_line_text(buffer,it)
+    pos = offset(it) - offset(line_start) #position of cursor in txt
+
+    if pos <= 1 || length(txt) < 2 || pos > length(txt)
+        return (false,nothing,nothing)
+    end
+    txt = txt[1:pos]
+
+    i = rsearch(txt,'(')
+    i == 0 && return (false,nothing,nothing)
+
+    its = GtkTextIter(buffer, i + offset(line_start))
+    return (true,txt[i:pos],its)
+
+end
+
+
 ## Utility functions
 
 get_buffer(view::GtkTextView) = getproperty(view,:buffer,GtkTextBuffer)
@@ -116,14 +137,15 @@ function get_line_text(buffer::GtkTextBuffer,it::GtkTextIter)
     return (text_iter_get_text(itstart, itend), itstart, itend)
 end
 
-function get_text_left_of_cursor(buffer::GtkTextBuffer)
+function get_text_right_of_cursor(buffer::GtkTextBuffer)
     it = mutable(get_text_iter_at_cursor(buffer))
     return text_iter_get_text(it,it+1)
 end
-function get_text_right_of_cursor(buffer::GtkTextBuffer)
+function get_text_left_of_cursor(buffer::GtkTextBuffer)
     it = mutable(get_text_iter_at_cursor(buffer))
-    return text_iter_get_text(it+1,it+2)
+    return text_iter_get_text(it-1,it)
 end
+#these are wrong I think:
 get_text_left_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it,it+1)
 get_text_right_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it+1,it+2)
 
@@ -140,6 +162,3 @@ function move_cursor_to_sentence_end(buffer::GtkTextBuffer)
     text_iter_forward_sentence_end(it)
     text_buffer_place_cursor(buffer,it)
 end
-
-
-

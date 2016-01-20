@@ -51,6 +51,24 @@ close_tab()
 ###############
 ## CONSOLE
 
+#stress test printing
+
+function printtest(k)
+    for i=1:5
+        @show k
+        println(rand(3))
+        sleep(rand()/10001)
+    end
+end
+
+for i=1:3
+    t = @async printtest(i)
+end
+
+wait(t)
+
+##
+
 #don't know how to get the hardware_keycode
 function emit_keypress(w)
 
@@ -61,34 +79,32 @@ function emit_keypress(w)
     signal_emit(w, "key-press-event", Bool, keyevent)
 end
 
-setproperty!(console.entry,:text,"x = 3")
+prompt(_console,"x = 3")
     sleep(sleep_time)
-emit_keypress(console.entry)
+emit_keypress(_console.view)
     sleep(sleep_time)
 @assert x == 3
 
-setproperty!(console.entry,:text,"_test_completion_")
-cmd = getproperty(console.entry,:text,AbstractString)
+prompt(_console,"_test_completion_")
+cmd = prompt(_console)
     sleep(sleep_time)
-console_autocomplete(cmd, length(cmd))
-    sleep(sleep_time)
-
-@assert getproperty(console.entry,:text,AbstractString) == "_test_completion_232_"
-
-cmd = getproperty(console.entry,:text,AbstractString)
-setproperty!(console.entry,:text,cmd * "(")
-cmd = getproperty(console.entry,:text,AbstractString)
-    sleep(sleep_time)
-console_autocomplete(cmd, length(cmd))
+autocomplete(_console,cmd, length(cmd))
     sleep(sleep_time)
 
-@assert getproperty(console.entry,:text,AbstractString) == "_test_completion_232_(x::Int64, y::Float64)"
+@assert prompt(_console) == "_test_completion_232_"
 
-clear_entry()
-
-setproperty!(console.entry,:text,"clc")
+cmd = prompt(_console)
+prompt(_console, cmd * "(")
+cmd = prompt(_console)
     sleep(sleep_time)
-emit_keypress(console.entry)
+autocomplete(_console,cmd, length(cmd))
+    sleep(sleep_time)
+
+@assert prompt(_console) == "_test_completion_232_(x::Int64, y::Float64)"
+
+prompt(_console,"clc")
+    sleep(sleep_time)
+emit_keypress(_console.view)
     sleep(sleep_time)
     
 ##

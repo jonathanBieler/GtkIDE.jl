@@ -283,7 +283,7 @@ function _console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
     )
     adj = getproperty(c,:hadjustment, GtkAdjustment)
     setproperty!(adj,:value,0)
-    
+
     nothing
 end
 signal_connect(_console_scroll_cb, _console.view, "size-allocate", Void,
@@ -383,7 +383,7 @@ function watch_stream(rd::IO, name::AbstractString,c::_Console)
     try
         while !eof(rd) # blocks until something is available
             send_stream(rd, name,c)
-            sleep(0.01) # a little delay to accumulate output
+            #sleep(0.01) # a little delay to accumulate output
         end
     catch e
         # the IPython manager may send us a SIGINT if the user
@@ -396,7 +396,7 @@ function watch_stream(rd::IO, name::AbstractString,c::_Console)
         end
     end
 end
-if true
+if REDIRECT_STDOUT
     global read_stdout
     read_stdout, wr = redirect_stdout()
     function watch_stdio()

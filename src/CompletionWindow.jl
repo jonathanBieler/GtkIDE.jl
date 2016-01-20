@@ -58,14 +58,20 @@ function selection_down(w::CompletionWindow)
     display(w)
 end
 
-function insert_autocomplete(s::AbstractString,itstart::GtkTextIters,itend::GtkTextIters,buffer::GtkTextBuffer)
-
+function insert_autocomplete(s::AbstractString,itstart::GtkTextIters,itend::GtkTextIters,buffer::GtkTextBuffer,mode=:normal)
     s = remove_filename_from_methods_def(s)
-    replace_text(buffer,itstart,itend,s)
+    if mode == :normal
+        replace_text(buffer,itstart,itend,s)
+    end
+    if mode == :tuple
+        i = search(s,'(')
+        i <= 1 && return
+        s = s[1:i-1]
+        insert!(buffer,itstart,s)
+    end
 end
 
 function remove_filename_from_methods_def(s::AbstractString)
-r
     ex = r"(^.*\))( at .+\.jl:[0-9]+$)" #remove the file/line number for methods)
     m = match(ex,s)
     s = m == nothing ? s : m[1]
@@ -91,10 +97,26 @@ function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
     elseif event.keyval == Gtk.GdkKeySyms.Return || event.keyval == Gtk.GdkKeySyms.Tab
         if visible(completion_window)
 
-            (cmd,itstart,itend) = select_word_backward(get_text_iter_at_cursor(buffer),buffer,false)
+            #FIXME redundant with Editor code
+            mode = :normal
+            it = get_text_iter_at_cursor(buffer)
+            (cmd,itstart,itend) = select_word_backward(it,buffer,false)
 
-            out = completion_window.prefix * completion_window.content[completion_window.idx]
-            insert_autocomplete(out,itstart,itend,buffer)
+            if cmd == ""
+                if get_text_left_of_cursor(buffer) == ")"
+                    (found,tu,itstart) = select_tuple(it, buffer)
+                    mode = found ? :tuple : mode
+                end
+            end
+            if mode == :normal
+                out = completion_window.prefix * completion_window.content[completion_window.idx]
+                insert_autocomplete(out,itstart,itend,buffer)
+            end
+            if mode == :tuple
+                out = completion_window.content[completion_window.idx]
+                insert_autocomplete(out,itstart,itstart,buffer,:tuple)
+            end
+
             visible(completion_window,false)
             propagate = false
         end
@@ -134,6 +156,7 @@ function build_completion_window(comp,view,prefix)
     showall(completion_window)
 end
 
+#############################################
 ## Add symbols from current files to completions
 
 function clean_symbols(S::Array{Symbol,1})
@@ -143,43 +166,41 @@ function clean_symbols(S::Array{Symbol,1})
     sort(S)
 end
 
-#FIXME need something a smarter than parsing line by line
-function _collect_symbols(t::EditorTab)
-    txt = getproperty(t.buffer,:text,AbstractString)
-    S = Array(Symbol,0)
-
-    for l in split(txt,"\n")
-        try
-            ex = parse(l)
-            if ex != nothing
-                S = [S; collect_symbols(ex)::Array{Symbol,1}]
-            end
-        catch err
-            println(string(err))
-        end
-    end
-    clean_symbols(S)
-end
-
 function collect_symbols(t::EditorTab)
-    str = getproperty(t.buffer,:text,AbstractString)
+
+    ##
+    str = utf8(getproperty(t.buffer,:text,AbstractString))
     S = Array(Symbol,0)
-    pos = findin(str,"\n")
-    
+
+    #no searchall :'(
+    pos = Array(Integer,0)
+    del = '\n'
+    i = start(str)
+    for j=1:length(str)
+        str[i] == del && push!(pos,i)
+        i = nextind(str,i)
+    end
+
     i = start(str)
     while !done(str,i)#thanks Lint.jl
         try
             (ex,i) = parse(str,i)
             if ex != nothing
-                S = [S; collect_symbols(ex)::Array{Symbol,1}]
+                S = [S; collect_symbols(ex)]
             end
         catch err
-            idx = findfirst(x -> x > i, pos)#FIXME doesn't work inside scopes
-            line = idx > 0 ? idx-1 : length(pos)
-            println("error while parsing $(t.filename) near line $line")
-            println(err)
-            sleep(0.05)
-            new_prompt(_console)
+
+            idx = findfirst(pos .>= i)#FIXME only give us the start of the block in which the error is
+            line = idx > 0 ? idx : length(pos)
+
+            @schedule begin #I'm not sure why I need a task here
+
+                println("error while parsing $(t.filename) near line $line")
+                println(err)
+                sleep(0.05)
+                new_prompt(_console)
+            end
+
             break
         end
     end
@@ -223,6 +244,123 @@ function extcompletions(cmd,S)
     comp = unique(comp)
 
     return (comp,dotpos)
+end
+
+########################
+## Tuple completion
+
+import Base.typeseq
+function type_close_enough(x::DataType, t::DataType)
+    typeseq(x,t) && return true
+    return (x.name === t.name && !isleaftype(t) && x <: t)
+end
+function type_close_enough(x::Union, t::DataType)
+    typeseq(x,t) && return true
+    for u in x.types
+        t <: u && return true
+    end
+    false
+end
+function type_close_enough(t::DataType,x::Union)
+    typeseq(x,t) && return true
+    for u in x.types
+        u <: t && return true
+    end
+    false
+end
+function type_close_enough(t::Union,x::Union)
+    typeseq(x,t) && return true
+    for u in x.types
+        for v in t.types
+            u <: v && return true
+        end
+    end
+    false
+end
+function type_close_enough(x::TypeVar, t::DataType )
+    return x.ub != Any && t == x.ub
+end
+function type_close_enough(x::TypeConstructor, t::DataType)
+    return t <: x &&  x.ub != Any
+end
+
+function methods_with_tuple(t::Tuple, f::Function, meths = Method[])
+
+    if !isa(f.env, MethodTable)
+        return meths
+    end
+    d = f.env.defs
+
+    while d !== nothing
+        x = d.sig.parameters
+        if length(x) == length(t)
+            m = true
+            for i = 1:length(x)
+                if !(t[i] <: x[i]) ||  (x[i] == Any && t[i] != Any) ||  
+                (x[i] == ANY && t[i] != ANY)
+                    m = false
+                    break
+                end
+            end
+            m && push!(meths, d)
+        end
+        d = d.next
+    end
+    return meths
+end
+
+function methods_with_tuple(t::Tuple, m::Module)
+    meths = Method[]
+    for nm in names(m)
+        if isdefined(m, nm)
+            f = getfield(m, nm)
+            if isa(f, Function)
+                methods_with_tuple(t, f, meths)
+            end
+        end
+    end
+    return unique(meths)
+end
+
+function methods_with_tuple(t::Tuple)
+    meths = Method[]
+    mainmod = current_module()
+    # find modules in Main
+    for nm in names(mainmod)
+        if isdefined(mainmod,nm)
+            mod = getfield(mainmod, nm)
+            if isa(mod, Module)
+                append!(meths, methods_with_tuple(t, mod))
+            end
+        end
+    end
+    return unique(meths)
+end
+
+#take a tuple as a string "(x,y)", parse it and return the types in a tuple if defined
+function tuple_to_types(tu::AbstractString)
+    args = []
+    try
+        ex = parse(tu)
+        if typeof(ex) != Expr
+            ex = Expr(:tuple,ex)
+        end
+
+        for a in ex.args
+            try
+                v = eval(a)
+                if typeof(v) <: Union{Type,TypeVar}
+                    push!(args,v)
+                else
+                    push!(args,typeof(v))
+                end
+            catch err
+                return ()
+            end
+        end
+    catch
+    end
+    tuple(args...)
 end
 
 ##
