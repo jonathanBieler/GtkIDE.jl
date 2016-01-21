@@ -327,14 +327,16 @@ function tuple_autocomplete(it::GtkTextIter,buffer::GtkTextBuffer,completion_win
     args = tuple_to_types(tu)
     isempty(args) && return PROPAGATE
 
-    comp = map(string,methods_with_tuple(args))
+    m = methods_with_tuple(args)
+    comp = map(string,m)
+    func_names = [string(x.func.code.name) for x in m]
 
     if isempty(comp)
         visible(completion_window,false)
         return PROPAGATE
     end
     
-    build_completion_window(comp,view,"")
+    build_completion_window(comp,view,"",func_names)
     return INTERRUPT
 end
 

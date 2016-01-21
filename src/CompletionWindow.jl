@@ -6,7 +6,8 @@ type CompletionWindow <: GtkWindow #FIXME not the right container?
     content::Array{AbstractString,1}
     idx::Integer
     prefix::AbstractString
-
+    func_names::Array{AbstractString,1}#store just the name of functions, for tuple autocomplete
+    
     function CompletionWindow()
 
         buffer = @GtkSourceBuffer()
@@ -64,9 +65,8 @@ function insert_autocomplete(s::AbstractString,itstart::GtkTextIters,itend::GtkT
         replace_text(buffer,itstart,itend,s)
     end
     if mode == :tuple
-        i = search(s,'(')
-        i <= 1 && return
-        s = s[1:i-1]
+
+        
         insert!(buffer,itstart,s)
     end
 end
@@ -113,7 +113,7 @@ function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
                 insert_autocomplete(out,itstart,itend,buffer)
             end
             if mode == :tuple
-                out = completion_window.content[completion_window.idx]
+                out = completion_window.func_names[completion_window.idx]
                 insert_autocomplete(out,itstart,itstart,buffer,:tuple)
             end
 
@@ -154,6 +154,10 @@ function build_completion_window(comp,view,prefix)
     visible(completion_window,true)
 
     showall(completion_window)
+end
+function build_completion_window(comp,view,prefix,func_names)
+    completion_window.func_names = func_names
+    build_completion_window(comp,view,prefix)    
 end
 
 #############################################
@@ -284,6 +288,7 @@ function type_close_enough(x::TypeConstructor, t::DataType)
     return t <: x &&  x.ub != Any
 end
 
+##
 function methods_with_tuple(t::Tuple, f::Function, meths = Method[])
 
     if !isa(f.env, MethodTable)
@@ -293,13 +298,25 @@ function methods_with_tuple(t::Tuple, f::Function, meths = Method[])
 
     while d !== nothing
         x = d.sig.parameters
+        cons = Dict{Symbol,Type}()
         if length(x) == length(t)
             m = true
             for i = 1:length(x)
-                if !(t[i] <: x[i]) ||  (x[i] == Any && t[i] != Any) ||  
+
+                if !(t[i] <: x[i]) ||  
+                (x[i] == Any && t[i] != Any) ||  
                 (x[i] == ANY && t[i] != ANY)
                     m = false
                     break
+                end
+                
+                #check thing like (T<:K,T<:K)
+                if typeof(x[i]) == TypeVar
+                    if haskey(cons,x[i].name) && !(t[i] <: cons[x[i].name])
+                        m = false
+                        break
+                    end
+                    cons[x[i].name] = t[i]
                 end
             end
             m && push!(meths, d)
@@ -308,6 +325,7 @@ function methods_with_tuple(t::Tuple, f::Function, meths = Method[])
     end
     return meths
 end
+##
 
 function methods_with_tuple(t::Tuple, m::Module)
     meths = Method[]

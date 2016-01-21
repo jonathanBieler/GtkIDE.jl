@@ -1,5 +1,5 @@
 ## special commands that can be called from the console
-# FIXME evaluate in console
+# FIXME evaluate in console?
 
 type Console_command
 	r::Regex
@@ -44,6 +44,19 @@ add_console_command(r"^cd (.*)",(m) -> begin
 		println(sprint(show,err))
 	end
 end,:file)
+add_console_command(r"^\?\s*(.*)",(m) -> begin
+
+    try
+        h = Symbol(m.captures[1])
+        h = Base.doc(Base.Docs.Binding(
+            Base.Docs.current_module(),h)
+        )
+        h = Base.Markdown.plain(h)
+        print(h)
+    catch err
+        println(err)
+    end
+end)
 
 function console_commands_context(cmd::AbstractString)
     for c in console_commands
