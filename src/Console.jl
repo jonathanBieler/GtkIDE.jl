@@ -208,15 +208,18 @@ function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 #    widget = convert(GtkSourceView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     _console = user_data
+    buffer = _console.buffer
 
     cmd = prompt(_console)
     pos = cursor_position(_console)
     prefix = length(cmd) >= pos ? cmd[1:pos] : ""
 
-    before_prompt() =
-    getproperty(_console.buffer,:cursor_position,Int)+1 < _console.prompt_position
-    before_or_at_prompt() =
-    getproperty(_console.buffer,:cursor_position,Int)+1 <= _console.prompt_position
+    #FIXME put this elsewhere?
+    before_prompt(pos::Integer) = pos+1 < _console.prompt_position
+    before_prompt() = before_prompt( getproperty(buffer,:cursor_position,Int) )
+
+    before_or_at_prompt(pos::Integer) = pos+1 <= _console.prompt_position
+    before_or_at_prompt() = before_or_at_prompt(getproperty(buffer,:cursor_position,Int))
 
     #put back the cursor after the prompt
     if before_prompt()
@@ -225,16 +228,29 @@ function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
         #chekc that we are not trying to copy or something of the sort
         if !ismodkey(event)
-            text_buffer_place_cursor(_console.buffer,end_iter(_console.buffer))
+            text_buffer_place_cursor(buffer,end_iter(buffer))
         end
     end
 
     if event.keyval == Gtk.GdkKeySyms.BackSpace ||
-       event.keyval == Gtk.GdkKeySyms.Left ||
        event.keyval == Gtk.GdkKeySyms.Delete ||
        event.keyval == Gtk.GdkKeySyms.Clear
 
-        before_or_at_prompt() && return INTERRUPT
+       (found,it_start,it_end) = selection_bounds(buffer)
+        if found
+            before_prompt(offset(it_start)) && return INTERRUPT
+        else
+            before_or_at_prompt() && return INTERRUPT
+        end
+    end
+    if event.keyval == Gtk.GdkKeySyms.Left
+
+       (found,it_start,it_end) = selection_bounds(buffer)
+        if found
+            before_or_at_prompt(offset(it_start)) && return INTERRUPT
+        else
+            before_or_at_prompt() && return INTERRUPT
+        end
     end
 
     if event.keyval == Gtk.GdkKeySyms.Return
@@ -246,12 +262,14 @@ function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
 
     if event.keyval == Gtk.GdkKeySyms.Up
+        hasselection(buffer) && return PROPAGATE
         !history_up(history,prefix,cmd) && return convert(Cint,true)
         prompt(_console,history_get_current(history),length(prefix))
 
         return INTERRUPT
     end
     if event.keyval == Gtk.GdkKeySyms.Down
+        hasselection(buffer) && return PROPAGATE
         history_down(history,prefix,cmd)
         prompt(_console,history_get_current(history),length(prefix))
 
@@ -269,6 +287,27 @@ function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 end
 signal_connect(console_key_press_cb, _console.view, "key-press-event",
 Cint, (Ptr{Gtk.GdkEvent},), false,_console)
+
+## MOUSE CLICKS
+
+signal_connect(tab_button_press_cb,_console.view, "button-press-event",
+Cint, (Ptr{Gtk.GdkEvent},),false,_console)
+
+global console_mousepos = zeros(Int,2)
+global console_mousepos_root = zeros(Int,2)
+
+#FIXME replace this by the same thing at the window level ?
+#or put this as a field of the type.
+function console_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
+    event = convert(Gtk.GdkEvent, eventptr)
+
+    console_mousepos[1] = round(Int,event.x)
+    console_mousepos[2] = round(Int,event.y)
+    console_mousepos_root[1] = round(Int,event.x_root)
+    console_mousepos_root[2] = round(Int,event.y_root)
+    return PROPAGATE
+end
+signal_connect(console_motion_notify_event_cb,_console,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
 
 ##
 

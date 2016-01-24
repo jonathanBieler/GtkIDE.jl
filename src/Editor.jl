@@ -148,10 +148,12 @@ function highlight_cells()
 end
 
 import Gtk.hasselection
-function hasselection(t::EditorTab)
-    (found,it_start,it_end) = selection_bounds(t.buffer)
+function hasselection(b::GtkTextBuffer)
+    (found,it_start,it_end) = selection_bounds(b)
     found
 end
+hasselection(t::EditorTab) = hasselection(t.buffer)
+
 function get_selected_text(t::EditorTab)
     (found,it_start,it_end) = selection_bounds(t.buffer)
     return found ? text_iter_get_text(it_start,it_end) : ""
@@ -172,7 +174,7 @@ signal_connect(ntbook_switch_page_cb,ntbook,"switch-page", Void, (Ptr{Gtk.GtkWid
 global mousepos = zeros(Int,2)
 global mousepos_root = zeros(Int,2)
 
-#FIXME do I really need this?
+#I need this to get the mouse position when we use the keyboard
 function ntbook_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
     event = convert(Gtk.GdkEvent, eventptr)
 
@@ -245,25 +247,29 @@ function line_to_adj_value(buffer::GtkTextBuffer,adj::GtkAdjustment,l::Integer)
 end
 
 #clicks
+
+function select_word_double_click(textview::GtkTextView,buffer::GtkTextBuffer,x::Integer,y::Integer)
+
+    (x,y) = text_view_window_to_buffer_coords(textview,x,y)
+    iter_end = get_iter_at_position(textview,x,y)
+    #iter_end = mutable( get_text_iter_at_cursor(buffer) ) #not using this because the cursor position is modified somewhere
+
+    (w, iter_start, iter_end) = select_word(iter_end,buffer)
+    selection_bounds(buffer,iter_start,iter_end)
+
+    return INTERRUPT
+end
+
+#! this is also used by the console textview
 function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getproperty(textview,:buffer,GtkTextBuffer)
 
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
-
-        (x,y) = text_view_window_to_buffer_coords(textview,mousepos[1],mousepos[2])
-        iter_end = get_iter_at_position(textview,x,y)
-        #iter_end = mutable( get_text_iter_at_cursor(buffer) ) #not using this because the cursor position is modified somewhere
-
-        (w, iter_start, iter_end) = select_word(iter_end,buffer)
-
-        selection_bounds(buffer,iter_start,iter_end)
-
-        return convert(Cint,true)
+        return select_word_double_click(textview,buffer,Int(event.x),Int(event.y))
     end
-
-    #write(_console,string(event.state) * "\n")
 
     if Int(event.button) == 1 && Int(event.state) == PrimaryModifierMouse
         open_method(textview) && return INTERRUPT
@@ -335,7 +341,7 @@ function tuple_autocomplete(it::GtkTextIter,buffer::GtkTextBuffer,completion_win
         visible(completion_window,false)
         return PROPAGATE
     end
-    
+
     build_completion_window(comp,view,"",func_names)
     return INTERRUPT
 end
@@ -396,8 +402,9 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     buffer = getbuffer(textview)
     t = user_data
 
-    #write(console,string( event.state) * "\n" )
-    #write(console,string( Actions.save.state) * "\n" )
+    #@schedule begin
+    #@show event
+    #end
 
     if doing(Actions.save, event)
         save(t)
