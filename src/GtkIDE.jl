@@ -83,8 +83,8 @@ global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 #Order matters
 include("Project.jl")
 include("Console.jl")
-
 include("Editor.jl")
+
 
 if sourcemap == nothing
     sourcemap = @GtkBox(:v)

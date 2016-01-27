@@ -290,7 +290,28 @@ Cint, (Ptr{Gtk.GdkEvent},), false,_console)
 
 ## MOUSE CLICKS
 
-signal_connect(tab_button_press_cb,_console.view, "button-press-event",
+function _console_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+
+    textview = convert(GtkTextView, widgetptr)
+    event = convert(Gtk.GdkEvent, eventptr)
+    buffer = getproperty(textview,:buffer,GtkTextBuffer)
+
+    if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
+        if select_word_double_click(textview,buffer,Int(event.x),Int(event.y))
+            return PROPAGATE
+        else
+            return INTERRUPT
+        end
+    end
+
+    if Int(event.button) == 1 && Int(event.state) == PrimaryModifierMouse
+        open_method(textview) && return INTERRUPT
+    end
+
+    return PROPAGATE
+end
+
+signal_connect(_console_button_press_cb,_console.view, "button-press-event",
 Cint, (Ptr{Gtk.GdkEvent},),false,_console)
 
 global console_mousepos = zeros(Int,2)
