@@ -1,4 +1,4 @@
-type _Console <: GtkScrolledWindow
+type Console <: GtkScrolledWindow
 
     handle::Ptr{Gtk.GObject}
     view::GtkSourceView
@@ -7,7 +7,7 @@ type _Console <: GtkScrolledWindow
     lock::ReentrantLock
     prompt_position::Integer
 
-    function _Console()
+    function Console()
 
         lang = languageDefinitions[".jl"]
 
@@ -42,18 +42,18 @@ type _Console <: GtkScrolledWindow
     end
 end
 
-_console = _Console()
+console = Console()
 
 include("CommandHistory.jl")
 history = setup_history()
 include("ConsoleCommands.jl")
 
 import Base.lock, Base.unlock
-lock(c::_Console) = lock(c.lock)
-unlock(c::_Console) = unlock(c.lock)
+lock(c::Console) = lock(c.lock)
+unlock(c::Console) = unlock(c.lock)
 
 import Base.write
-function write(c::_Console,str::AbstractString,set_prompt=false)
+function write(c::Console,str::AbstractString,set_prompt=false)
     @async begin
         lock(c)
         try
@@ -69,9 +69,9 @@ function write(c::_Console,str::AbstractString,set_prompt=false)
         end
     end
 end
-write(c::_Console,x,set_prompt=false) = write(c,string(x),set_prompt)
+write(c::Console,x,set_prompt=false) = write(c,string(x),set_prompt)
 
-function clear(c::_Console)
+function clear(c::Console)
     @async begin
         lock(c)
         try
@@ -85,7 +85,7 @@ end
 ##
 
 
-function on_return(c::_Console,cmd::AbstractString)
+function on_return(c::Console,cmd::AbstractString)
 
     cmd = strip(cmd)
     buffer = c.buffer
@@ -98,7 +98,6 @@ function on_return(c::_Console,cmd::AbstractString)
     (found,t) = check_console_commands(cmd)
 
     if found
-
     else
 
         ex = Base.parse_input_line(cmd)
@@ -125,13 +124,13 @@ function on_return(c::_Console,cmd::AbstractString)
         end
 
     end
-    _console.run_task = t
+    console.run_task = t
 
     @async write_output_to_console(c)
 
 end
 
-function write_output_to_console(c::_Console)
+function write_output_to_console(c::Console)
 
     t = c.run_task
     wait(t)
@@ -145,7 +144,7 @@ end
 
 ##
 
-function prompt(c::_Console)
+function prompt(c::Console)
     t = @async begin
         lock(c)
         cmd = ""
@@ -161,7 +160,7 @@ function prompt(c::_Console)
     wait(t)
     return t.result
 end
-function prompt(c::_Console,str::AbstractString,offset::Integer)
+function prompt(c::Console,str::AbstractString,offset::Integer)
     @async begin
         lock(c)
         try
@@ -177,12 +176,12 @@ function prompt(c::_Console,str::AbstractString,offset::Integer)
         end
     end
 end
-prompt(c::_Console,str::AbstractString) = prompt(c,str,-1)
+prompt(c::Console,str::AbstractString) = prompt(c,str,-1)
 
-new_prompt(c::_Console) = write(c,"",true)
+new_prompt(c::Console) = write(c,"",true)
 
 #return cursor position in the prompt text
-function cursor_position(c::_Console)
+function cursor_position(c::Console)
     a = c.prompt_position
     b = cursor_position(c.buffer)
     b-a+1
@@ -207,24 +206,24 @@ ismodkey(event::Gtk.GdkEvent) =
 function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 #    widget = convert(GtkSourceView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
-    _console = user_data
-    buffer = _console.buffer
+    console = user_data
+    buffer = console.buffer
 
-    cmd = prompt(_console)
-    pos = cursor_position(_console)
+    cmd = prompt(console)
+    pos = cursor_position(console)
     prefix = length(cmd) >= pos ? cmd[1:pos] : ""
 
     #FIXME put this elsewhere?
-    before_prompt(pos::Integer) = pos+1 < _console.prompt_position
+    before_prompt(pos::Integer) = pos+1 < console.prompt_position
     before_prompt() = before_prompt( getproperty(buffer,:cursor_position,Int) )
 
-    before_or_at_prompt(pos::Integer) = pos+1 <= _console.prompt_position
+    before_or_at_prompt(pos::Integer) = pos+1 <= console.prompt_position
     before_or_at_prompt() = before_or_at_prompt(getproperty(buffer,:cursor_position,Int))
 
     #put back the cursor after the prompt
     if before_prompt()
 
-        #write(_console,string(Int(event.keyval)) * "\n" )
+        #write(console,string(Int(event.keyval)) * "\n" )
 
         #chekc that we are not trying to copy or something of the sort
         if !ismodkey(event)
@@ -255,8 +254,8 @@ function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     if event.keyval == Gtk.GdkKeySyms.Return
 
-        if _console.run_task.state == :done
-            on_return(_console,cmd)
+        if console.run_task.state == :done
+            on_return(console,cmd)
         end
         return INTERRUPT
     end
@@ -264,14 +263,14 @@ function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if event.keyval == Gtk.GdkKeySyms.Up
         hasselection(buffer) && return PROPAGATE
         !history_up(history,prefix,cmd) && return convert(Cint,true)
-        prompt(_console,history_get_current(history),length(prefix))
+        prompt(console,history_get_current(history),length(prefix))
 
         return INTERRUPT
     end
     if event.keyval == Gtk.GdkKeySyms.Down
         hasselection(buffer) && return PROPAGATE
         history_down(history,prefix,cmd)
-        prompt(_console,history_get_current(history),length(prefix))
+        prompt(console,history_get_current(history),length(prefix))
 
         return INTERRUPT
     end
@@ -279,14 +278,19 @@ function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if event.keyval == Gtk.GdkKeySyms.Tab
         #convert cursor position into index
         pos = clamp(pos+1,1,length(cmd))
-        autocomplete(_console,cmd,pos)
+        autocomplete(console,cmd,pos)
+        return INTERRUPT
+    end
+
+    if doing(Actions.interrupt_run,event)
+        kill_current_task(console)
         return INTERRUPT
     end
 
     return PROPAGATE
 end
-signal_connect(console_key_press_cb, _console.view, "key-press-event",
-Cint, (Ptr{Gtk.GdkEvent},), false,_console)
+signal_connect(console_key_press_cb, console.view, "key-press-event",
+Cint, (Ptr{Gtk.GdkEvent},), false,console)
 
 ## MOUSE CLICKS
 
@@ -311,8 +315,8 @@ function _console_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return PROPAGATE
 end
 
-signal_connect(_console_button_press_cb,_console.view, "button-press-event",
-Cint, (Ptr{Gtk.GdkEvent},),false,_console)
+signal_connect(_console_button_press_cb,console.view, "button-press-event",
+Cint, (Ptr{Gtk.GdkEvent},),false,console)
 
 global console_mousepos = zeros(Int,2)
 global console_mousepos_root = zeros(Int,2)
@@ -328,7 +332,7 @@ function console_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
     console_mousepos_root[2] = round(Int,event.y_root)
     return PROPAGATE
 end
-signal_connect(console_motion_notify_event_cb,_console,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
+signal_connect(console_motion_notify_event_cb,console,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
 
 ##
 
@@ -346,18 +350,17 @@ function _console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
 
     nothing
 end
-signal_connect(_console_scroll_cb, _console.view, "size-allocate", Void,
-    (Ptr{Gtk.GdkRectangle},), false,_console)
+signal_connect(_console_scroll_cb, console.view, "size-allocate", Void,
+    (Ptr{Gtk.GdkRectangle},), false,console)
 
 ## Auto-complete
 
-function autocomplete(c::_Console,cmd::AbstractString,pos::Integer)
+function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
 
     isempty(cmd) && return
     pos > length(cmd) && return
 
     (i,j) = select_word_backward(cmd,pos,false)
-
     (ctx, m) = console_commands_context(cmd)
 
     firstpart = cmd[1:i-1]
@@ -385,7 +388,7 @@ end
 # cmd is the word, including dots we are trying to complete
 # firstpart is words that come before it
 
-function update_completions(c::_Console,comp,dotpos,cmd,firstpart)
+function update_completions(c::Console,comp,dotpos,cmd,firstpart)
 
     isempty(comp) && return
 
@@ -418,12 +421,15 @@ function update_completions(c::_Console,comp,dotpos,cmd,firstpart)
 
 end
 
+function kill_current_task(c::Console)
+    Base.throwto(c.run_task,InterruptException())
+end
 
 ##
 
 stdout = STDOUT
 stderr = STDERR
-function send_stream(rd::IO, name::AbstractString,c::_Console)
+function send_stream(rd::IO, name::AbstractString,c::Console)
     nb = nb_available(rd)
     if nb > 0
         d = readbytes(rd, nb)
@@ -439,7 +445,7 @@ function send_stream(rd::IO, name::AbstractString,c::_Console)
     end
 end
 
-function watch_stream(rd::IO, name::AbstractString,c::_Console)
+function watch_stream(rd::IO, name::AbstractString,c::Console)
     try
         while !eof(rd) # blocks until something is available
             send_stream(rd, name,c)
@@ -456,11 +462,12 @@ function watch_stream(rd::IO, name::AbstractString,c::_Console)
         end
     end
 end
+
 if REDIRECT_STDOUT
     global read_stdout
     read_stdout, wr = redirect_stdout()
     function watch_stdio()
-        return @async watch_stream(read_stdout, "stdout",_console)
+        return @async watch_stream(read_stdout, "stdout",console)
     end
     global console_redirect = watch_stdio()
 end

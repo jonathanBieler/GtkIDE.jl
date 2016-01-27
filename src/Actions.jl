@@ -34,4 +34,5 @@ baremodule Actions
     const cut      = Action("x", PrimaryModifier,"Cut")
     const move_to_line_start    = Action("a", GdkModifierType.GDK_MOD1_MASK,"Move cursor to line start")
     const move_to_line_end      = Action("e", GdkModifierType.GDK_MOD1_MASK,"Move cursor to line end")
+    const interrupt_run = Action("c", PrimaryModifier, "Interrupt current task")
 end

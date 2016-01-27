@@ -115,7 +115,7 @@ win = @GtkWindow("Julia IDE",1800,1200) |>
 (mainPan = @GtkPaned(:h)) |>
     (rightPan = @GtkPaned(:v) |>
         (canvas = Gtk.@Canvas())  |>
-        _console
+        console
     ) |>
     ((editorVBox = @GtkBox(:v)) |>
         ((editorBox = @GtkBox(:h)) |>
@@ -320,7 +320,7 @@ end
 
 versioninfo()
 sleep(0.2)
-new_prompt(_console)
+new_prompt(console)
 
 # @schedule begin
 #     th = linspace(0,8*π,500)

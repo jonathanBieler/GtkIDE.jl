@@ -372,10 +372,10 @@ function run_line(buffer::GtkTextBuffer)
         (cmd, itstart, itend) = get_current_line_text(buffer)
         cmd = strip(cmd)
     end
-    run_command(_console,cmd)
+    run_command(console,cmd)
 end
 
-function run_command(c::_Console,cmd::AbstractString)
+function run_command(c::Console,cmd::AbstractString)
     @schedule begin #I'm not sure why I need a task here
         prompt(c,cmd)
         on_return(c,cmd)
@@ -444,13 +444,13 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
                 cmd = getproperty(buffer,:text,AbstractString)
             end
         end
-        run_command(_console,cmd)
+        run_command(console,cmd)
         return INTERRUPT
     end
     if doing(Actions.runfile, event)
         cmd = "include(\"$(t.filename)\")"
         cmd = replace(cmd,"\\", "/")
-        run_command(_console,cmd)
+        run_command(console,cmd)
     end
     if event.keyval == Gtk.GdkKeySyms.Escape
         set_search_text("")
@@ -468,16 +468,16 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         signal_emit(textview, "cut-clipboard", Void)
         return INTERRUPT
     end
-    if(doing(Actions.move_to_line_start,event))
+    if doing(Actions.move_to_line_start,event)
         move_cursor_to_sentence_start(buffer)
     end
-    if(doing(Actions.move_to_line_end,event))
+    if doing(Actions.move_to_line_end,event)
         move_cursor_to_sentence_end(buffer)
     end
 
-    !update_completion_window(event,buffer) && return convert(Cint,true)
+    !update_completion_window(event,buffer) && return INTERRUPT
 
-    return convert(Cint,false)#false : propagate
+    return PROPAGATE
 end
 
 function get_word_under_mouse_cursor(textview::GtkTextView)

@@ -16,7 +16,7 @@ add_console_command(r"^edit (.*)",(m) -> begin
     nothing
 end,:file)
 add_console_command(r"^clc$",(m) -> begin
-    clear(_console)
+    clear(console)
     nothing 
 end)
 add_console_command(r"^pwd",(m) -> begin

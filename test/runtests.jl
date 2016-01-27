@@ -66,6 +66,7 @@ for i=1:3
 end
 
 wait(t)
+sleep(sleep_time)
 
 ##
 
@@ -79,32 +80,32 @@ function emit_keypress(w)
     signal_emit(w, "key-press-event", Bool, keyevent)
 end
 
-prompt(_console,"x = 3")
+prompt(console,"x = 3")
     sleep(sleep_time)
-emit_keypress(_console.view)
+emit_keypress(console.view)
     sleep(sleep_time)
 @assert x == 3
 
-prompt(_console,"_test_completion_")
-cmd = prompt(_console)
+prompt(console,"_test_completion_")
+cmd = prompt(console)
     sleep(sleep_time)
-autocomplete(_console,cmd, length(cmd))
-    sleep(sleep_time)
-
-@assert prompt(_console) == "_test_completion_232_"
-
-cmd = prompt(_console)
-prompt(_console, cmd * "(")
-cmd = prompt(_console)
-    sleep(sleep_time)
-autocomplete(_console,cmd, length(cmd))
+autocomplete(console,cmd, length(cmd))
     sleep(sleep_time)
 
-@assert prompt(_console) == "_test_completion_232_(x::Int64, y::Float64)"
+@assert prompt(console) == "_test_completion_232_"
 
-prompt(_console,"clc")
+cmd = prompt(console)
+prompt(console, cmd * "(")
+cmd = prompt(console)
     sleep(sleep_time)
-emit_keypress(_console.view)
+autocomplete(console,cmd, length(cmd))
+    sleep(sleep_time)
+
+@assert prompt(console) == "_test_completion_232_(x::Int64, y::Float64)"
+
+prompt(console,"clc")
+    sleep(sleep_time)
+emit_keypress(console.view)
     sleep(sleep_time)
     
 ##

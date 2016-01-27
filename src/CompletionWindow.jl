@@ -7,7 +7,7 @@ type CompletionWindow <: GtkWindow #FIXME not the right container?
     idx::Integer
     prefix::AbstractString
     func_names::Array{AbstractString,1}#store just the name of functions, for tuple autocomplete
-    
+
     function CompletionWindow()
 
         buffer = @GtkSourceBuffer()
@@ -66,7 +66,7 @@ function insert_autocomplete(s::AbstractString,itstart::GtkTextIters,itend::GtkT
     end
     if mode == :tuple
 
-        
+
         insert!(buffer,itstart,s)
     end
 end
@@ -157,7 +157,7 @@ function build_completion_window(comp,view,prefix)
 end
 function build_completion_window(comp,view,prefix,func_names)
     completion_window.func_names = func_names
-    build_completion_window(comp,view,prefix)    
+    build_completion_window(comp,view,prefix)
 end
 
 #############################################
@@ -202,7 +202,7 @@ function collect_symbols(t::EditorTab)
                 println("error while parsing $(t.filename) near line $line")
                 println(err)
                 sleep(0.05)
-                new_prompt(_console)
+                new_prompt(console)#FIXME global
             end
 
             break
@@ -303,13 +303,13 @@ function methods_with_tuple(t::Tuple, f::Function, meths = Method[])
             m = true
             for i = 1:length(x)
 
-                if !(t[i] <: x[i]) ||  
-                (x[i] == Any && t[i] != Any) ||  
+                if !(t[i] <: x[i]) ||
+                (x[i] == Any && t[i] != Any) ||
                 (x[i] == ANY && t[i] != ANY)
                     m = false
                     break
                 end
-                
+
                 #check thing like (T<:K,T<:K)
                 if typeof(x[i]) == TypeVar
                     if haskey(cons,x[i].name) && !(t[i] <: cons[x[i].name])
