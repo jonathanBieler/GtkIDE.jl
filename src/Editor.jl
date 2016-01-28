@@ -473,11 +473,24 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if doing(Actions.move_to_line_end,event)
         move_cursor_to_sentence_end(buffer)
     end
+    if doing(Actions.toggle_comment,event)
+       
+        it = get_text_iter_at_cursor(buffer)
+        it = text_iter_line_start(it,buffer)
+        it = mutable(it)
+
+        if get_text_right_of_iter(it) == "#"
+            text_buffer_delete(buffer,it,it+1)         
+        else
+            insert!(buffer,it,"#")
+        end
+    end
 
     !update_completion_window(event,buffer) && return INTERRUPT
 
     return PROPAGATE
 end
+
 
 function get_word_under_mouse_cursor(textview::GtkTextView)
 

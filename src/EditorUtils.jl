@@ -112,6 +112,27 @@ function select_tuple(it::GtkTextIter,buffer::GtkTextBuffer)
 
 end
 
+function text_iter_line_start(it::GtkTextIter,b::GtkTextBuffer)
+
+    (txt, line_start, line_end) = get_line_text(b,it)        
+    i = lstrip_idx(txt)
+    i > length(txt) && return it
+    
+    return GtkTextIter(b, offset(line_start) + i)
+end
+
+function lstrip_idx(s::AbstractString, chars::Base.Chars=Base._default_delims)
+    i = start(s)
+    while !done(s,i)
+        c, j = next(s,i)
+        if !(c in chars)
+            return i
+        end
+        i = j
+    end
+    i
+end
+
 
 ## Utility functions
 
@@ -146,11 +167,11 @@ function get_text_left_of_cursor(buffer::GtkTextBuffer)
     return text_iter_get_text(it-1,it)
 end
 #these are wrong I think:
-get_text_left_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it,it+1)
-get_text_right_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it+1,it+2)
+get_text_left_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it-1,it)
+get_text_right_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it,it+1)
 
-get_text_left_of_iter(it::GtkTextIter) = text_iter_get_text(mutable(it),mutable(it)+1)
-get_text_right_of_iter(it::GtkTextIter) = text_iter_get_text(mutable(it)+1,mutable(it)+2)
+get_text_left_of_iter(it::GtkTextIter) = text_iter_get_text(mutable(it)-1,mutable(it))
+get_text_right_of_iter(it::GtkTextIter) = text_iter_get_text(mutable(it),mutable(it)+1)
 
 function move_cursor_to_sentence_start(buffer::GtkTextBuffer)
     it = mutable( get_text_iter_at_cursor(buffer) )
