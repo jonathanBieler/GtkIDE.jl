@@ -1,3 +1,7 @@
+if VERSION >= v"0.5.0"
+    error("Version 0.5 is not supported")
+end
+
 using Winston
 #this need to run before gtk
 if Winston.output_surface != :gtk

@@ -301,11 +301,8 @@ function _console_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     buffer = getproperty(textview,:buffer,GtkTextBuffer)
 
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
-        if select_word_double_click(textview,buffer,Int(event.x),Int(event.y))
-            return PROPAGATE
-        else
-            return INTERRUPT
-        end
+        select_word_double_click(textview,buffer,Int(event.x),Int(event.y))
+        return INTERRUPT
     end
 
     if Int(event.button) == 1 && Int(event.state) == PrimaryModifierMouse
@@ -422,7 +419,9 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart)
 end
 
 function kill_current_task(c::Console)
-    Base.throwto(c.run_task,InterruptException())
+    try #otherwise this makes the callback fail in some versions
+        Base.throwto(c.run_task,InterruptException())
+    end
 end
 
 ##

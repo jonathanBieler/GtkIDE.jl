@@ -256,8 +256,6 @@ function select_word_double_click(textview::GtkTextView,buffer::GtkTextBuffer,x:
 
     (w, iter_start, iter_end) = select_word(iter_end,buffer)
     selection_bounds(buffer,iter_start,iter_end)
-
-    return INTERRUPT
 end
 
 #! this is also used by the console textview
@@ -268,7 +266,8 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     buffer = getproperty(textview,:buffer,GtkTextBuffer)
 
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
-        return select_word_double_click(textview,buffer,Int(event.x),Int(event.y))
+        select_word_double_click(textview,buffer,Int(event.x),Int(event.y))
+        return INTERRUPT
     end
 
     if Int(event.button) == 1 && Int(event.state) == PrimaryModifierMouse

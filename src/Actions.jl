@@ -18,6 +18,7 @@ function doing(a::Action, event::Gtk.GdkEvent)
     end
 end
 
+#FIXME need something like PrimaryModifier for alt and ctrl on mac
 baremodule Actions
     using Main.Action, Main.GdkModifierType, Main.keyval, Base.call, Main.Gtk, Base.+, Main.PrimaryModifier
 
@@ -34,5 +35,5 @@ baremodule Actions
     const cut      = Action("x", PrimaryModifier,"Cut")
     const move_to_line_start    = Action("a", GdkModifierType.GDK_MOD1_MASK,"Move cursor to line start")
     const move_to_line_end      = Action("e", GdkModifierType.GDK_MOD1_MASK,"Move cursor to line end")
-    const interrupt_run = Action("c", PrimaryModifier, "Interrupt current task")
+    const interrupt_run = Action("x", PrimaryModifier, "Interrupt current task")
 end
