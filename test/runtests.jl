@@ -75,7 +75,7 @@ function emit_keypress(w)
 
     keyevent = Gtk.GdkEventKey(Gtk.GdkEventType.KEY_PRESS, Gtk.gdk_window(w),
                Int8(0), UInt32(0), UInt32(0), Gtk.GdkKeySyms.Return, UInt32(0),
-               convert(Ptr{Uint8},C_NULL), UInt16(13), UInt8(0), UInt32(0) )
+               convert(Ptr{UInt8},C_NULL), UInt16(13), UInt8(0), UInt32(0) )
    
     signal_emit(w, "key-press-event", Bool, keyevent)
 end

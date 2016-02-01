@@ -30,8 +30,12 @@ using Compat
 
 # Compat-type things
 
-isdefined(:(showlimited))
-
+if !isdefined(Base,:(showlimited))
+    showlimited(x) = show(x)
+    showlimited(io::IO,x) = show(io,x)
+else
+    import Base.showlimited
+end
 
 import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions

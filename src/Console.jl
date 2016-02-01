@@ -110,7 +110,7 @@ function on_return(c::Console,cmd::AbstractString)
             try
                 v = eval(Main,ex)
                 eval(Main, :(ans = $(Expr(:quote, v))))
-                evalout = v == nothing ? "" : sprint(Base.showlimited,v)
+                evalout = v == nothing ? "" : sprint(showlimited,v)
             catch err
                 io = IOBuffer()
                 showerror(io,err)
