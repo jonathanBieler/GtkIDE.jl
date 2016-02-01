@@ -74,17 +74,8 @@ signal_connect(search_entry_key_release_cb, search_window.entry, "key-release-ev
 
 visible(search_window,false)
 
-##
-
-#global search_window = @GtkWindow("search",200,50) |>
-#    (search_entry = @GtkEntry())
-#visible(search_window,false)
-#Gtk.G_.keep_above(search_window,true)
-
-##
 function search_window_quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
 
-    #@show "wesh"
     return convert(Cint,true)
 end
 signal_connect(search_window_quit_cb, search_window, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)

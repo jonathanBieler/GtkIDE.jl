@@ -1,11 +1,9 @@
 using Winston
 #this need to run before gtk
 if Winston.output_surface != :gtk
-    #could do that automatically?
-    pth = joinpath(Pkg.dir(),"Winston","src")
 
     warn("Patching Winston.ini")
-    sleep(0.5)
+    sleep(0.1)
     pth = joinpath(Pkg.dir(),"Winston","src","Winston.ini")
     try
         f = open(pth,"r")
@@ -34,9 +32,6 @@ using Compat
 
 isdefined(:(showlimited))
 
-
-#module G
-#export plot, drawnow
 
 import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
@@ -90,7 +85,6 @@ global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 include("Project.jl")
 include("Console.jl")
 include("Editor.jl")
-
 
 if sourcemap == nothing
     sourcemap = @GtkBox(:v)
@@ -217,6 +211,7 @@ signal_connect(openMenuItem_activate_cb, openMenuItem, "activate", Void, (), fal
 
 ################
 ## WINSTON
+
 if true
 if !Winston.hasfig(Winston._display,1)
     Winston.ghf()
@@ -342,8 +337,3 @@ new_prompt(console)
 #     end
 # end
 
-##
-
-#end#module
-
-#importall G

@@ -5,17 +5,14 @@ type Action
 
     Action(k::Integer,s::Integer) = new(k,s,"")
     Action(k::Integer,s::Integer,d::AbstractString) = new(k,s,d)
-    Action(k::Integer,d::AbstractString) = new(k,-1,d)
+    Action(k::Integer,d::AbstractString) = new(k,0,d)#no modifiers == 0
     Action(k::AbstractString,s::Integer,d::AbstractString) = new(keyval(k),s,d)
 end
 
 #FIXME https://developer.gnome.org/gtk3/unstable/checklist-modifiers.html
 function doing(a::Action, event::Gtk.GdkEvent)
-    if a.state == -1
-        return event.keyval == a.keyval
-    else
-        return event.keyval == a.keyval && Int(event.state) == Int(a.state)
-    end
+
+    return event.keyval == a.keyval && Int(event.state) == Int(a.state)
 end
 
 #FIXME need something like PrimaryModifier for alt and ctrl on mac
