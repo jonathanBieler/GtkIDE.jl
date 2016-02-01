@@ -70,6 +70,13 @@ mutable(it::GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)
 offset(it::GtkTextIters) = getproperty(it,:offset,Integer)
 nonmutable(buffer::GtkTextBuffer,it::MutableGtkTextIter) = GtkTextIter(buffer,offset(it)+1)#this allows to convert to GtkTextBuffer without the -1 definition in Gtk.jl
 
+getbuffer(it::GtkTextIter) = convert(GtkTextBuffer,
+    ccall((:gtk_text_iter_get_buffer, libgtk),Ptr{GtkTextBuffer},(Ref{GtkTextIter},),it)
+)
+getbuffer(it::MutableGtkTextIter) = convert(GtkTextBuffer,
+    ccall((:gtk_text_iter_get_buffer, libgtk),Ptr{GtkTextBuffer},(Ptr{GtkTextIter},),it)
+)
+
 import Base.show
 show(io::IO, it::GtkTextIter) = println("GtkTextIter($(offset(it)))")
 
@@ -157,12 +164,6 @@ function text_buffer_get_iter_at_mark(buffer::GtkTextBuffer,mark::GtkTextMark)
     ccall((:gtk_text_buffer_get_iter_at_mark,  libgtk),Void,(Ptr{Gtk.GObject},Ptr{MutableGtkTextIter},Ptr{Gtk.GObject}),buffer,iter,mark)
     return iter
 end
-
-text_buffer_delete(buffer::GtkTextBuffer,itstart::GtkTextIter,itend::GtkTextIter)  = ccall((:gtk_text_buffer_delete,  libgtk),Void,
-(Ptr{Gtk.GObject},Ref{GtkTextIter},Ref{GtkTextIter}),buffer,itstart,itend)
-
-text_buffer_delete(buffer::GtkTextBuffer,itstart::MutableGtkTextIter,itend::MutableGtkTextIter)  = ccall((:gtk_text_buffer_delete,  libgtk),Void,
-(Ptr{Gtk.GObject},Ptr{GtkTextIter},Ptr{GtkTextIter}),buffer,itstart,itend)
 
 line_count(buffer::GtkTextBuffer) = ccall((:gtk_text_buffer_get_line_count,libgtk),Cint,(Ptr{GObject},),buffer)
 

@@ -112,8 +112,9 @@ function select_tuple(it::GtkTextIter,buffer::GtkTextBuffer)
 
 end
 
-function text_iter_line_start(it::GtkTextIter,b::GtkTextBuffer)
+function text_iter_line_start(it::GtkTextIter)
 
+    b = getbuffer(it)
     (txt, line_start, line_end) = get_line_text(b,it)        
     i = lstrip_idx(txt)
     i > length(txt) && return it

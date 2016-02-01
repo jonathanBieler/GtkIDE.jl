@@ -38,7 +38,13 @@ end,:file)
 
 add_console_command(r"^cd (.*)",(m) -> begin
 	try
-	    cd(m.captures[1])
+        v = m.captures[1]
+	    if !isdir(v)
+	        if isdefined(Symbol(v))
+	            v = eval(Symbol("HOMEDIR"))
+	        end
+	    end
+	    cd(v)
 		return "\n" * pwd()
 	catch err
 		println(sprint(show,err))

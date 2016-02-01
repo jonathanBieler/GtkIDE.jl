@@ -347,7 +347,7 @@ end
 
 function replace_text{T<:GtkTextIters}(buffer::GtkTextBuffer,itstart::T,itend::T,str::AbstractString)
     pos = offset(itstart)+1
-    text_buffer_delete(buffer,itstart,itend)
+    splice!(buffer,itstart:itend)
     insert!(buffer,GtkTextIter(buffer,pos),str)
 end
 
@@ -472,20 +472,23 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
     if doing(Actions.move_to_line_end,event)
         move_cursor_to_sentence_end(buffer)
-    end
+    end        
     if doing(Actions.toggle_comment,event)
-       
+    
+        #TODO put this into a function and make it work for selection
+        
         it = get_text_iter_at_cursor(buffer)
-        it = text_iter_line_start(it,buffer)
-        it = mutable(it)
-
+        it = text_iter_line_start(it)
+        
         if get_text_right_of_iter(it) == "#"
-            text_buffer_delete(buffer,it,it+1)         
+            splice!(buffer,it:it+1)
         else
             insert!(buffer,it,"#")
         end
+        
     end
-
+    
+    
     !update_completion_window(event,buffer) && return INTERRUPT
 
     return PROPAGATE

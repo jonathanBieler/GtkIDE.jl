@@ -36,7 +36,7 @@ type Console <: GtkScrolledWindow
         showall(sc)
 
         push!(Gtk.G_.style_context(v), provider, 600)
-        t = @async begin end
+        t = @schedule begin end
         n = new(sc.handle,v,b,t,ReentrantLock(),2)
         Gtk.gobject_move_ref(n, sc)
     end
@@ -54,7 +54,7 @@ unlock(c::Console) = unlock(c.lock)
 
 import Base.write
 function write(c::Console,str::AbstractString,set_prompt=false)
-    @async begin
+    @schedule begin
         lock(c)
         try
             if set_prompt
@@ -72,7 +72,7 @@ end
 write(c::Console,x,set_prompt=false) = write(c,string(x),set_prompt)
 
 function clear(c::Console)
-    @async begin
+    @schedule begin
         lock(c)
         try
             setproperty!(c.buffer,:text,"")
@@ -93,7 +93,7 @@ function on_return(c::Console,cmd::AbstractString)
     history_add(history,cmd)
     history_seek_end(history)
 
-    print("\n")
+    write(c,"\n")
 
     (found,t) = check_console_commands(cmd)
 
@@ -106,7 +106,7 @@ function on_return(c::Console,cmd::AbstractString)
         evalout = ""
         v = :()
 
-        t = @async begin
+        t = @schedule begin
             try
                 v = eval(Main,ex)
                 eval(Main, :(ans = $(Expr(:quote, v))))
@@ -126,7 +126,7 @@ function on_return(c::Console,cmd::AbstractString)
     end
     console.run_task = t
 
-    @async write_output_to_console(c)
+    @schedule write_output_to_console(c)
 
 end
 
@@ -145,7 +145,7 @@ end
 ##
 
 function prompt(c::Console)
-    t = @async begin
+    t = @schedule begin
         lock(c)
         cmd = ""
         try
@@ -161,7 +161,7 @@ function prompt(c::Console)
     return t.result
 end
 function prompt(c::Console,str::AbstractString,offset::Integer)
-    @async begin
+    @schedule begin
         lock(c)
         try
             its = GtkTextIter(c.buffer,c.prompt_position)
@@ -177,8 +177,18 @@ function prompt(c::Console,str::AbstractString,offset::Integer)
     end
 end
 prompt(c::Console,str::AbstractString) = prompt(c,str,-1)
-
 new_prompt(c::Console) = write(c,"",true)
+
+function move_cursor_to_end(c::Console)
+    t = @schedule begin
+        lock(c)
+        try
+            text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
+        finally
+            unlock(c)
+        end
+    end
+end
 
 #return cursor position in the prompt text
 function cursor_position(c::Console)
@@ -205,6 +215,7 @@ ismodkey(event::Gtk.GdkEvent) =
 
 function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 #    widget = convert(GtkSourceView, widgetptr)
+
     event = convert(Gtk.GdkEvent, eventptr)
     console = user_data
     buffer = console.buffer
@@ -227,7 +238,7 @@ function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
         #chekc that we are not trying to copy or something of the sort
         if !ismodkey(event)
-            text_buffer_place_cursor(buffer,end_iter(buffer))
+            wait( move_cursor_to_end(console) )#seem it crashes if I wait in the function itself
         end
     end
 
@@ -466,7 +477,7 @@ if REDIRECT_STDOUT
     global read_stdout
     read_stdout, wr = redirect_stdout()
     function watch_stdio()
-        return @async watch_stream(read_stdout, "stdout",console)
+        return @schedule watch_stream(read_stdout, "stdout",console)
     end
     global console_redirect = watch_stdio()
 end

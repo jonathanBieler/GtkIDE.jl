@@ -104,7 +104,7 @@ filemenu = @GtkMenu(file) |>
     @GtkSeparatorMenuItem() |>
     (quitMenuItem = @GtkMenuItem("Quit"))
 
-win = @GtkWindow("Julia IDE",1800,1200) |>
+win = @GtkWindow("GtkIDE.jl",1800,1200) |>
     ((mainVbox = @GtkBox(:v)) |>
         menubar |>
         (topBarBox = @GtkBox(:h) |>
