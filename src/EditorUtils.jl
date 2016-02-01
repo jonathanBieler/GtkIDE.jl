@@ -1,4 +1,8 @@
+extension(f::AbstractString) = splitext(f)[2]
+
+######################
 ## WORD BREAKING
+
 # maybe not the most efficient way of doing this.
 const _word_bounardy = [' ', '\n','\t','(',')','[',']',',','\'',
                        '*','+','/','\\','%','{','}','#',':',
@@ -167,7 +171,7 @@ function get_text_left_of_cursor(buffer::GtkTextBuffer)
     it = mutable(get_text_iter_at_cursor(buffer))
     return text_iter_get_text(it-1,it)
 end
-#these are wrong I think:
+
 get_text_left_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it-1,it)
 get_text_right_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it,it+1)
 

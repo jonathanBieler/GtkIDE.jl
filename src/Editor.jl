@@ -1,10 +1,6 @@
-
 include("EditorUtils.jl")
-
 include("SearchWindow.jl")
 include("Actions.jl")
-
-extension(f::AbstractString) = splitext(f)[2]
 
 sourcemap = nothing
 if GtkSourceWidget.SOURCE_MAP
@@ -112,10 +108,8 @@ end
 save_current_tab() = save(get_current_tab())
 
 function open_in_new_tab(filename::AbstractString)
-
     t = add_tab(filename)
     open(t,t.filename)
-
     return t
 end
 
@@ -125,7 +119,6 @@ function set_font(t::EditorTab)
 end
 
 function get_cell(buffer::GtkTextBuffer)
-
 
     (foundb,itb_start,itb_end) = text_iter_backward_search(buffer, "##")
     (foundf,itf_start,itf_end) = text_iter_forward_search(buffer, "##")
@@ -191,10 +184,6 @@ function close_tab()
     splice!(ntbook,idx)
     set_current_page_idx(ntbook,max(idx-1,0))
 end
-
-# FIXME need to take into account module
-# set the cursos position ?
-# check if the file is already open
 
 function open_method(view::GtkTextView)
 
@@ -361,7 +350,6 @@ function get_cursor_absolute_position(view::GtkTextView)
     (ox,oy) = gdk_window_get_origin(w)
 
     return (x+ox, y+oy+r1.height,r1.height)
-
 end
 
 function run_line(buffer::GtkTextBuffer)
@@ -394,15 +382,13 @@ end
 
 function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
-    #note use write(console,...) here and not print or @show
-
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getbuffer(textview)
     t = user_data
 
     #@schedule begin
-    #@show event
+#        @show event
     #end
 
     if doing(Actions.save, event)
@@ -433,17 +419,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         return convert(Cint,true)
     end
     if doing(Actions.runcode, event)
-
-        cmd = get_selected_text()
-        if cmd == ""
-            (found,it_start,it_end) = get_cell(buffer)
-            if found
-                cmd = text_iter_get_text(it_start,it_end)
-            else
-                cmd = getproperty(buffer,:text,AbstractString)
-            end
-        end
-        run_command(console,cmd)
+        run_code(console,buffer)
         return INTERRUPT
     end
     if doing(Actions.runfile, event)
@@ -472,28 +448,41 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
     if doing(Actions.move_to_line_end,event)
         move_cursor_to_sentence_end(buffer)
-    end        
+    end
     if doing(Actions.toggle_comment,event)
-    
+
         #TODO put this into a function and make it work for selection
-        
+
         it = get_text_iter_at_cursor(buffer)
         it = text_iter_line_start(it)
-        
+
         if get_text_right_of_iter(it) == "#"
             splice!(buffer,it:it+1)
         else
             insert!(buffer,it,"#")
         end
-        
+
     end
-    
-    
+
+
     !update_completion_window(event,buffer) && return INTERRUPT
 
     return PROPAGATE
 end
 
+function run_code(console::Console, buffer::GtkTextBuffer)
+
+    cmd = get_selected_text()
+    if cmd == ""
+        (found,it_start,it_end) = get_cell(buffer)
+        if found
+            cmd = text_iter_get_text(it_start,it_end)
+        else
+            cmd = getproperty(buffer,:text,AbstractString)
+        end
+    end
+    run_command(console,cmd)
+end
 
 function get_word_under_mouse_cursor(textview::GtkTextView)
 
@@ -631,40 +620,3 @@ function load_tabs(project::Project)
 end
 
 load_tabs(project)
-
-# for i = 1:2
-#     add_tab()
-# end
-
-##open(get_tab(ntbook,1),"d:\\Julia\\JuliaIDE\\repl.jl")
-
-# set_text!(get_tab(ntbook,2),
-# "
-# function f(x)
-#     x
-# end
-#
-# ## ploting sin
-#
-# 	x = 0:0.01:5
-# 	plot(x,exp(-x))
-#
-# ## ploting a spiral
-#
-# 	x = 0:0.01:4*pi
-# 	plot(x.*cos(x),x.*sin(x))
-#
-# ##
-#     x = 0:0.01:3*pi
-#     for i=1:100
-#         plot(x.*cos(i/15*x),x.*sin(i/10*x),
-#             xrange=(-8,8),
-#             yrange=(-8,8)
-#         )
-#         drawnow()
-#     end
-# ##
-# ")
-# end
-# ##
-# ")
