@@ -1,7 +1,3 @@
-if VERSION >= v"0.5.0"
-    error("Version 0.5 is not supported")
-end
-
 using Winston
 #this need to run before gtk
 if Winston.output_surface != :gtk
@@ -32,6 +28,12 @@ end
 using Gtk
 using GtkSourceWidget
 using JSON
+using Compat
+
+# Compat-type things
+
+isdefined(:(showlimited))
+
 
 #module G
 #export plot, drawnow
