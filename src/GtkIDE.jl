@@ -260,7 +260,7 @@ end
 function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     event = convert(Gtk.GdkEvent, eventptr)
-    
+
     mod = get_default_mod_mask()
 
     if event.keyval == keyval("r") && Int(event.state & mod) == Int(PrimaryModifier)
@@ -341,4 +341,3 @@ new_prompt(console)
 #         drawnow()
 #     end
 # end
-

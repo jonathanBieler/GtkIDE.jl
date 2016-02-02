@@ -247,20 +247,18 @@ function select_word_double_click(textview::GtkTextView,buffer::GtkTextBuffer,x:
     selection_bounds(buffer,iter_start,iter_end)
 end
 
-#! this is also used by the console textview
-function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+@guarded (INTERRUPT) function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getproperty(textview,:buffer,GtkTextBuffer)
-
-    mod = get_default_mod_mask()
 
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
         select_word_double_click(textview,buffer,round(Integer,event.x),round(Integer,event.y))
         return INTERRUPT
     end
 
+    mod = get_default_mod_mask()
     if Int(event.button) == 1 && Int(event.state & mod) == Int(PrimaryModifier)
         open_method(textview) && return INTERRUPT
     end
@@ -382,7 +380,7 @@ function tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)#false : propagate
 end
 
-function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+@guarded (INTERRUPT) function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
     event = unsafe_load(eventptr)
@@ -412,7 +410,6 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         end
     end
     if doing(Actions.runline, event)
-
         run_line(buffer)
         return convert(Cint,true)
     end
@@ -450,7 +447,6 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if doing(Actions.toggle_comment,event)
 
         #TODO put this into a function and make it work for selection
-
         it = get_text_iter_at_cursor(buffer)
         it = text_iter_line_start(it)
 
@@ -459,9 +455,7 @@ function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         else
             insert!(buffer,it,"#")
         end
-
     end
-
 
     !update_completion_window(event,buffer) && return INTERRUPT
 

@@ -180,13 +180,12 @@ prompt(c::Console,str::AbstractString) = prompt(c,str,-1)
 new_prompt(c::Console) = write(c,"",true)
 
 function move_cursor_to_end(c::Console)
-    t = @schedule begin
-        lock(c)
-        try
-            text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
-        finally
-            unlock(c)
-        end
+    #it's important not to use a Task here
+    lock(c)
+    try
+        text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
+    finally
+        unlock(c)
     end
 end
 
@@ -198,14 +197,14 @@ function cursor_position(c::Console)
 end
 
 ##
-ismodkey(event::Gtk.GdkEvent) =
+ismodkey(event::Gtk.GdkEvent,mod::Integer) =
     any(x -> Int(x) == Int(event.keyval),[
         Gtk.GdkKeySyms.Control_L, Gtk.GdkKeySyms.Control_R,
         Gtk.GdkKeySyms.Meta_L,Gtk.GdkKeySyms.Meta_R,
         Gtk.GdkKeySyms.Hyper_L,Gtk.GdkKeySyms.Hyper_R,
         Gtk.GdkKeySyms.Shift_L,Gtk.GdkKeySyms.Shift_R
     ]) ||
-    any(x -> Int(x) == Int(event.state),[
+    any(x -> Int(x) == Int(event.state & mod),[
         GdkModifierType.CONTROL,Gtk.GdkKeySyms.Meta_L,Gtk.GdkKeySyms.Meta_R,
         PrimaryModifier, GdkModifierType.SHIFT, GdkModifierType.GDK_MOD1_MASK])
 
@@ -213,8 +212,10 @@ ismodkey(event::Gtk.GdkEvent) =
 #FIXME disable drag and drop text above cursor
 # ctrl-a to clear prompt
 
-function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+@guarded (INTERRUPT) function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 #    widget = convert(GtkSourceView, widgetptr)
+
+#TODO I need to manually deal with insert! here because otherwise Gtk insert while the console is locked 
 
     event = convert(Gtk.GdkEvent, eventptr)
     console = user_data
@@ -223,6 +224,8 @@ function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     cmd = prompt(console)
     pos = cursor_position(console)
     prefix = length(cmd) >= pos ? cmd[1:pos] : ""
+
+    mod = get_default_mod_mask()
 
     #FIXME put this elsewhere?
     before_prompt(pos::Integer) = pos+1 < console.prompt_position
@@ -233,12 +236,9 @@ function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     #put back the cursor after the prompt
     if before_prompt()
-
-        #write(console,string(Int(event.keyval)) * "\n" )
-
-        #chekc that we are not trying to copy or something of the sort
-        if !ismodkey(event)
-            wait( move_cursor_to_end(console) )#seem it crashes if I wait in the function itself
+        #check that we are not trying to copy or something of the sort
+        if !ismodkey(event,mod)
+            move_cursor_to_end(console)
         end
     end
 
@@ -305,7 +305,7 @@ Cint, (Ptr{Gtk.GdkEvent},), false,console)
 
 ## MOUSE CLICKS
 
-function _console_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+@guarded (INTERRUPT) function _console_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
@@ -316,13 +316,13 @@ function _console_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         return INTERRUPT
     end
 
-    if Int(event.button) == 1 && Int(event.state) == PrimaryModifierMouse
+    mod = get_default_mod_mask()
+    if Int(event.button) == 1 && Int(event.state & mod) == Int(PrimaryModifier)
         open_method(textview) && return INTERRUPT
     end
 
     return PROPAGATE
 end
-
 signal_connect(_console_button_press_cb,console.view, "button-press-event",
 Cint, (Ptr{Gtk.GdkEvent},),false,console)
 
