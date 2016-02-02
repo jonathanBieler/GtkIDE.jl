@@ -28,8 +28,7 @@ using GtkSourceWidget
 using JSON
 using Compat
 
-# Compat-type things
-
+# Compatitbily with 0.5
 if !isdefined(Base,:(showlimited))
     showlimited(x) = show(x)
     showlimited(io::IO,x) = show(io,x)
@@ -261,8 +260,10 @@ end
 function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     event = convert(Gtk.GdkEvent, eventptr)
+    
+    mod = get_default_mod_mask()
 
-    if event.keyval == keyval("r") && Int(event.state) == PrimaryModifier
+    if event.keyval == keyval("r") && Int(event.state & mod) == Int(PrimaryModifier)
         @schedule begin
             #crashes if we are still in the callback
             sleep(0.2)

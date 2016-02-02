@@ -13,12 +13,12 @@ import Gtk.GtkTextIter, Gtk.libgtk
 const PROPAGATE = convert(Cint,false)
 const INTERRUPT = convert(Cint,true)
 
-## Widget
-
-grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr{Gtk.GObject},),w)#this should work?
-grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr{Gtk.GObject},),w)
 
 import Gtk.GConstants: GdkModifierType
+
+get_default_mod_mask() = ccall((:gtk_accelerator_get_default_mod_mask , libgtk),
+    typeof(GdkModifierType.CONTROL),()
+)
 
 @osx_only begin
     const PrimaryModifier = 268435472 #seems there's not command key in Gtk.jl...
@@ -30,38 +30,12 @@ end
     const PrimaryModifier = GdkModifierType.CONTROL
 end
 
-#why is this different for the mouse?
-@osx_only begin
-    const PrimaryModifierMouse = GdkModifierType.MOD2
-end
-@windows_only begin
-    const PrimaryModifierMouse = GdkModifierType.CONTROL
-end
-@linux_only begin
-    const PrimaryModifierMouse = GdkModifierType.CONTROL
-end
+## Widget
 
+grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr{Gtk.GObject},),w)#this should work?
+grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr{Gtk.GObject},),w)
 
-# something is wrong with this
-# baremodule GdkModifierType
-#     using Main.Base.convert
-#
-#     const SHIFT		= convert(UInt32,1)
-#     const LOCK 	  	= convert(UInt32,2)
-#     Main.Base.@windows_only begin
-#         const CONTROL 	= convert(UInt32,4)
-#         const MOUSE_CONTROL = convert(UInt32,4)
-#     end
-#     Main.Base.@osx_only begin
-#         const COMMAND 	= convert(UInt32,4)
-#         const CONTROL   = convert(UInt32,268435472) #that's the command key
-#         const MOUSE_CONTROL = convert(UInt32,16)
-#     end
-#     Main.Base.@linux_only begin
-#         const CONTROL 	= convert(UInt32,33554436)
-#         const MOUSE_CONTROL = convert(UInt32,33554432)
-#     end
-# end
+## TextIters
 
 typealias MutableGtkTextIter Gtk.GLib.MutableTypes.Mutable{GtkTextIter}
 typealias GtkTextIters Union{MutableGtkTextIter,GtkTextIter}

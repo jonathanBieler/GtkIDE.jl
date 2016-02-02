@@ -254,12 +254,14 @@ function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getproperty(textview,:buffer,GtkTextBuffer)
 
+    mod = get_default_mod_mask()
+
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
-        select_word_double_click(textview,buffer,Int(event.x),Int(event.y))
+        select_word_double_click(textview,buffer,round(Integer,event.x),round(Integer,event.y))
         return INTERRUPT
     end
 
-    if Int(event.button) == 1 && Int(event.state) == PrimaryModifierMouse
+    if Int(event.button) == 1 && Int(event.state & mod) == Int(PrimaryModifier)
         open_method(textview) && return INTERRUPT
     end
 
@@ -383,13 +385,9 @@ end
 function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
     buffer = getbuffer(textview)
     t = user_data
-
-    #@schedule begin
-#        @show event
-    #end
 
     if doing(Actions.save, event)
         save(t)
@@ -584,7 +582,7 @@ function add_tab(filename::AbstractString)
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
     set_font(t)
 
-    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t) #we need to use the view here to capture all the keystrokes
+    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEventKey},), false,t) #we need to use the view here to capture all the keystrokes
     signal_connect(tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 

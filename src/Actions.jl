@@ -12,7 +12,8 @@ end
 #FIXME https://developer.gnome.org/gtk3/unstable/checklist-modifiers.html
 function doing(a::Action, event::Gtk.GdkEvent)
 
-    return event.keyval == a.keyval && Int(event.state) == Int(a.state)
+    mod = get_default_mod_mask()
+    return event.keyval == a.keyval && Int(event.state & mod) == Int(a.state)
 end
 
 #FIXME need something like PrimaryModifier for alt and ctrl on mac
