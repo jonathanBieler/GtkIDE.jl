@@ -54,33 +54,19 @@ unlock(c::Console) = unlock(c.lock)
 
 import Base.write
 function write(c::Console,str::AbstractString,set_prompt=false)
-    @schedule begin
-        lock(c)
-        try
-            if set_prompt
-                insert!(c.buffer, end_iter(c.buffer),str * "\n>")
-                c.prompt_position = length(c.buffer)+1
-                text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
-            else
-                insert!(c.buffer, end_iter(c.buffer),str)
-            end
-        finally
-            unlock(c)
-        end
+
+    if set_prompt
+        insert!(c.buffer, end_iter(c.buffer),str * "\n>")
+        c.prompt_position = length(c.buffer)+1
+        text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
+    else
+        insert!(c.buffer, end_iter(c.buffer),str)
     end
 end
 write(c::Console,x,set_prompt=false) = write(c,string(x),set_prompt)
 
 function clear(c::Console)
-    @schedule begin
-        lock(c)
-        try
-            setproperty!(c.buffer,:text,"")
-            #c.prompt_position = 2
-        finally
-            unlock(c)
-        end
-    end
+    setproperty!(c.buffer,:text,"")
 end
 ##
 
@@ -145,48 +131,28 @@ end
 ##
 
 function prompt(c::Console)
-    t = @schedule begin
-        lock(c)
-        cmd = ""
-        try
-            its = GtkTextIter(c.buffer,c.prompt_position)
-            ite = GtkTextIter(c.buffer,length(c.buffer)+1)
-            cmd = text_iter_get_text(its,ite)
-        finally
-            unlock(c)
-        end
-        return cmd
-    end
-    wait(t)
-    return t.result
+
+    its = GtkTextIter(c.buffer,c.prompt_position)
+    ite = GtkTextIter(c.buffer,length(c.buffer)+1)
+    cmd = text_iter_get_text(its,ite)
+
+    return cmd
 end
 function prompt(c::Console,str::AbstractString,offset::Integer)
-    @schedule begin
-        lock(c)
-        try
-            its = GtkTextIter(c.buffer,c.prompt_position)
-            ite = GtkTextIter(c.buffer,length(c.buffer)+1)
-            replace_text(c.buffer,its,ite, str)
-            if offset >= 0 && c.prompt_position+offset-1 <= length(c.buffer)
-                text_buffer_place_cursor(c.buffer,c.prompt_position+offset-1)
-            end
 
-        finally
-            unlock(c)
-        end
+    its = GtkTextIter(c.buffer,c.prompt_position)
+    ite = GtkTextIter(c.buffer,length(c.buffer)+1)
+    replace_text(c.buffer,its,ite, str)
+    if offset >= 0 && c.prompt_position+offset-1 <= length(c.buffer)
+        text_buffer_place_cursor(c.buffer,c.prompt_position+offset-1)
     end
+
 end
 prompt(c::Console,str::AbstractString) = prompt(c,str,-1)
 new_prompt(c::Console) = write(c,"",true)
 
 function move_cursor_to_end(c::Console)
-    #it's important not to use a Task here
-    lock(c)
-    try
-        text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
-    finally
-        unlock(c)
-    end
+    text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
 end
 
 #return cursor position in the prompt text
@@ -215,7 +181,7 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
 @guarded (INTERRUPT) function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 #    widget = convert(GtkSourceView, widgetptr)
 
-#TODO I need to manually deal with insert! here because otherwise Gtk insert while the console is locked 
+#TODO I need to manually deal with insert! here because otherwise Gtk insert while the console is locked
 
     event = convert(Gtk.GdkEvent, eventptr)
     console = user_data
@@ -439,48 +405,64 @@ end
 
 stdout = STDOUT
 stderr = STDERR
-function send_stream(rd::IO, name::AbstractString,c::Console)
+function send_stream(rd::IO, name::AbstractString, stdout_io::IO)
     nb = nb_available(rd)
     if nb > 0
         d = readbytes(rd, nb)
-        s = try
-            bytestring(d)
-        catch
-            # FIXME: what should we do here?
-            string("<ERROR: invalid UTF8 data ", d, ">")
-        end
+        s = bytestring(d)
+        
         if !isempty(s)
-            write(c,s)
+            write(stdout_io,s)
         end
     end
 end
 
-function watch_stream(rd::IO, name::AbstractString,c::Console)
-    try
-        while !eof(rd) # blocks until something is available
-            send_stream(rd, name,c)
-            #sleep(0.01) # a little delay to accumulate output
-        end
-    catch e
-        # the IPython manager may send us a SIGINT if the user
-        # chooses to interrupt the kernel; don't crash on this
-        if isa(e, InterruptException)
-            #watch_stream(rd, name)
-            return
-        else
-            rethrow()
-        end
+function watch_stream(rd::IO, name::AbstractString,stdout_io::IO)
+    while !eof(rd) # blocks until something is available
+        send_stream(rd, name,stdout_io)
+        sleep(0.01) # a little delay to accumulate output
     end
 end
 
 if REDIRECT_STDOUT
+
     global read_stdout
     read_stdout, wr = redirect_stdout()
+
+    global stdout_io = IOBuffer()
+
     function watch_stdio()
-        return @schedule watch_stream(read_stdout, "stdout",console)
+        @schedule watch_stream(read_stdout, "stdout",stdout_io)
     end
-    global console_redirect = watch_stdio()
+
+    function write_and_reveal_console(c::Console,s::AbstractString)
+        #write(c,s)
+        insert!(c.buffer, end_iter(c.buffer),s)
+        #reveal(c)
+    end
+
+    function print_to_console(user_data)
+
+        (console,stdout_io) = unsafe_pointer_to_objref(user_data)
+
+        s = takebuf_string(stdout_io)
+        if !isempty(s)
+            write_and_reveal_console(console,s)
+        end
+
+        if is_running
+            return Cint(true)
+        else
+            return Cint(false)
+        end
+    end
+
+    watch_stdio()
+
+    g_timeout_add(100,print_to_console,(console,stdout_io))
 end
+
+
 
 
 ##

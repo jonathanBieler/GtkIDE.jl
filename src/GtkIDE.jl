@@ -43,6 +43,8 @@ const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
 const REDIRECT_STDOUT = true
 
 ## globals
+global is_running = true #should probably use g_main_loop_is_running or something of the sort
+
 sourceStyleManager = @GtkSourceStyleSchemeManager()
 GtkSourceWidget.set_search_path(sourceStyleManager,
   Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
@@ -190,6 +192,7 @@ signal_connect(pathEntry_key_press_cb, pathEntry, "key-press-event", Cint, (Ptr{
 
 function quitMenuItem_activate_cb(widgetptr::Ptr, user_data)
     #widget = convert(GtkMenuItem, widgetptr)
+
     destroy(win)
     return nothing
 end
@@ -236,6 +239,8 @@ function quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
         save(project)
     end
     #REDIRECT_STDOUT && stop_console_redirect(console_redirect,stdout,stderr)
+    global is_running = false
+
     return convert(Cint,false)
 end
 signal_connect(quit_cb, win, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
@@ -305,17 +310,18 @@ function restart(new_workspace=false)
     #@schedule begin
         println("restarting...")
         sleep(0.1)
+        is_running = false
 
         #REDIRECT_STDOUT && stop_console_redirect(console_redirect,stdout,stderr)
-
-        println("stdout freed")
 
         save(project)
         win_ = win
 
         new_workspace && workspace()
+
         include( joinpath(HOMEDIR,"GtkIDE.jl") )
         destroy(win_)
+
     #end
 
 end

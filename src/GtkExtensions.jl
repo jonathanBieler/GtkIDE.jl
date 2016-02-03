@@ -289,6 +289,22 @@ function gdk_window_get_origin(window)
 	return (window_x[],window_y[])
 end
 
+## GLib
+
+
+function g_timeout_add(interval::Integer,cb,user_data) 
+
+    callback = cfunction(cb,Cint,(Ptr{Void},))
+    
+    ref, deref = Gtk.GLib.gc_ref_closure(user_data)#not sure about that
+    interval = UInt32(interval)
+
+    return ccall((:g_timeout_add, Gtk.GLib.libglib),Cint,
+        (UInt32, Ptr{Void}, Ptr{Void}),
+         interval, callback, ref)
+end
+
+
 
 
 #end#module
