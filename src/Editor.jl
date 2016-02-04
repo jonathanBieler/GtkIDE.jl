@@ -259,10 +259,18 @@ end
     end
 
     mod = get_default_mod_mask()
-    if Int(event.button) == 1 && Int(event.state & mod) == Int(PrimaryModifier)
+    @osx_only begin
+        #the state is correct here, it's in keypress that it's messed up
+        if Int(event.button) == 1 && event.state & mod == GdkModifierType.MOD2
+            open_method(textview) && return INTERRUPT
+        end
+        return PROPAGATE
+    end
+    
+    if Int(event.button) == 1 && event.state & mod == PrimaryModifier
         open_method(textview) && return INTERRUPT
     end
-
+    
     return PROPAGATE
 end
 
@@ -274,7 +282,7 @@ function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
 
     (cmd,itstart,itend) = select_word_backward(it,buffer,false)
     cmd = strip(cmd)
-    
+
     if cmd == ""
         if get_text_left_of_cursor(buffer) == ")"
             return tuple_autocomplete(it,buffer,completion_window,view)
@@ -384,7 +392,7 @@ end
 @guarded (INTERRUPT) function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
-    event = unsafe_load(eventptr)
+    event = convert(Gtk.GdkEvent,eventptr)
     buffer = getbuffer(textview)
     t = user_data
 
@@ -460,7 +468,7 @@ function toggle_comment(buffer::GtkTextBuffer)
     if found
         for i in line(it_start):line(it_end)
             toggle_comment(buffer,GtkTextIter(buffer,i,1))
-        end 
+        end
     else
         it = get_text_iter_at_cursor(buffer)
         toggle_comment(buffer,it)
@@ -470,12 +478,12 @@ function toggle_comment(buffer::GtkTextBuffer,it::GtkTextIter)
 
     it = text_iter_line_start(it)#start of the text
     it_ls = GtkTextIter(buffer,line(it),1)#start of the line
-    
-    if get_text_right_of_iter(it_ls) == "#" 
+
+    if get_text_right_of_iter(it_ls) == "#"
         splice!(buffer,it_ls:it_ls+1)
     else
         if get_text_right_of_iter(it) == "#"
-            splice!(buffer,it:it+1)    
+            splice!(buffer,it:it+1)
         else
             insert!(buffer,it_ls,"#")
         end
@@ -596,7 +604,7 @@ function add_tab(filename::AbstractString)
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
     set_font(t)
 
-    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEventKey},), false,t) #we need to use the view here to capture all the keystrokes
+    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t) #we need to use the view here to capture all the keystrokes
     signal_connect(tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
