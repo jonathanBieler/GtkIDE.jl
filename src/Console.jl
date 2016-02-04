@@ -4,8 +4,8 @@ type Console <: GtkScrolledWindow
     view::GtkSourceView
     buffer::GtkSourceBuffer
     run_task::Task
-    lock::ReentrantLock
     prompt_position::Integer
+    stdout_buffer::IOBuffer
 
     function Console()
 
@@ -37,7 +37,8 @@ type Console <: GtkScrolledWindow
 
         push!(Gtk.G_.style_context(v), provider, 600)
         t = @schedule begin end
-        n = new(sc.handle,v,b,t,ReentrantLock(),2)
+
+        n = new(sc.handle,v,b,t,2,IOBuffer())
         Gtk.gobject_move_ref(n, sc)
     end
 end
@@ -48,9 +49,7 @@ include("CommandHistory.jl")
 history = setup_history()
 include("ConsoleCommands.jl")
 
-import Base.lock, Base.unlock
-lock(c::Console) = lock(c.lock)
-unlock(c::Console) = unlock(c.lock)
+
 
 import Base.write
 function write(c::Console,str::AbstractString,set_prompt=false)
@@ -181,8 +180,6 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
 @guarded (INTERRUPT) function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 #    widget = convert(GtkSourceView, widgetptr)
 
-#TODO I need to manually deal with insert! here because otherwise Gtk insert while the console is locked
-
     event = convert(Gtk.GdkEvent, eventptr)
     console = user_data
     buffer = console.buffer
@@ -199,6 +196,7 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
 
     before_or_at_prompt(pos::Integer) = pos+1 <= console.prompt_position
     before_or_at_prompt() = before_or_at_prompt(getproperty(buffer,:cursor_position,Int))
+    at_prompt(pos::Integer) = pos+1 == console.prompt_position
 
     #put back the cursor after the prompt
     if before_prompt()
@@ -207,12 +205,13 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
             move_cursor_to_end(console)
         end
     end
+    
+    (found,it_start,it_end) = selection_bounds(buffer)
 
     if event.keyval == Gtk.GdkKeySyms.BackSpace ||
        event.keyval == Gtk.GdkKeySyms.Delete ||
        event.keyval == Gtk.GdkKeySyms.Clear
 
-       (found,it_start,it_end) = selection_bounds(buffer)
         if found
             before_prompt(offset(it_start)) && return INTERRUPT
         else
@@ -220,10 +219,9 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
         end
     end
     if event.keyval == Gtk.GdkKeySyms.Left
-
-       (found,it_start,it_end) = selection_bounds(buffer)
         if found
-            before_or_at_prompt(offset(it_start)) && return INTERRUPT
+            at_prompt(offset(it_start)) && return INTERRUPT
+            return PROPAGATE
         else
             before_or_at_prompt() && return INTERRUPT
         end
@@ -238,7 +236,13 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
     end
 
     if event.keyval == Gtk.GdkKeySyms.Up
-        hasselection(buffer) && return PROPAGATE
+        if found
+            if !before_prompt(offset(it_start))
+                selection_bounds(buffer,GtkTextIter(buffer,console.prompt_position),nonmutable(buffer,it_end))
+                return INTERRUPT
+            end
+            return PROPAGATE
+        end
         !history_up(history,prefix,cmd) && return convert(Cint,true)
         prompt(console,history_get_current(history),length(prefix))
 
@@ -247,7 +251,7 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
     if event.keyval == Gtk.GdkKeySyms.Down
         hasselection(buffer) && return PROPAGATE
         history_down(history,prefix,cmd)
-        prompt(console,history_get_current(history),length(prefix))
+        prompt(console, history_get_current(history),length(prefix))
 
         return INTERRUPT
     end
@@ -403,51 +407,44 @@ end
 
 ##
 
-stdout = STDOUT
-stderr = STDERR
-function send_stream(rd::IO, name::AbstractString, stdout_io::IO)
+
+function send_stream(rd::IO, stdout_buffer::IO)
     nb = nb_available(rd)
     if nb > 0
         d = readbytes(rd, nb)
         s = bytestring(d)
-        
+
         if !isempty(s)
-            write(stdout_io,s)
+            write(stdout_buffer,s)
         end
     end
 end
 
-function watch_stream(rd::IO, name::AbstractString,stdout_io::IO)
+function watch_stream(rd::IO, c::Console)
     while !eof(rd) # blocks until something is available
-        send_stream(rd, name,stdout_io)
+        send_stream(rd,c.stdout_buffer)
         sleep(0.01) # a little delay to accumulate output
     end
 end
 
 if REDIRECT_STDOUT
 
-    global read_stdout
+    stdout = STDOUT
+    stderr = STDERR
+
     read_stdout, wr = redirect_stdout()
 
-    global stdout_io = IOBuffer()
-
     function watch_stdio()
-        @schedule watch_stream(read_stdout, "stdout",stdout_io)
-    end
-
-    function write_and_reveal_console(c::Console,s::AbstractString)
-        #write(c,s)
-        insert!(c.buffer, end_iter(c.buffer),s)
-        #reveal(c)
+        @schedule watch_stream(read_stdout,console)
     end
 
     function print_to_console(user_data)
 
-        (console,stdout_io) = unsafe_pointer_to_objref(user_data)
+        console = unsafe_pointer_to_objref(user_data)
 
-        s = takebuf_string(stdout_io)
+        s = takebuf_string(console.stdout_buffer)
         if !isempty(s)
-            write_and_reveal_console(console,s)
+            write(console,s)
         end
 
         if is_running
@@ -457,12 +454,19 @@ if REDIRECT_STDOUT
         end
     end
 
-    watch_stdio()
+    watch_stdio_tastk = watch_stdio()
 
-    g_timeout_add(100,print_to_console,(console,stdout_io))
+    g_timeout_add(100,print_to_console,console)
 end
 
+function stop_console_redirect(t::Task,out,err)
 
+    try
+        Base.throwto(t, InterruptException())
+    end
+    redirect_stdout(out)
+    redirect_stderr(err)   
+end
 
 
 ##

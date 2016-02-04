@@ -84,9 +84,10 @@ function select_word_backward(it::GtkTextIter,buffer::GtkTextBuffer,include_dot:
 end
 function select_word_backward(txt::AbstractString,pos::Integer,include_dot::Bool)
 
-    #allow for autocomplete on functions
     j = pos
+    #allow for autocomplete on functions
     pos = txt[pos] == '(' ? pos-1 : pos
+    pos = txt[pos] == '!' ? pos-1 : pos
 
     i = extend_word_backward(pos,txt,include_dot)
 

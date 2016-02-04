@@ -273,7 +273,8 @@ function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
     it = get_text_iter_at_cursor(buffer)
 
     (cmd,itstart,itend) = select_word_backward(it,buffer,false)
-
+    cmd = strip(cmd)
+    
     if cmd == ""
         if get_text_left_of_cursor(buffer) == ")"
             return tuple_autocomplete(it,buffer,completion_window,view)
@@ -445,21 +446,40 @@ end
         move_cursor_to_sentence_end(buffer)
     end
     if doing(Actions.toggle_comment,event)
-
-        #TODO put this into a function and make it work for selection
-        it = get_text_iter_at_cursor(buffer)
-        it = text_iter_line_start(it)
-
-        if get_text_right_of_iter(it) == "#"
-            splice!(buffer,it:it+1)
-        else
-            insert!(buffer,it,"#")
-        end
+        toggle_comment(buffer)
     end
 
     !update_completion_window(event,buffer) && return INTERRUPT
 
     return PROPAGATE
+end
+
+function toggle_comment(buffer::GtkTextBuffer)
+
+    (found,it_start,it_end) = selection_bounds(buffer)
+    if found
+        for i in line(it_start):line(it_end)
+            toggle_comment(buffer,GtkTextIter(buffer,i,1))
+        end 
+    else
+        it = get_text_iter_at_cursor(buffer)
+        toggle_comment(buffer,it)
+    end
+end
+function toggle_comment(buffer::GtkTextBuffer,it::GtkTextIter)
+
+    it = text_iter_line_start(it)#start of the text
+    it_ls = GtkTextIter(buffer,line(it),1)#start of the line
+    
+    if get_text_right_of_iter(it_ls) == "#" 
+        splice!(buffer,it_ls:it_ls+1)
+    else
+        if get_text_right_of_iter(it) == "#"
+            splice!(buffer,it:it+1)    
+        else
+            insert!(buffer,it_ls,"#")
+        end
+    end
 end
 
 function run_code(console::Console, buffer::GtkTextBuffer)

@@ -238,7 +238,7 @@ function quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
     if typeof(project) == Project
         save(project)
     end
-    #REDIRECT_STDOUT && stop_console_redirect(console_redirect,stdout,stderr)
+    #REDIRECT_STDOUT && stop_console_redirect(watch_stdio_tastk,stdout,stderr)
     global is_running = false
 
     return convert(Cint,false)
@@ -312,7 +312,7 @@ function restart(new_workspace=false)
         sleep(0.1)
         is_running = false
 
-        #REDIRECT_STDOUT && stop_console_redirect(console_redirect,stdout,stderr)
+        REDIRECT_STDOUT && stop_console_redirect(watch_stdio_tastk,stdout,stderr)
 
         save(project)
         win_ = win

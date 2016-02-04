@@ -13,22 +13,12 @@ import Gtk.GtkTextIter, Gtk.libgtk
 const PROPAGATE = convert(Cint,false)
 const INTERRUPT = convert(Cint,true)
 
-
 import Gtk.GConstants: GdkModifierType
 
 get_default_mod_mask() = ccall((:gtk_accelerator_get_default_mod_mask , libgtk),
     typeof(GdkModifierType.CONTROL),()
 )
 
-@osx_only begin
-    const PrimaryModifier = 268435472 #seems there's not command key in Gtk.jl...
-end
-@windows_only begin
-    const PrimaryModifier = GdkModifierType.CONTROL
-end
-@linux_only begin
-    const PrimaryModifier = GdkModifierType.CONTROL
-end
 
 ## Widget
 
@@ -42,6 +32,7 @@ typealias GtkTextIters Union{MutableGtkTextIter,GtkTextIter}
 mutable(it::GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)
 
 offset(it::GtkTextIters) = getproperty(it,:offset,Integer)
+line(it::GtkTextIters) = getproperty(it,:line,Integer)+1#Gtk counts from zero
 nonmutable(buffer::GtkTextBuffer,it::MutableGtkTextIter) = GtkTextIter(buffer,offset(it)+1)#this allows to convert to GtkTextBuffer without the -1 definition in Gtk.jl
 
 getbuffer(it::GtkTextIter) = convert(GtkTextBuffer,

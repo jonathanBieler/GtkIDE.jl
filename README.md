@@ -26,7 +26,7 @@ wipe them out.
 ### Opening files
 
 Use cd, ls, pwd to navigate in the console, and type `edit filename` to open a file. 
-If `filename` does not exists it will be created instead.
+If `filename` does not exists it will be created instead. 
 
 See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
 
