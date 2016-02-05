@@ -1,16 +1,5 @@
-type Action
-    keyval::Integer
-    state::Integer
-    description::AbstractString
-
-    Action(k::Integer,s::Integer) = new(k,s,"")
-    Action(k::Integer,s::Integer,d::AbstractString) = new(k,s,d)
-    Action(k::Integer,d::AbstractString) = new(k,0,d)#no modifiers == 0
-    Action(k::AbstractString,s::Integer,d::AbstractString) = new(keyval(k),s,d)
-end
-
 @osx_only begin
-    const PrimaryModifier = 268435472 #?!
+    const PrimaryModifier = GdkModifierType.MOD2
 end
 @windows_only begin
     const PrimaryModifier = GdkModifierType.CONTROL
@@ -18,12 +7,33 @@ end
 @linux_only begin
     const PrimaryModifier = GdkModifierType.CONTROL
 end
+const NoModifier  = zero(typeof(PrimaryModifier))
 
-#FIXME https://developer.gnome.org/gtk3/unstable/checklist-modifiers.html
+type Action
+    keyval::Integer
+    state::Integer
+    description::AbstractString
+
+    Action(k::Integer,s::Integer) = new(k,s,"")
+    Action(k::Integer,s::Integer,d::AbstractString) = new(k,s,d)
+    Action(k::Integer,d::AbstractString) = new(k,NoModifier,d)
+    Action(k::AbstractString,s::Integer,d::AbstractString) = new(keyval(k),s,d)
+end
+
+#https://developer.gnome.org/gtk3/unstable/checklist-modifiers.html
 function doing(a::Action, event::Gtk.GdkEvent)
 
     mod = get_default_mod_mask()
-    return event.keyval == a.keyval && event.state & mod == a.state
+    #on os x, the command key is also the meta key
+    @osx_only begin
+        if a.state == NoModifier && event.state == NoModifier
+             return event.keyval == a.keyval
+         end
+        return (event.keyval == a.keyval) &&
+               (event.state & mod == a.state + GdkModifierType.META)
+    end
+    
+    return (event.keyval == a.keyval) && (event.state & mod == a.state)
 end
 
 #FIXME need something like PrimaryModifier for alt and ctrl on mac
@@ -45,6 +55,8 @@ baremodule Actions
     const move_to_line_end      = Action("e", GdkModifierType.GDK_MOD1_MASK,"Move cursor to line end")
     const interrupt_run = Action("x", PrimaryModifier, "Interrupt current task")
     const toggle_comment = Action("t", PrimaryModifier, "Toggle comment")
+    const undo = Action("z", PrimaryModifier, "Undo")
+    const redo = Action("z", PrimaryModifier + GdkModifierType.SHIFT, "Redo")
     
     const select_all = Action("a", PrimaryModifier, "Select all")
    

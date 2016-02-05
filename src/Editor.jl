@@ -214,7 +214,7 @@ function open_method(view::GtkTextView)
                     return true
                 end
             end
-            #otherwise open it
+#            otherwise open it
             t = open_in_new_tab(file)
             t.scroll_target_line = line
 
@@ -259,13 +259,6 @@ end
     end
 
     mod = get_default_mod_mask()
-    @osx_only begin
-        #the state is correct here, it's in keypress that it's messed up
-        if Int(event.button) == 1 && event.state & mod == GdkModifierType.MOD2
-            open_method(textview) && return INTERRUPT
-        end
-        return PROPAGATE
-    end
     
     if Int(event.button) == 1 && event.state & mod == PrimaryModifier
         open_method(textview) && return INTERRUPT
@@ -444,7 +437,13 @@ end
         return INTERRUPT
     end
     if doing(Actions.cut,event)
+        (found,it_start,it_end) = selection_bounds(buffer)
+        if !found
+            (txt, its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer))
+            selection_bounds(buffer,its,ite)
+        end
         signal_emit(textview, "cut-clipboard", Void)
+        
         return INTERRUPT
     end
     if doing(Actions.move_to_line_start,event)
@@ -454,7 +453,16 @@ end
         move_cursor_to_sentence_end(buffer)
     end
     if doing(Actions.toggle_comment,event)
-        toggle_comment(buffer)
+        user_action(toggle_comment, buffer)#make sure undo works
+    end
+    if doing(Actions.undo,event)
+        canundo(buffer) && undo!(buffer)
+        return INTERRUPT
+    end
+    if doing(Actions.redo,event)
+        println("wesh")
+        canredo(buffer) && redo!(buffer)
+        return INTERRUPT
     end
 
     !update_completion_window(event,buffer) && return INTERRUPT
