@@ -53,11 +53,26 @@ import Base.write
 function write(c::Console,str::AbstractString,set_prompt=false)
 
     if set_prompt
-        insert!(c.buffer, end_iter(c.buffer),str * "\n>")
+        insert!(c.buffer,end_iter(c.buffer),"\n>")
         c.prompt_position = length(c.buffer)+1
+    
+        it = GtkTextIter(c.buffer,c.prompt_position-1)
+        insert!(c.buffer, it,str)
+#        c.prompt_position = length(c.buffer)+1
+        c.prompt_position += length(str)
         text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
     else
-        insert!(c.buffer, end_iter(c.buffer),str)
+        
+        it = GtkTextIter(c.buffer,c.prompt_position-1)
+        insert!(c.buffer, it,str)
+        c.prompt_position += length(str)
+        
+        it = GtkTextIter(c.buffer,c.prompt_position-1)
+        if get_text_left_of_iter(it) != "\n" 
+            insert!(c.buffer,it,"\n")
+            c.prompt_position += 1 
+        end
+        
     end
 end
 write(c::Console,x,set_prompt=false) = write(c,string(x),set_prompt)
@@ -67,7 +82,6 @@ function clear(c::Console)
 end
 ##
 
-
 function on_return(c::Console,cmd::AbstractString)
 
     cmd = strip(cmd)
@@ -76,7 +90,7 @@ function on_return(c::Console,cmd::AbstractString)
     history_add(history,cmd)
     history_seek_end(history)
 
-    write(c,"\n")
+    #write(c,"\n")
 
     (found,t) = check_console_commands(cmd)
 
@@ -96,10 +110,8 @@ function on_return(c::Console,cmd::AbstractString)
                 display(v)
                 evalout = v == nothing ? "" : sprint(showlimited,v)
             catch err
-                io = IOBuffer()
-                showerror(io,err)
-                evalout = takebuf_string(io)
-                close(io)
+                bt = catch_backtrace()
+                evalout = sprint(showerror,err,bt)
             end
 
             finalOutput = evalout == "" ? "" : "$evalout\n"
@@ -118,7 +130,7 @@ function write_output_to_console(c::Console)
 
     t = c.run_task
     wait(t)
-    sleep(0.1)#wait for prints
+#    sleep(0.1)#wait for prints
     finalOutput = t.result == nothing ? "" : t.result
     on_path_change()
 
@@ -314,7 +326,7 @@ signal_connect(console_motion_notify_event_cb,console,"motion-notify-event",Cint
 ##
 
 ## auto-scroll the textview
-function _console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
+function console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
 
     c = user_data
     adj = getproperty(c,:vadjustment, GtkAdjustment)
@@ -327,7 +339,7 @@ function _console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
 
     nothing
 end
-signal_connect(_console_scroll_cb, console.view, "size-allocate", Void,
+signal_connect(console_scroll_cb, console.view, "size-allocate", Void,
     (Ptr{Gtk.GdkRectangle},), false,console)
 
 ## Auto-complete
@@ -383,7 +395,8 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart)
                 out = out * "\n"
             end
         end
-        write(c,out,true)
+        #write(c,out,true)
+        println(out)
         #warn(out)
         out = prefix * Base.LineEdit.common_prefix(comp)
     else

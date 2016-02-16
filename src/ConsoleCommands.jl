@@ -45,7 +45,7 @@ add_console_command(r"^cd (.*)",(m) -> begin
 	        end
 	    end
 	    cd(v)
-		return "\n" * pwd()
+		println(pwd())
 	catch err
 		println(sprint(show,err))
 	end

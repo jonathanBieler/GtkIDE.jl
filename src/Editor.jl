@@ -28,7 +28,8 @@ type EditorTab <: GtkScrolledWindow
 
     function EditorTab(filename::AbstractString)
 
-        lang = haskey(languageDefinitions,extension(filename)) ? languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
+        lang = haskey(languageDefinitions,extension(filename)) ? 
+            languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
 
         filename = isabspath(filename) ? filename : joinpath(pwd(),filename)
         filename = normpath(filename)
@@ -366,10 +367,8 @@ function run_line(buffer::GtkTextBuffer)
 end
 
 function run_command(c::Console,cmd::AbstractString)
-    @schedule begin #I'm not sure why I need a task here
-        prompt(c,cmd)
-        on_return(c,cmd)
-    end
+    prompt(c,cmd)
+    on_return(c,cmd)
 end
 
 function tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
@@ -380,7 +379,7 @@ function tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     !update_completion_window_release(event,buffer) && return convert(Cint,true)
 
-    return convert(Cint,false)#false : propagate
+    return PROPAGATE
 end
 
 @guarded (INTERRUPT) function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
@@ -389,7 +388,9 @@ end
     event = convert(Gtk.GdkEvent,eventptr)
     buffer = getbuffer(textview)
     t = user_data
-
+    
+#    println(event.state)
+    
     if doing(Actions.save, event)
         save(t)
     end
@@ -447,12 +448,46 @@ end
         
         return INTERRUPT
     end
-    if doing(Actions.move_to_line_start,event)
+    if doing(Actions.move_to_line_start,event) ||
+       doing(Action(GdkKeySyms.Left, PrimaryModifier),event)
         move_cursor_to_sentence_start(buffer)
     end
-    if doing(Actions.move_to_line_end,event)
+    if doing(Actions.move_to_line_end,event) ||
+       doing(Action(GdkKeySyms.Right, PrimaryModifier),event)
         move_cursor_to_sentence_end(buffer)
     end
+    if doing(Action(GdkKeySyms.Right, PrimaryModifier+GdkModifierType.SHIFT),event)
+    
+        #FIXME put this and bellow in a function
+        (found,its,ite) = selection_bounds(buffer)
+        if !found
+            its = get_text_iter_at_cursor(buffer)
+            move_cursor_to_sentence_end(buffer)
+            ite = get_text_iter_at_cursor(buffer)
+            selection_bouncutds(buffer,its,ite)
+        else
+            its = nonmutable(buffer,its)#FIXME this shouldn't require the buffer
+            move_cursor_to_sentence_end(buffer)
+            ite = get_text_iter_at_cursor(buffer)
+            selection_bounds(buffer,its,ite)
+        end
+    end  
+    if doing(Action(GdkKeySyms.Left, PrimaryModifier+GdkModifierType.SHIFT),event)
+    
+        (found,its,ite) = selection_bounds(buffer)
+        if !found
+            ite = get_text_iter_at_cursor(buffer)
+            move_cursor_to_sentence_start(buffer)
+            its = get_text_iter_at_cursor(buffer)
+            selection_bounds(buffer,its,ite)
+        else
+            ite = nonmutable(buffer,ite)
+            move_cursor_to_sentence_start(buffer)
+            its = get_text_iter_at_cursor(buffer)
+            selection_bounds(buffer,its,ite)
+        end
+    end  
+   
     if doing(Actions.toggle_comment,event)
         user_action(toggle_comment, buffer)#make sure undo works
     end
@@ -461,11 +496,18 @@ end
         return INTERRUPT
     end
     if doing(Actions.redo,event)
-        println("wesh")
         canredo(buffer) && redo!(buffer)
         return INTERRUPT
     end
-
+    if doing(Actions.delete_line,event)
+        (cmd, itstart, itend) = get_current_line_text(buffer)
+        splice!(buffer,itstart-1:itend)
+    end
+    if doing(Actions.duplicate_line,event)
+        (cmd, itstart, itend) = get_current_line_text(buffer)
+        insert!(buffer,itend,"\n" * cmd)
+    end
+    
     !update_completion_window(event,buffer) && return INTERRUPT
 
     return PROPAGATE
@@ -613,13 +655,15 @@ function add_tab(filename::AbstractString)
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
     set_font(t)
 
-    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t) #we need to use the view here to capture all the keystrokes
+    #we need to use the view here to capture all the keystrokes
+    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t) 
     signal_connect(tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
     signal_connect(tab_buffer_changed_cb,t.buffer,"changed", Void, (), false,t)
 
-    #signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint, (Ptr{Void},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}), false)
+#    signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint, 
+#    (Ptr{Void},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}), false)
 
     signal_connect(tab_adj_changed_cb, getproperty(t.view,:vadjustment,GtkAdjustment) , "changed", Void, (), false,t)
 

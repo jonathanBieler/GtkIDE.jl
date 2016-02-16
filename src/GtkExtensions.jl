@@ -14,6 +14,7 @@ const PROPAGATE = convert(Cint,false)
 const INTERRUPT = convert(Cint,true)
 
 import Gtk.GConstants: GdkModifierType
+import Gtk.GdkKeySyms
 
 get_default_mod_mask() = ccall((:gtk_accelerator_get_default_mod_mask , libgtk),
     typeof(GdkModifierType.CONTROL),()
@@ -278,6 +279,10 @@ function gdk_window_get_origin(window)
 
 	return (window_x[],window_y[])
 end
+
+gdk_keyval_name(val) = bytestring(
+    ccall((:gdk_keyval_name,libgtk),Ptr{UInt8},(Cuint,),val),
+true)
 
 ## GLib
 
