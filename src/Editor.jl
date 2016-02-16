@@ -268,6 +268,7 @@ end
 end
 
 #FIXME: this should be reworked a bit with CompletionWindow code
+#FIXME: there a bug when trying to complete after π
 function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
 
     buffer = getbuffer(view)

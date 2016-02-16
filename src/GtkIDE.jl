@@ -1,28 +1,7 @@
-using Winston
-#this need to run before gtk
-if Winston.output_surface != :gtk
+const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
+const REDIRECT_STDOUT = true
 
-    warn("Patching Winston.ini")
-    sleep(0.1)
-    pth = joinpath(Pkg.dir(),"Winston","src","Winston.ini")
-    try
-        f = open(pth,"r")
-        s = readall(f)
-        s = replace(s, r"output_surface          = tk",
-                        "output_surface          = gtk")
-        close(f)
-
-        f = open(pth,"w")
-        write(f,s)
-        close(f)
-    catch err
-        warning("failed to patch Winston")
-        close(f)
-        rethrow(err)
-    end
-    error("Winston has been patched. Type workspace() and restart GtkIDE.")
-end
-
+using Immerse
 using Gtk
 using GtkSourceWidget
 using JSON
@@ -38,9 +17,6 @@ end
 
 import Base.REPLCompletions.completions
 include("GtkExtensions.jl"); #using GtkExtenstions
-
-const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
-const REDIRECT_STDOUT = true
 
 ## globals
 global is_running = true #should probably use g_main_loop_is_running or something of the sort
@@ -95,6 +71,7 @@ if sourcemap == nothing
     sourcemap = @GtkBox(:v)
 end
 
+
 ##
 menubar = @GtkMenuBar() |>
     (file = @GtkMenuItem("_File"))
@@ -119,7 +96,8 @@ win = @GtkWindow("GtkIDE.jl",1800,1200) |>
 
 (mainPan = @GtkPaned(:h)) |>
     (rightPan = @GtkPaned(:v) |>
-        (canvas = Gtk.@Canvas())  |>
+        #(canvas = @GtkCanvas())  |>
+        (fig_ntbook = @GtkNotebook())  |>
         console
     ) |>
     ((editorVBox = @GtkBox(:v)) |>
@@ -136,6 +114,10 @@ sidePan |>
 
 #FIXME is right left?
 ##setproperty!(ntbook, :width_request, 800)
+
+#figure(canvas)
+
+
 
 include("SidePanels.jl")
 
@@ -216,20 +198,31 @@ signal_connect(openMenuItem_activate_cb, openMenuItem, "activate", Void, (), fal
 
 
 ################
-## WINSTON
+## Plots
 
-if true
-if !Winston.hasfig(Winston._display,1)
-    Winston.ghf()
-    Winston.addfig(Winston._display, 1, Winston.Figure(canvas,Winston._pwinston))
-else
-    Winston._display.figs[1] = Winston.Figure(canvas,Winston._pwinston)
+
+function Immerse.figure(;name::AbstractString="Figure $(Immerse.nextfig(Immerse._display))",
+                 width::Integer=400,    # TODO: make configurable
+                 height::Integer=400)
+    i = Immerse.nextfig(Immerse._display)
+
+#    box, tb, c = Immerse.createPlotGuiComponents()
+
+    f = Immerse.Figure()
+    idx = length(fig_ntbook)+1
+    insert!(fig_ntbook,idx,f,name)
+    
+    showall(fig_ntbook)
+    Immerse.initialize_toolbar_callbacks(f)
+    Immerse.addfig(Immerse._display, i, f)
+    
+    set_current_page_idx(fig_ntbook,idx)
+
+    i
 end
 
-#replace plot with a version that display the plot
-import Winston.plot
-plot(args::Winston.PlotArg...; kvs...) = Winston.display(Winston.plot(Winston.ghf(), args...; kvs...))
-end
+figure()
+
 drawnow() = sleep(0.001)
 
 ## exiting

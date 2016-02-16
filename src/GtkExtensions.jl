@@ -19,7 +19,6 @@ get_default_mod_mask() = ccall((:gtk_accelerator_get_default_mod_mask , libgtk),
     typeof(GdkModifierType.CONTROL),()
 )
 
-
 ## Widget
 
 grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr{Gtk.GObject},),w)#this should work?

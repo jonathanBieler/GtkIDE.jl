@@ -49,8 +49,6 @@ include("CommandHistory.jl")
 history = setup_history()
 include("ConsoleCommands.jl")
 
-
-
 import Base.write
 function write(c::Console,str::AbstractString,set_prompt=false)
 
@@ -95,6 +93,7 @@ function on_return(c::Console,cmd::AbstractString)
             try
                 v = eval(Main,ex)
                 eval(Main, :(ans = $(Expr(:quote, v))))
+                display(v)
                 evalout = v == nothing ? "" : sprint(showlimited,v)
             catch err
                 io = IOBuffer()
@@ -205,7 +204,7 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
             move_cursor_to_end(console)
         end
     end
-    
+
     (found,it_start,it_end) = selection_bounds(buffer)
 
     if event.keyval == Gtk.GdkKeySyms.BackSpace ||
@@ -447,6 +446,7 @@ if REDIRECT_STDOUT
             write(console,s)
         end
 
+
         if is_running
             return Cint(true)
         else
@@ -465,7 +465,7 @@ function stop_console_redirect(t::Task,out,err)
         Base.throwto(t, InterruptException())
     end
     redirect_stdout(out)
-    redirect_stderr(err)   
+    redirect_stderr(err)
 end
 
 
