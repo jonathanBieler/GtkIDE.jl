@@ -268,7 +268,7 @@ function window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     mod = get_default_mod_mask()
 
-    if event.keyval == keyval("r") && Int(event.state & mod) == Int(PrimaryModifier)
+    if doing(Action("r",PrimaryModifier),event)
         @schedule begin
             #crashes if we are still in the callback
             sleep(0.2)
@@ -330,9 +330,9 @@ function run_tests()
     include( joinpath(Pkg.dir(),"GtkIDE","test","runtests.jl") )
 end
 
-versioninfo()
 sleep(0.2)
-new_prompt(console)
+versioninfo()
+
 
 # @schedule begin
 #     th = linspace(0,8*π,500)

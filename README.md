@@ -40,10 +40,32 @@ See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
 
 In the editor :
 
-- `Ctrl+D` when the cursor is above a word will show you some info on it.
+- `Ctrl+Shift+D` when the cursor is above a word will show you some info on it.
 - `Ctrl+Click`on a method will jump to its first definition.
 
-See [Actions.jl](src/Actions.jl)
+- `Ctrl+s` Save file.
+- `Ctrl+n` New tab.
+- `Ctrl+w` Close current tab.
+
+- `Ctrl+c` Copy.
+- `Ctrl+v` Paste.
+- `Ctrl+x` Cut.
+
+- `Ctrl+k` Delete line.
+- `Ctrl+d` Duplicate line.
+- `Ctrl+t` Toggle comment.
+
+- `Alt+e` Move cursor to line end.
+- `Alt+a` Move cursor to line start.
+
+- `Ctrl+z` Undo.
+- `Ctrl+Shift+z` Redo.
+
+- `Ctrl+f` Search.
+- `Ctrl+a` Select all.
+
+
+See [Actions.jl](src/Actions.jl) for all actions.
 
 ### Issues
 
