@@ -63,6 +63,7 @@ end
 global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 
 #Order matters
+include("PlotWindow.jl")
 include("Project.jl")
 include("Console.jl")
 include("Editor.jl")
@@ -97,7 +98,7 @@ win = @GtkWindow("GtkIDE.jl",1800,1200) |>
 (mainPan = @GtkPaned(:h)) |>
     (rightPan = @GtkPaned(:v) |>
         #(canvas = @GtkCanvas())  |>
-        (fig_ntbook = @GtkNotebook())  |>
+        (fig_ntbook)  |>
         console
     ) |>
     ((editorVBox = @GtkBox(:v)) |>
@@ -200,29 +201,7 @@ signal_connect(openMenuItem_activate_cb, openMenuItem, "activate", Void, (), fal
 ################
 ## Plots
 
-
-function Immerse.figure(;name::AbstractString="Figure $(Immerse.nextfig(Immerse._display))",
-                 width::Integer=400,    # TODO: make configurable
-                 height::Integer=400)
-    i = Immerse.nextfig(Immerse._display)
-
-#    box, tb, c = Immerse.createPlotGuiComponents()
-
-    f = Immerse.Figure()
-    idx = length(fig_ntbook)+1
-    insert!(fig_ntbook,idx,f,name)
-    
-    showall(fig_ntbook)
-    Immerse.initialize_toolbar_callbacks(f)
-    Immerse.addfig(Immerse._display, i, f)
-    
-    set_current_page_idx(fig_ntbook,idx)
-
-    i
-end
-
 figure()
-
 drawnow() = sleep(0.001)
 
 ## exiting

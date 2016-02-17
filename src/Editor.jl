@@ -451,10 +451,12 @@ end
     if doing(Actions.move_to_line_start,event) ||
        doing(Action(GdkKeySyms.Left, PrimaryModifier),event)
         move_cursor_to_sentence_start(buffer)
+        return INTERRUPT
     end
     if doing(Actions.move_to_line_end,event) ||
        doing(Action(GdkKeySyms.Right, PrimaryModifier),event)
         move_cursor_to_sentence_end(buffer)
+        return INTERRUPT
     end
     if doing(Action(GdkKeySyms.Right, PrimaryModifier+GdkModifierType.SHIFT),event)
     
@@ -471,6 +473,7 @@ end
             ite = get_text_iter_at_cursor(buffer)
             selection_bounds(buffer,its,ite)
         end
+        return INTERRUPT
     end  
     if doing(Action(GdkKeySyms.Left, PrimaryModifier+GdkModifierType.SHIFT),event)
     
@@ -486,6 +489,7 @@ end
             its = get_text_iter_at_cursor(buffer)
             selection_bounds(buffer,its,ite)
         end
+        return INTERRUPT
     end  
    
     if doing(Actions.toggle_comment,event)

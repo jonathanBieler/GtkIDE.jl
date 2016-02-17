@@ -43,7 +43,7 @@ type Console <: GtkScrolledWindow
     end
 end
 
-console = Console()
+const console = Console()
 
 include("CommandHistory.jl")
 history = setup_history()
@@ -107,7 +107,9 @@ function on_return(c::Console,cmd::AbstractString)
             try
                 v = eval(Main,ex)
                 eval(Main, :(ans = $(Expr(:quote, v))))
-                display(v)
+                if typeof(v) <: Gadfly.Plot
+                    display(v)
+                end
                 evalout = v == nothing ? "" : sprint(showlimited,v)
             catch err
                 bt = catch_backtrace()
