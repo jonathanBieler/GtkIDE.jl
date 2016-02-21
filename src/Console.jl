@@ -1,3 +1,5 @@
+include("CommandHistory.jl")
+
 type Console <: GtkScrolledWindow
 
     handle::Ptr{Gtk.GObject}
@@ -6,8 +8,11 @@ type Console <: GtkScrolledWindow
     run_task::Task
     prompt_position::Integer
     stdout_buffer::IOBuffer
+    worker_idx::Int
+    run_worker::RemoteRef
+    history::HistoryProvider
 
-    function Console()
+    function Console(w_idx::Int)
 
         lang = languageDefinitions[".jl"]
 
@@ -38,15 +43,22 @@ type Console <: GtkScrolledWindow
         push!(Gtk.G_.style_context(v), provider, 600)
         t = @schedule begin end
 
-        n = new(sc.handle,v,b,t,2,IOBuffer())
+        if nprocs() == 1
+            addprocs(1)
+        end
+        remotecall_wait(2,
+            ()->include("remote_utils.jl")
+        )
+
+        history = setup_history(w_idx)
+
+        n = new(sc.handle,v,b,t,1,IOBuffer(),w_idx,RemoteRef(),history)
         Gtk.gobject_move_ref(n, sc)
     end
 end
 
-const console = Console()
+const console = Console(1)
 
-include("CommandHistory.jl")
-history = setup_history()
 include("ConsoleCommands.jl")
 
 import Base.write
@@ -55,30 +67,31 @@ function write(c::Console,str::AbstractString,set_prompt=false)
     if set_prompt
         insert!(c.buffer,end_iter(c.buffer),"\n>")
         c.prompt_position = length(c.buffer)+1
-    
+
         it = GtkTextIter(c.buffer,c.prompt_position-1)
         insert!(c.buffer, it,str)
 #        c.prompt_position = length(c.buffer)+1
         c.prompt_position += length(str)
         text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
     else
-        
+
         it = GtkTextIter(c.buffer,c.prompt_position-1)
         insert!(c.buffer, it,str)
         c.prompt_position += length(str)
-        
+
         it = GtkTextIter(c.buffer,c.prompt_position-1)
-        if get_text_left_of_iter(it) != "\n" 
+        if get_text_left_of_iter(it) != "\n"
             insert!(c.buffer,it,"\n")
-            c.prompt_position += 1 
+            c.prompt_position += 1
         end
-        
+
     end
 end
 write(c::Console,x,set_prompt=false) = write(c,string(x),set_prompt)
 
 function clear(c::Console)
     setproperty!(c.buffer,:text,"")
+    new_prompt(c)
 end
 ##
 
@@ -87,8 +100,8 @@ function on_return(c::Console,cmd::AbstractString)
     cmd = strip(cmd)
     buffer = c.buffer
 
-    history_add(history,cmd)
-    history_seek_end(history)
+    history_add(c.history,cmd)
+    history_seek_end(c.history)
 
     #write(c,"\n")
 
@@ -97,29 +110,9 @@ function on_return(c::Console,cmd::AbstractString)
     if found
     else
 
-        ex = Base.parse_input_line(cmd)
-        ex = expand(ex)
-
-        evalout = ""
-        v = :()
-
-        t = @schedule begin
-            try
-                v = eval(Main,ex)
-                eval(Main, :(ans = $(Expr(:quote, v))))
-                if typeof(v) <: Gadfly.Plot
-                    display(v)
-                end
-                evalout = v == nothing ? "" : sprint(showlimited,v)
-            catch err
-                bt = catch_backtrace()
-                evalout = sprint(showerror,err,bt)
-            end
-
-            finalOutput = evalout == "" ? "" : "$evalout\n"
-            on_path_change()#if there was any cd
-            return finalOutput
-        end
+        ref = remotecall(c.worker_idx,eval_command_remotely,cmd)
+        t = @schedule begin fetch(ref) end
+#        t = eval_command_locally(cmd)
 
     end
     console.run_task = t
@@ -128,15 +121,76 @@ function on_return(c::Console,cmd::AbstractString)
 
 end
 
+function eval_command_remotely(cmd::AbstractString)
+
+    ex = Base.parse_input_line(cmd)
+    ex = expand(ex)
+
+    evalout = ""
+    v = :()
+
+    try
+        v = eval(Main,ex)
+        eval(Main, :(ans = $(Expr(:quote, v))))
+
+        evalout = v == nothing ? "" : sprint(showlimited,v)
+    catch err
+        bt = catch_backtrace()
+        evalout = sprint(showerror,err,bt)
+    end
+
+    finalOutput = evalout == "" ? "" : "$evalout\n"
+
+    return finalOutput, v
+end
+
+
+function eval_command_locally(cmd::AbstractString)
+
+    ex = Base.parse_input_line(cmd)
+    ex = expand(ex)
+
+    evalout = ""
+    v = :()
+
+    t = @schedule begin
+        try
+            v = eval(Main,ex)
+            eval(Main, :(ans = $(Expr(:quote, v))))
+
+            if typeof(v) <: Gadfly.Plot
+                display(v)
+            end
+            evalout = v == nothing ? "" : sprint(showlimited,v)
+        catch err
+            bt = catch_backtrace()
+            evalout = sprint(showerror,err,bt)
+        end
+
+        finalOutput = evalout == "" ? "" : "$evalout\n"
+
+        return finalOutput, v
+    end
+    return t
+end
+
 function write_output_to_console(c::Console)
 
     t = c.run_task
     wait(t)
 #    sleep(0.1)#wait for prints
-    finalOutput = t.result == nothing ? "" : t.result
+
+    if t.result != nothing
+        str, v = t.result
+        finalOutput = str == nothing ? "" : str
+        write(c,finalOutput,true)
+
+        if typeof(v) <: Gadfly.Plot
+            display(v)
+        end
+    end
     on_path_change()
 
-    write(c,finalOutput,true)
 end
 
 
@@ -256,15 +310,15 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
             end
             return PROPAGATE
         end
-        !history_up(history,prefix,cmd) && return convert(Cint,true)
-        prompt(console,history_get_current(history),length(prefix))
+        !history_up(console.history,prefix,cmd) && return convert(Cint,true)
+        prompt(console,history_get_current(console.history),length(prefix))
 
         return INTERRUPT
     end
     if event.keyval == Gtk.GdkKeySyms.Down
         hasselection(buffer) && return PROPAGATE
-        history_down(history,prefix,cmd)
-        prompt(console, history_get_current(history),length(prefix))
+        history_down(console.history,prefix,cmd)
+        prompt(console, history_get_current(console.history),length(prefix))
 
         return INTERRUPT
     end
@@ -460,7 +514,6 @@ if REDIRECT_STDOUT
         if !isempty(s)
             write(console,s)
         end
-
 
         if is_running
             return Cint(true)
