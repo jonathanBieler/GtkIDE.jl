@@ -1,3 +1,0 @@
-[submodule "lib/gtksourceview"]
-	path = lib/gtksourceview
-	url = https://github.com/GNOME/gtksourceview.git
