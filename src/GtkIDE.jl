@@ -1,3 +1,4 @@
+push!(Base.Libdl.DL_LOAD_PATH, joinpath(dirname(@__FILE__),"../lib/build//lib"))
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
 const REDIRECT_STDOUT = true
 
