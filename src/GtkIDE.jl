@@ -1,4 +1,5 @@
 push!(Base.Libdl.DL_LOAD_PATH, joinpath(dirname(@__FILE__),"../lib/build//lib"))
+
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
 const REDIRECT_STDOUT = true
 
@@ -68,11 +69,12 @@ include("PlotWindow.jl")
 include("Project.jl")
 include("Console.jl")
 include("Editor.jl")
-
+include("GtkExtra.jl")
 if sourcemap == nothing
     sourcemap = @GtkBox(:v)
 end
 
+GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(dirname(@__FILE__),"../icons/"))
 
 ##
 menubar = @GtkMenuBar() |>
