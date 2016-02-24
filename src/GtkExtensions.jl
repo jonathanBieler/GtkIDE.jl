@@ -299,6 +299,18 @@ function g_timeout_add(interval::Integer,cb,user_data)
          interval, callback, ref)
 end
 
+function g_idle_add(cb,user_data) 
+
+    callback = cfunction(cb,Cint,(Ptr{Void},))
+    
+    ref, deref = Gtk.GLib.gc_ref_closure(user_data)#not sure about that
+
+    return ccall((:g_idle_add, Gtk.GLib.libglib),Cint,
+        (Ptr{Void}, Ptr{Void}),
+         callback, ref)
+end
+
+
 
 
 

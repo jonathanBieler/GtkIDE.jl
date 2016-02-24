@@ -1,3 +1,8 @@
+include("CommandHistory.jl")
+include("ConsoleCommands.jl")
+
+"Each Console has an associated worker, the fist Console runs on worker 1 alongside
+Gtk and printing is handled a bit differently."
 type Console <: GtkScrolledWindow
 
     handle::Ptr{Gtk.GObject}
@@ -6,8 +11,11 @@ type Console <: GtkScrolledWindow
     run_task::Task
     prompt_position::Integer
     stdout_buffer::IOBuffer
+    worker_idx::Int
+    run_worker::RemoteRef
+    history::HistoryProvider
 
-    function Console()
+    function Console(w_idx::Int)
 
         lang = languageDefinitions[".jl"]
 
@@ -38,16 +46,19 @@ type Console <: GtkScrolledWindow
         push!(Gtk.G_.style_context(v), provider, 600)
         t = @schedule begin end
 
-        n = new(sc.handle,v,b,t,2,IOBuffer())
+        remotecall_wait(w_idx,
+            ()->begin
+                const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
+                include(joinpath(HOMEDIR,"remote_utils.jl"))
+            end
+        )
+
+        history = setup_history(w_idx)
+
+        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,RemoteRef(),history)
         Gtk.gobject_move_ref(n, sc)
     end
 end
-
-const console = Console()
-
-include("CommandHistory.jl")
-history = setup_history()
-include("ConsoleCommands.jl")
 
 import Base.write
 function write(c::Console,str::AbstractString,set_prompt=false)
@@ -55,30 +66,31 @@ function write(c::Console,str::AbstractString,set_prompt=false)
     if set_prompt
         insert!(c.buffer,end_iter(c.buffer),"\n>")
         c.prompt_position = length(c.buffer)+1
-    
+
         it = GtkTextIter(c.buffer,c.prompt_position-1)
         insert!(c.buffer, it,str)
 #        c.prompt_position = length(c.buffer)+1
         c.prompt_position += length(str)
         text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
     else
-        
+
         it = GtkTextIter(c.buffer,c.prompt_position-1)
         insert!(c.buffer, it,str)
         c.prompt_position += length(str)
-        
+
         it = GtkTextIter(c.buffer,c.prompt_position-1)
-        if get_text_left_of_iter(it) != "\n" 
+        if get_text_left_of_iter(it) != "\n"
             insert!(c.buffer,it,"\n")
-            c.prompt_position += 1 
+            c.prompt_position += 1
         end
-        
+
     end
 end
 write(c::Console,x,set_prompt=false) = write(c,string(x),set_prompt)
 
 function clear(c::Console)
     setproperty!(c.buffer,:text,"")
+    new_prompt(c)
 end
 ##
 
@@ -87,67 +99,102 @@ function on_return(c::Console,cmd::AbstractString)
     cmd = strip(cmd)
     buffer = c.buffer
 
-    history_add(history,cmd)
-    history_seek_end(history)
-
-    #write(c,"\n")
+    history_add(c.history,cmd)
+    history_seek_end(c.history)
 
     (found,t) = check_console_commands(cmd)
 
-    if found
-    else
+    if !found
+        ref = remotecall(c.worker_idx,eval_command_remotely,cmd)
+        t = @schedule fetch(ref) #I need a task here to be able to check if it's done
+#        t = eval_command_locally(cmd)
+    end
+    c.run_task = t
 
-        ex = Base.parse_input_line(cmd)
-        ex = expand(ex)
+    g_idle_add(write_output_to_console,c)
+    nothing
+end
 
-        evalout = ""
-        v = :()
+function eval_command_remotely(cmd::AbstractString)
 
-        t = @schedule begin
-            try
-                v = eval(Main,ex)
-                eval(Main, :(ans = $(Expr(:quote, v))))
-                if typeof(v) <: Gadfly.Plot
-                    display(v)
-                end
-                evalout = v == nothing ? "" : sprint(showlimited,v)
-            catch err
-                bt = catch_backtrace()
-                evalout = sprint(showerror,err,bt)
+    ex = Base.parse_input_line(cmd)
+    ex = expand(ex)
+
+    evalout = ""
+    v = :()
+    try
+        v = eval(Main,ex)
+        eval(Main, :(ans = $(Expr(:quote, v))))
+
+        evalout = v == nothing ? "" : sprint(showlimited,v)
+    catch err
+        bt = catch_backtrace()
+        evalout = sprint(showerror,err,bt)
+    end
+
+    finalOutput = evalout == "" ? "" : "$evalout\n"
+    return finalOutput, v
+end
+
+
+function eval_command_locally(cmd::AbstractString)
+
+    ex = Base.parse_input_line(cmd)
+    ex = expand(ex)
+
+    evalout = ""
+    v = :()
+
+    t = @schedule begin
+        try
+            v = eval(Main,ex)
+            eval(Main, :(ans = $(Expr(:quote, v))))
+
+            if typeof(v) <: Gadfly.Plot
+                display(v)
             end
-
-            finalOutput = evalout == "" ? "" : "$evalout\n"
-            on_path_change()#if there was any cd
-            return finalOutput
+            evalout = v == nothing ? "" : sprint(showlimited,v)
+        catch err
+            bt = catch_backtrace()
+            evalout = sprint(showerror,err,bt)
         end
 
+        finalOutput = evalout == "" ? "" : "$evalout\n"
+
+        return finalOutput, v
     end
-    console.run_task = t
-
-    @schedule write_output_to_console(c)
-
+    return t
 end
 
-function write_output_to_console(c::Console)
+"Wait for the running task to end and print the result in the console.
+Run from Gtk main loop."
+function write_output_to_console(user_data)
 
+    c = unsafe_pointer_to_objref(user_data)
     t = c.run_task
-    wait(t)
-#    sleep(0.1)#wait for prints
-    finalOutput = t.result == nothing ? "" : t.result
-    on_path_change()
 
-    write(c,finalOutput,true)
+    if t.state == :waiting#wait for task to be done
+        return Cint(true)
+    end
+
+    if t.result != nothing
+        str, v = t.result
+        finalOutput = str == nothing ? "" : str
+        write(c,finalOutput,true)
+
+        if typeof(v) <: Gadfly.Plot
+            display(v)
+        end
+    end
+    on_path_change()
+    return Cint(false)
 end
 
-
-##
-
+"Get the text after the prompt >"
 function prompt(c::Console)
-
     its = GtkTextIter(c.buffer,c.prompt_position)
     ite = GtkTextIter(c.buffer,length(c.buffer)+1)
     cmd = text_iter_get_text(its,ite)
-
     return cmd
 end
 function prompt(c::Console,str::AbstractString,offset::Integer)
@@ -158,7 +205,6 @@ function prompt(c::Console,str::AbstractString,offset::Integer)
     if offset >= 0 && c.prompt_position+offset-1 <= length(c.buffer)
         text_buffer_place_cursor(c.buffer,c.prompt_position+offset-1)
     end
-
 end
 prompt(c::Console,str::AbstractString) = prompt(c,str,-1)
 new_prompt(c::Console) = write(c,"",true)
@@ -167,7 +213,7 @@ function move_cursor_to_end(c::Console)
     text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
 end
 
-#return cursor position in the prompt text
+"return cursor position in the prompt text"
 function cursor_position(c::Console)
     a = c.prompt_position
     b = cursor_position(c.buffer)
@@ -176,23 +222,23 @@ end
 
 ##
 ismodkey(event::Gtk.GdkEvent,mod::Integer) =
-    any(x -> Int(x) == Int(event.keyval),[
+    any(x -> x == event.keyval,[
         Gtk.GdkKeySyms.Control_L, Gtk.GdkKeySyms.Control_R,
         Gtk.GdkKeySyms.Meta_L,Gtk.GdkKeySyms.Meta_R,
         Gtk.GdkKeySyms.Hyper_L,Gtk.GdkKeySyms.Hyper_R,
         Gtk.GdkKeySyms.Shift_L,Gtk.GdkKeySyms.Shift_R
     ]) ||
-    any(x -> Int(x) == Int(event.state & mod),[
+    any(x -> x == event.state & mod,[
         GdkModifierType.CONTROL,Gtk.GdkKeySyms.Meta_L,Gtk.GdkKeySyms.Meta_R,
-        PrimaryModifier, GdkModifierType.SHIFT, GdkModifierType.GDK_MOD1_MASK])
+        PrimaryModifier, SHIFT, GdkModifierType.GDK_MOD1_MASK,
+        SecondaryModifer, PrimaryModifier+SHIFT, PrimaryModifier+GdkModifierType.META])
 
 
 #FIXME disable drag and drop text above cursor
 # ctrl-a to clear prompt
+@guarded (PROPAGATE) function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
-@guarded (INTERRUPT) function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
-#    widget = convert(GtkSourceView, widgetptr)
-
+    textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     console = user_data
     buffer = console.buffer
@@ -212,6 +258,7 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
     at_prompt(pos::Integer) = pos+1 == console.prompt_position
 
     #put back the cursor after the prompt
+
     if before_prompt()
         #check that we are not trying to copy or something of the sort
         if !ismodkey(event,mod)
@@ -234,18 +281,10 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
     if event.keyval == Gtk.GdkKeySyms.Left
         if found
             at_prompt(offset(it_start)) && return INTERRUPT
-            return PROPAGATE
         else
             before_or_at_prompt() && return INTERRUPT
         end
-    end
-
-    if event.keyval == Gtk.GdkKeySyms.Return
-
-        if console.run_task.state == :done
-            on_return(console,cmd)
-        end
-        return INTERRUPT
+        return PROPAGATE
     end
 
     if event.keyval == Gtk.GdkKeySyms.Up
@@ -256,15 +295,15 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
             end
             return PROPAGATE
         end
-        !history_up(history,prefix,cmd) && return convert(Cint,true)
-        prompt(console,history_get_current(history),length(prefix))
-
+        !history_up(console.history,prefix,cmd) && return convert(Cint,true)
+        prompt(console,history_get_current(console.history),length(prefix))
         return INTERRUPT
     end
+
     if event.keyval == Gtk.GdkKeySyms.Down
         hasselection(buffer) && return PROPAGATE
-        history_down(history,prefix,cmd)
-        prompt(console, history_get_current(history),length(prefix))
+        history_down(console.history,prefix,cmd)
+        prompt(console, history_get_current(console.history),length(prefix))
 
         return INTERRUPT
     end
@@ -280,11 +319,37 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
         kill_current_task(console)
         return INTERRUPT
     end
+    if doing(Actions.copy,event)
+        #warn("copying")
+        signal_emit(textview, "copy-clipboard", Void)
+        return INTERRUPT
+    end
+    if doing(Actions.paste,event)
+        signal_emit(textview, "paste-clipboard", Void)
+        return INTERRUPT
+    end
 
     return PROPAGATE
 end
-signal_connect(console_key_press_cb, console.view, "key-press-event",
-Cint, (Ptr{Gtk.GdkEvent},), false,console)
+
+function _callback_only_for_return(widgetptr::Ptr, eventptr::Ptr, user_data)
+
+    event = convert(Gtk.GdkEvent, eventptr)
+    console = user_data
+    buffer = console.buffer
+
+    cmd = prompt(console)
+
+    if event.keyval == Gtk.GdkKeySyms.Return
+
+        if console.run_task.state == :done
+            on_return(console,cmd)
+        end
+        return Cint(true)
+    end
+    return Cint(false)
+end
+cfunction(_callback_only_for_return, Cint, (Ptr{Console},Ptr{Gtk.GdkEvent},Console))
 
 ## MOUSE CLICKS
 
@@ -306,8 +371,6 @@ Cint, (Ptr{Gtk.GdkEvent},), false,console)
 
     return PROPAGATE
 end
-signal_connect(_console_button_press_cb,console.view, "button-press-event",
-Cint, (Ptr{Gtk.GdkEvent},),false,console)
 
 global console_mousepos = zeros(Int,2)
 global console_mousepos_root = zeros(Int,2)
@@ -323,7 +386,6 @@ function console_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
     console_mousepos_root[2] = round(Int,event.y_root)
     return PROPAGATE
 end
-signal_connect(console_motion_notify_event_cb,console,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
 
 ##
 
@@ -341,8 +403,7 @@ function console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
 
     nothing
 end
-signal_connect(console_scroll_cb, console.view, "size-allocate", Void,
-    (Ptr{Gtk.GdkRectangle},), false,console)
+
 
 ## Auto-complete
 
@@ -421,8 +482,84 @@ function kill_current_task(c::Console)
     end
 end
 
-##
+function init(c::Console)
+    signal_connect(console_key_press_cb, c.view, "key-press-event",
+    Cint, (Ptr{Gtk.GdkEvent},), false, c)
+    signal_connect(_callback_only_for_return, c.view, "key-press-event",
+    Cint, (Ptr{Gtk.GdkEvent},), false,c)
+    signal_connect(_console_button_press_cb,c.view, "button-press-event",
+    Cint, (Ptr{Gtk.GdkEvent},),false,c)
+    signal_connect(console_motion_notify_event_cb,c,"motion-notify-event",
+    Cint, (Ptr{Gtk.GdkEvent},), false)
+    signal_connect(console_scroll_cb, c.view, "size-allocate", Void,
+    (Ptr{Gtk.GdkRectangle},), false,c)
+    push!(console_ntkbook,c)
+end
 
+"Run from the main Gtk loop, and print to console
+the content of stdout_buffer"
+function print_to_console(user_data)
+
+    console = unsafe_pointer_to_objref(user_data)
+
+    s = takebuf_string(console.stdout_buffer)
+    if !isempty(s)
+        write(console,s)
+    end
+
+    if is_running
+        return Cint(true)
+    else
+        return Cint(false)
+    end
+end
+#cfunction(print_to_console, Cint, Ptr{Console})
+
+const console_ntkbook = @GtkNotebook()
+
+function add_console()
+    i = addprocs(1)[1]
+    c = Console(i)
+    init(c)
+    clear(c) #I don't init thing correctly in the constructor, so I need to call this
+    g_timeout_add(100,print_to_console,c)
+    c
+end
+function first_console()
+    c = Console(1)
+    init(c)
+    clear(c)
+    c
+end
+
+const console = first_console()
+add_console()
+
+get_current_console() = get_tab(console_ntkbook,get_current_page_idx(console_ntkbook))
+
+
+function console_ntkbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
+
+#    page = convert(Gtk.GtkWidget, pageptr)
+#    if typeof(page) == Console
+#        console = page
+#    end
+    nothing
+end
+signal_connect(console_ntkbook_switch_page_cb,console_ntkbook,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
+
+#this is called by remote workers
+function print_to_console_remote(s,idx::Integer)
+    #print the output to the right console
+    for i = 1:length(console_ntkbook)
+        c = get_tab(console_ntkbook,i)
+        if c.worker_idx == idx
+            write(c.stdout_buffer,s)
+        end
+    end
+end
+
+## REDIRECT_STDOUT for main console
 
 function send_stream(rd::IO, stdout_buffer::IO)
     nb = nb_available(rd)
@@ -454,23 +591,6 @@ if REDIRECT_STDOUT
         @schedule watch_stream(read_stdout,console)
     end
 
-    function print_to_console(user_data)
-
-        console = unsafe_pointer_to_objref(user_data)
-
-        s = takebuf_string(console.stdout_buffer)
-        if !isempty(s)
-            write(console,s)
-        end
-
-
-        if is_running
-            return Cint(true)
-        else
-            return Cint(false)
-        end
-    end
-
     watch_stdio_tastk = watch_stdio()
 
     g_timeout_add(100,print_to_console,console)
@@ -484,6 +604,8 @@ function stop_console_redirect(t::Task,out,err)
     redirect_stdout(out)
     redirect_stderr(err)
 end
+##
+
 
 
 ##

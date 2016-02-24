@@ -1,3 +1,6 @@
+#FIXME deal properly with workers
+rmprocs(workers())
+
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
 const REDIRECT_STDOUT = true
 
@@ -99,7 +102,7 @@ win = @GtkWindow("GtkIDE.jl",1800,1200) |>
     (rightPan = @GtkPaned(:v) |>
         #(canvas = @GtkCanvas())  |>
         (fig_ntbook)  |>
-        console
+        console_ntkbook
     ) |>
     ((editorVBox = @GtkBox(:v)) |>
         ((editorBox = @GtkBox(:h)) |>
@@ -303,7 +306,7 @@ function run_tests()
 end
 
 sleep(0.2)
-versioninfo()
+#versioninfo()
 
 
 # @schedule begin
