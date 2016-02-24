@@ -29,7 +29,6 @@ function eval_command_remotely(cmd::AbstractString)
     finalOutput = evalout == "" ? "" : "$evalout\n"
 
     return finalOutput, v
-    
 end
 
 #FIXME I probably don't need the two step system here
@@ -63,14 +62,21 @@ function send_to_main_worker(stdout_buffer::IO)
     while true
         s = takebuf_string(stdout_buffer)
         if !isempty(s)
-            remotecall(1,print,s)
+            remotecall(1,print_to_console_remote,s,myid())
         end
-        
         sleep(0.01)
+    end
+end
+
+function print_to_console_remote(s,idx::Integer)
+    #print the output to the right console
+    for i = 1:length(console_ntkbook)
+        c = get_tab(console_ntkbook,i)
+        if c.worker_idx == idx
+            write(c.stdout_buffer,s)
+        end
     end
 end
 
 watch_stdio_task = @schedule watch_stream(read_stdout,stdout_buffer)
 send_to_main_worker_task = @schedule send_to_main_worker(stdout_buffer)
-
-

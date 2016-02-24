@@ -356,7 +356,7 @@ function get_cursor_absolute_position(view::GtkTextView)
     return (x+ox, y+oy+r1.height,r1.height)
 end
 
-function run_line(buffer::GtkTextBuffer)
+function run_line(console::Console,buffer::GtkTextBuffer)
 
     cmd = get_selected_text()
     if cmd == ""
@@ -388,6 +388,7 @@ end
     event = convert(Gtk.GdkEvent,eventptr)
     buffer = getbuffer(textview)
     t = user_data
+    console = get_current_console()
     
 #    println(event.state)
     
@@ -414,7 +415,7 @@ end
         end
     end
     if doing(Actions.runline, event)
-        run_line(buffer)
+        run_line(console,buffer)
         return convert(Cint,true)
     end
     if doing(Actions.runcode, event)
