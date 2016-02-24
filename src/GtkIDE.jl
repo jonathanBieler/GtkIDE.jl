@@ -1,3 +1,4 @@
+#FIXME deal properly with workers
 rmprocs(workers())
 
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")

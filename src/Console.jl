@@ -47,7 +47,10 @@ type Console <: GtkScrolledWindow
         t = @schedule begin end
 
         remotecall_wait(w_idx,
-            ()->include("remote_utils.jl")
+            ()->begin
+                const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
+                include(joinpath(HOMEDIR,"remote_utils.jl"))
+            end
         )
 
         history = setup_history(w_idx)
@@ -102,14 +105,13 @@ function on_return(c::Console,cmd::AbstractString)
     (found,t) = check_console_commands(cmd)
 
     if !found
-
         ref = remotecall(c.worker_idx,eval_command_remotely,cmd)
         t = @schedule fetch(ref) #I need a task here to be able to check if it's done
 #        t = eval_command_locally(cmd)
     end
     c.run_task = t
 
-    @schedule write_output_to_console(c)
+    g_idle_add(write_output_to_console,c)
     nothing
 end
 
@@ -164,11 +166,16 @@ function eval_command_locally(cmd::AbstractString)
     return t
 end
 
-"Wait for the running task to end and print the result in the console."
-function write_output_to_console(c::Console)
+"Wait for the running task to end and print the result in the console.
+Run from Gtk main loop."
+function write_output_to_console(user_data)
 
+    c = unsafe_pointer_to_objref(user_data)
     t = c.run_task
-    wait(t)
+
+    if t.state == :waiting#wait for task to be done
+        return Cint(true)
+    end
 
     if t.result != nothing
         str, v = t.result
@@ -180,6 +187,7 @@ function write_output_to_console(c::Console)
         end
     end
     on_path_change()
+    return Cint(false)
 end
 
 "Get the text after the prompt >"
@@ -250,10 +258,10 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
     at_prompt(pos::Integer) = pos+1 == console.prompt_position
 
     #put back the cursor after the prompt
-    
+
     if before_prompt()
         #check that we are not trying to copy or something of the sort
-        if !ismodkey(event,mod) 
+        if !ismodkey(event,mod)
             move_cursor_to_end(console)
         end
     end

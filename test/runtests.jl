@@ -31,7 +31,7 @@ end
 
 goto_line(buffer,1)
     sleep(sleep_time)
-run_line(buffer)
+run_line(console, buffer)
     sleep(sleep_time)
 
 @assert x == 2
