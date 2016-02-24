@@ -5,7 +5,7 @@ function add_side_panel(w::Gtk.GtkWidget,title::AbstractString)
 end
 function files_tree_view(rownames)
     n  = length(rownames)
-    t = (Gtk.GdkPixbuf,AbstractString)
+    t = (Gtk.GdkPixbuf,AbstractString, AbstractString)
     list = @GtkTreeStore(t...)
 
     tv = @GtkTreeView(GtkTreeModel(list))
@@ -76,13 +76,10 @@ end
 
 function open_file(treeview::GtkTreeView,list::GtkTreeStore)
 
-    v = selected(treeview, list)
-    if v != nothing && length(v) == 1
-        isfile(v[1]) && open_in_new_tab(v[1])
-        if isdir(v[1])
-            cd(v[1])
-            on_path_change()
-        end
+    v = selected(treeview, list)    
+    if v != nothing && length(v) == 3
+        isfile(v[3]) && open_in_new_tab(v[3])
+        
     end
 end
 
@@ -144,7 +141,7 @@ function update!(w::FilesPanel, path::AbstractString, parent=nothing)
            file_parts = splitext(el)
            if  (file_parts[2]==".jl")
              pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"code",24,1,0)
-             push!(w.list,(pixbuf,el),parent)
+             push!(w.list,(pixbuf,el, joinpath(path,el)),parent)
            end
          end
     end
