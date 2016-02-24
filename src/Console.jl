@@ -375,9 +375,7 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
     update_completions(c,comp,dotpos,cmd,firstpart)
 end
 
-## print completions in console, FIXME: adjust with console width
 # cmd is the word, including dots we are trying to complete
-# firstpart is words that come before it
 
 function update_completions(c::Console,comp,dotpos,cmd,firstpart)
 
@@ -389,11 +387,15 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart)
     if(length(comp)>1)
 
         maxLength = maximum(map(length,comp))
+        w = width(c.view)
+        nchar_to_width(x) = 0.9*x*fontsize #TODO pango_font_metrics_get_approximate_char_width
+        n_per_line = round(Int,w/nchar_to_width(maxLength))
+
         out = "\n"
         for i=1:length(comp)
             spacing = repeat(" ",maxLength-length(comp[i]))
             out = "$out $(comp[i]) $spacing"
-            if mod(i,4) == 0
+            if mod(i,n_per_line) == 0
                 out = out * "\n"
             end
         end

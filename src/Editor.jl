@@ -81,7 +81,6 @@ function open(t::EditorTab, filename::AbstractString)
             t.modified = true
         end
         t.filename = filename
-        set_tab_label_text(ntbook,t,basename(filename))
         reset_undomanager(t.buffer)#otherwise we can undo loading the file...
         close(f)
     catch err
@@ -91,6 +90,11 @@ function open(t::EditorTab, filename::AbstractString)
 end
 
 function save(t::EditorTab)
+    
+    if basename(t.filename) == ""
+        save_as(t)
+        return
+    end
     try
         f = Base.open(t.filename,"w")
         write(f,get_text(t))
@@ -104,6 +108,15 @@ function save(t::EditorTab)
         warn("Error while saving $(t.filename)")
         warn(err)
     end
+end
+
+function save_as(t::EditorTab)
+    extensions = (".jl", ".md")
+    selection = Gtk.save_dialog("Save as file", Gtk.toplevel(t), map(x->string("*",x), extensions))
+    isempty(selection) && return nothing
+    #basename, ext = splitext(selection)
+    t.filename = selection
+    save(t)
 end
 
 save_current_tab() = save(get_current_tab())
@@ -634,7 +647,14 @@ end
 
 function modified(t::EditorTab,v::Bool)
     t.modified = v
-    s = v ? basename(t.filename) * "*" : basename(t.filename)
+    f = basename(t.filename)
+    f = f == "" ? "untitled" : f
+
+    if v
+        s = f * "*" 
+    else
+        s = f
+    end
     set_tab_label_text(ntbook,t,s)
 end
 
@@ -655,6 +675,8 @@ function add_tab(filename::AbstractString)
     showall(ntbook)
     set_current_page_idx(ntbook,idx)
 
+    set_tab_label_text(ntbook,t,basename(filename))
+
     Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
     set_font(t)
@@ -673,7 +695,7 @@ function add_tab(filename::AbstractString)
 
     return t
 end
-add_tab() = add_tab("untitled")
+add_tab() = add_tab("")
 
 function load_tabs(project::Project)
 
