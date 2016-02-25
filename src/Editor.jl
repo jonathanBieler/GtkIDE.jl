@@ -29,7 +29,7 @@ type EditorTab <: GtkScrolledWindow
     function EditorTab(filename::AbstractString)
 
         lang = haskey(languageDefinitions,extension(filename)) ? 
-            languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
+        languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
 
         filename = isabspath(filename) ? filename : joinpath(pwd(),filename)
         filename = normpath(filename)
@@ -76,6 +76,7 @@ function open(t::EditorTab, filename::AbstractString)
             f = Base.open(filename)
             set_text!(t,readall(f))
             t.modified = false
+            set_tab_label_text(ntbook,t,basename(filename))#the label get modified when inserting
         else
             f = Base.open(filename,"w")
             t.modified = true
@@ -445,6 +446,11 @@ end
         visible(search_window,false)
     end
     if doing(Actions.copy,event)
+        (found,it_start,it_end) = selection_bounds(buffer)
+        if !found
+            (txt, its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer))
+            selection_bounds(buffer,its,ite)
+        end
         signal_emit(textview, "copy-clipboard", Void)
         return INTERRUPT
     end
@@ -480,12 +486,12 @@ end
             its = get_text_iter_at_cursor(buffer)
             move_cursor_to_sentence_end(buffer)
             ite = get_text_iter_at_cursor(buffer)
-            selection_bouncutds(buffer,its,ite)
+            selection_bounds(buffer,ite,its)#invert here so the cursor end up on the far right
         else
             its = nonmutable(buffer,its)#FIXME this shouldn't require the buffer
             move_cursor_to_sentence_end(buffer)
             ite = get_text_iter_at_cursor(buffer)
-            selection_bounds(buffer,its,ite)
+            selection_bounds(buffer,ite,its)
         end
         return INTERRUPT
     end  
@@ -649,7 +655,7 @@ end
 function modified(t::EditorTab,v::Bool)
     t.modified = v
     f = basename(t.filename)
-    f = f == "" ? "untitled" : f
+    f = f == "" ? "Untitled" : f
 
     if v
         s = f * "*" 
@@ -696,7 +702,7 @@ function add_tab(filename::AbstractString)
 
     return t
 end
-add_tab() = add_tab("")
+add_tab() = add_tab("Untitled")
 
 function load_tabs(project::Project)
 

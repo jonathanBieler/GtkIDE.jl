@@ -23,7 +23,6 @@ add_console_command(r"^pwd",(m) -> begin
     return pwd() * "\n"
 end)
 add_console_command(r"^ls\s*(.*)",(m) -> begin
-
 	try
         files = m.captures[1] == "" ? readdir() : readdir(m.captures[1])
         s = ""

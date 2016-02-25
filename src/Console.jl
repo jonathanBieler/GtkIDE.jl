@@ -90,7 +90,6 @@ write(c::Console,x,set_prompt=false) = write(c,string(x),set_prompt)
 
 function clear(c::Console)
     setproperty!(c.buffer,:text,"")
-    new_prompt(c)
 end
 ##
 
@@ -178,13 +177,19 @@ function write_output_to_console(user_data)
     end
 
     if t.result != nothing
-        str, v = t.result
+        if typeof(t.result) <: Tuple #console commands can return just a string
+            str, v = t.result
+        else
+            str, v = (t.result, nothing)
+        end
         finalOutput = str == nothing ? "" : str
         write(c,finalOutput,true)
 
         if typeof(v) <: Gadfly.Plot
             display(v)
         end
+    else
+        new_prompt(c)
     end
     on_path_change()
     return Cint(false)
@@ -462,7 +467,6 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart)
         end
         #write(c,out,true)
         println(out)
-        #warn(out)
         out = prefix * Base.LineEdit.common_prefix(comp)
     else
         out = prefix * comp[1]
@@ -521,14 +525,14 @@ function add_console()
     i = addprocs(1)[1]
     c = Console(i)
     init(c)
-    clear(c) #I don't init thing correctly in the constructor, so I need to call this
+    
     g_timeout_add(100,print_to_console,c)
     c
 end
 function first_console()
     c = Console(1)
     init(c)
-    clear(c)
+
     c
 end
 

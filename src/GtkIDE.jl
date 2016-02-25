@@ -92,6 +92,7 @@ win = @GtkWindow("GtkIDE.jl",1800,1200) |>
         (topBarBox = @GtkBox(:h) |>
             (sidePanelButton = @GtkButton("F1")) |>
             (pathEntry = @GtkEntry()) |>
+            (pathDbox = @GtkComboBoxText()) |>
             (editorButton = @GtkButton("F2"))
         ) |>
         (sidePan = @GtkPaned(:h)) |>
@@ -119,12 +120,7 @@ sidePan |>
 #FIXME is right left?
 ##setproperty!(ntbook, :width_request, 800)
 
-#figure(canvas)
-
-
-
 include("SidePanels.jl")
-
 
 setproperty!(statusBar,:margin,2)
 
@@ -144,16 +140,13 @@ Gtk.G_.position(rightPan,450)
 setproperty!(topBarBox,:hexpand,true)
 setproperty!(pathEntry,:hexpand,true)
 
-
 sc = Gtk.G_.style_context(pathEntry)
 push!(sc, provider, 600)
-
 
 ## the current path is shown in an entry on top
 setproperty!(pathEntry, :widht_request, 600)
 update_pathEntry() = setproperty!(pathEntry, :text, pwd())
 update_pathEntry()
-
 
 function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     widget = convert(GtkEntry, widgetptr)
@@ -172,6 +165,8 @@ function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     return convert(Cint,false)
 end
 signal_connect(pathEntry_key_press_cb, pathEntry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+push!(pathDbox,pwd())
+push!(pathDbox,"C:\\Users\\Billou\\.julia\\v0.4\\")
 
 ################
 ## MENU THINGS
