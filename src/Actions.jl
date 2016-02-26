@@ -11,6 +11,7 @@ end
     const SecondaryModifer = GdkModifierType.MOD1
 end
 const NoModifier  = zero(typeof(PrimaryModifier))
+import GdkModifierType.SHIFT
 
 type Action
     keyval::Integer

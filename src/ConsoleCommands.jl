@@ -16,14 +16,13 @@ add_console_command(r"^edit (.*)",(m) -> begin
     nothing
 end,:file)
 add_console_command(r"^clc$",(m) -> begin
-    clear(console)
+    clear(get_current_console())
     nothing 
 end)
 add_console_command(r"^pwd",(m) -> begin
     return pwd() * "\n"
 end)
 add_console_command(r"^ls\s*(.*)",(m) -> begin
-
 	try
         files = m.captures[1] == "" ? readdir() : readdir(m.captures[1])
         s = ""
