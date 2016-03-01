@@ -5,15 +5,16 @@ type HistoryProvider
     search_results::Array{Int,1}
     prefix::AbstractString
     idx_search::Int
+    worker_idx::Int
 
-    HistoryProvider() = new(AbstractString[""],nothing,0,0,[],"",1)
-    HistoryProvider(h::Array{AbstractString,1},hf,cidx::Int) = new(h,hf,cidx,[],"",1)
+    HistoryProvider(w_idx::Int) = new(AbstractString[""],nothing,0,0,[],"",1,widx)
+    HistoryProvider(h::Array{AbstractString,1},hf,cidx::Int,w_idx::Int) = new(h,hf,cidx,[],"",1,w_idx)
 end
 
-function setup_history()
+function setup_history(w_idx::Int)
     #load history, etc
     h = HistoryProvider(AbstractString["x = pi"],
-        joinpath(HOMEDIR,"config","history"), 1)
+        joinpath(HOMEDIR,"config","history_" * string(w_idx)), 1, w_idx)
 
     if isfile(h.filename)
         h.history = parse_history(h)

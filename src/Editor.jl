@@ -29,7 +29,7 @@ type EditorTab <: GtkScrolledWindow
     function EditorTab(filename::AbstractString)
 
         lang = haskey(languageDefinitions,extension(filename)) ? 
-            languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
+        languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
 
         filename = isabspath(filename) ? filename : joinpath(pwd(),filename)
         filename = normpath(filename)
@@ -76,12 +76,12 @@ function open(t::EditorTab, filename::AbstractString)
             f = Base.open(filename)
             set_text!(t,readall(f))
             t.modified = false
+            set_tab_label_text(ntbook,t,basename(filename))#the label get modified when inserting
         else
             f = Base.open(filename,"w")
             t.modified = true
         end
         t.filename = filename
-        set_tab_label_text(ntbook,t,basename(filename))
         reset_undomanager(t.buffer)#otherwise we can undo loading the file...
         close(f)
     catch err
@@ -91,6 +91,11 @@ function open(t::EditorTab, filename::AbstractString)
 end
 
 function save(t::EditorTab)
+    
+    if basename(t.filename) == ""
+        save_as(t)
+        return
+    end
     try
         f = Base.open(t.filename,"w")
         write(f,get_text(t))
@@ -104,6 +109,15 @@ function save(t::EditorTab)
         warn("Error while saving $(t.filename)")
         warn(err)
     end
+end
+
+function save_as(t::EditorTab)
+    extensions = (".jl", ".md")
+    selection = Gtk.save_dialog("Save as file", Gtk.toplevel(t), map(x->string("*",x), extensions))
+    isempty(selection) && return nothing
+    #basename, ext = splitext(selection)
+    t.filename = selection
+    save(t)
 end
 
 save_current_tab() = save(get_current_tab())
@@ -356,7 +370,7 @@ function get_cursor_absolute_position(view::GtkTextView)
     return (x+ox, y+oy+r1.height,r1.height)
 end
 
-function run_line(buffer::GtkTextBuffer)
+function run_line(console::Console,buffer::GtkTextBuffer)
 
     cmd = get_selected_text()
     if cmd == ""
@@ -388,6 +402,7 @@ end
     event = convert(Gtk.GdkEvent,eventptr)
     buffer = getbuffer(textview)
     t = user_data
+    console = get_current_console()
     
 #    println(event.state)
     
@@ -414,7 +429,7 @@ end
         end
     end
     if doing(Actions.runline, event)
-        run_line(buffer)
+        run_line(console,buffer)
         return convert(Cint,true)
     end
     if doing(Actions.runcode, event)
@@ -431,6 +446,11 @@ end
         visible(search_window,false)
     end
     if doing(Actions.copy,event)
+        (found,it_start,it_end) = selection_bounds(buffer)
+        if !found
+            (txt, its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer))
+            selection_bounds(buffer,its,ite)
+        end
         signal_emit(textview, "copy-clipboard", Void)
         return INTERRUPT
     end
@@ -466,12 +486,12 @@ end
             its = get_text_iter_at_cursor(buffer)
             move_cursor_to_sentence_end(buffer)
             ite = get_text_iter_at_cursor(buffer)
-            selection_bouncutds(buffer,its,ite)
+            selection_bounds(buffer,ite,its)#invert here so the cursor end up on the far right
         else
             its = nonmutable(buffer,its)#FIXME this shouldn't require the buffer
             move_cursor_to_sentence_end(buffer)
             ite = get_text_iter_at_cursor(buffer)
-            selection_bounds(buffer,its,ite)
+            selection_bounds(buffer,ite,its)
         end
         return INTERRUPT
     end  
@@ -634,7 +654,14 @@ end
 
 function modified(t::EditorTab,v::Bool)
     t.modified = v
-    s = v ? basename(t.filename) * "*" : basename(t.filename)
+    f = basename(t.filename)
+    f = f == "" ? "Untitled" : f
+
+    if v
+        s = f * "*" 
+    else
+        s = f
+    end
     set_tab_label_text(ntbook,t,s)
 end
 
@@ -655,6 +682,8 @@ function add_tab(filename::AbstractString)
     showall(ntbook)
     set_current_page_idx(ntbook,idx)
 
+    set_tab_label_text(ntbook,t,basename(filename))
+
     Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
     set_font(t)
@@ -673,7 +702,7 @@ function add_tab(filename::AbstractString)
 
     return t
 end
-add_tab() = add_tab("untitled")
+add_tab() = add_tab("Untitled")
 
 function load_tabs(project::Project)
 
