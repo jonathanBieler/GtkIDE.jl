@@ -1,3 +1,5 @@
+import Base.push!
+
 type HistoryProvider
     history::Array{AbstractString,1}
     filename::AbstractString
@@ -25,7 +27,20 @@ function setup_history(w_idx::Int)
     end
     return h
 end
-function history_add(h::HistoryProvider, str::AbstractString)
+function setup_history(name::AbstractString)
+    #load history, etc
+    h = HistoryProvider(AbstractString[""], joinpath(HOMEDIR,"config","history_" * name), 1, 1)
+
+    if isfile(h.filename)
+        h.history = parse_history(h)
+        h.cur_idx = length(h.history)+1
+    else
+        f = open(h.filename,"w")
+        close(f)
+    end
+    return h
+end
+function push!(h::HistoryProvider, str::AbstractString)
     isempty(strip(str)) && return
     push!(h.history, str)
 
@@ -92,7 +107,7 @@ function history_up(h::HistoryProvider,prefix::AbstractString,cmd::AbstractStrin
             h.cur_idx =  length(h.search_results) > 0 ? h.search_results[h.idx_search] : h.cur_idx
         end
     else
-        cmd == "" && history_seek_end(h) #we go back to the end of the list
+        cmd == "" && seek_end(h) #we go back to the end of the list
         history_move(h,-1)
     end
     return true
@@ -103,7 +118,7 @@ function history_down(h::HistoryProvider,prefix::AbstractString,cmd::AbstractStr
         if length(prefix) > 0
             h.idx_search = h.idx_search-1
             if h.idx_search <= 0
-                history_seek_end(h)
+                seek_end(h)
                 return
             end
             h.cur_idx =  length(h.search_results) > 0 ? h.search_results[h.idx_search] : h.cur_idx
@@ -117,6 +132,6 @@ function history_move(h::HistoryProvider,m::Int)
     h.cur_idx = clamp(h.cur_idx+m,1,length(h.history)+1) #+1 is the empty state when we are at the end of history and press down
 end
 history_get_current(h::HistoryProvider) = h.cur_idx == length(h.history)+1 ? "" : h.history[h.cur_idx]
-function history_seek_end(h::HistoryProvider)
+function seek_end(h::HistoryProvider)
     h.cur_idx = length(h.history)+1
 end

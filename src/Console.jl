@@ -98,8 +98,8 @@ function on_return(c::Console,cmd::AbstractString)
     cmd = strip(cmd)
     buffer = c.buffer
 
-    history_add(c.history,cmd)
-    history_seek_end(c.history)
+    push!(c.history,cmd)
+    seek_end(c.history)
 
     (found,t) = check_console_commands(cmd)
 
@@ -525,7 +525,7 @@ function add_console()
     i = addprocs(1)[1]
     c = Console(i)
     init(c)
-    
+
     g_timeout_add(100,print_to_console,c)
     c
 end
