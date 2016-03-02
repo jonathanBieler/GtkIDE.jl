@@ -70,21 +70,15 @@ include("PlotWindow.jl")
 include("Project.jl")
 include("Console.jl")
 include("Editor.jl")
-<<<<<<< HEAD
 include("GtkExtra.jl")
-=======
 include("PathDisplay.jl")
 
->>>>>>> origin
 if sourcemap == nothing
     sourcemap = @GtkBox(:v)
 end
 
-<<<<<<< HEAD
 GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(dirname(@__FILE__),"../icons/"))
 
-=======
->>>>>>> origin
 ##
 menubar = @GtkMenuBar() |>
     (file = @GtkMenuItem("_File"))
