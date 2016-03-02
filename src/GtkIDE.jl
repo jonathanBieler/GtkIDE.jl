@@ -1,4 +1,3 @@
-push!(Base.Libdl.DL_LOAD_PATH, joinpath(dirname(@__FILE__),"../lib/build//lib"))
 #FIXME deal properly with workers
 rmprocs(workers())
 
@@ -71,13 +70,21 @@ include("PlotWindow.jl")
 include("Project.jl")
 include("Console.jl")
 include("Editor.jl")
+<<<<<<< HEAD
 include("GtkExtra.jl")
+=======
+include("PathDisplay.jl")
+
+>>>>>>> origin
 if sourcemap == nothing
     sourcemap = @GtkBox(:v)
 end
 
+<<<<<<< HEAD
 GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(dirname(@__FILE__),"../icons/"))
 
+=======
+>>>>>>> origin
 ##
 menubar = @GtkMenuBar() |>
     (file = @GtkMenuItem("_File"))
@@ -93,8 +100,7 @@ win = @GtkWindow("GtkIDE.jl",1800,1200) |>
         menubar |>
         (topBarBox = @GtkBox(:h) |>
             (sidePanelButton = @GtkButton("F1")) |>
-            (pathEntry = @GtkEntry()) |>
-            (pathDbox = @GtkComboBoxText()) |>
+             pathCBox   |>
             (editorButton = @GtkButton("F2"))
         ) |>
         (sidePan = @GtkPaned(:h)) |>
@@ -140,35 +146,8 @@ Gtk.G_.position(rightPan,450)
 #-
 
 setproperty!(topBarBox,:hexpand,true)
-setproperty!(pathEntry,:hexpand,true)
 
-sc = Gtk.G_.style_context(pathEntry)
-push!(sc, provider, 600)
 
-## the current path is shown in an entry on top
-setproperty!(pathEntry, :widht_request, 600)
-update_pathEntry() = setproperty!(pathEntry, :text, pwd())
-update_pathEntry()
-
-function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
-    widget = convert(GtkEntry, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
-
-    if event.keyval == Gtk.GdkKeySyms.Return
-        pth = getproperty(widget,:text,AbstractString)
-        try
-            cd(pth)
-        catch err
-            println(string(err))
-        end
-        on_path_change()
-    end
-
-    return convert(Cint,false)
-end
-signal_connect(pathEntry_key_press_cb, pathEntry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-push!(pathDbox,pwd())
-push!(pathDbox,"C:\\Users\\Billou\\.julia\\v0.4\\")
 
 ################
 ## MENU THINGS
@@ -272,9 +251,11 @@ signal_connect(editorButtonclicked_cb, editorButton, "clicked", Void, (), false)
 
 function on_path_change()
     update_pathEntry()
+    push!(pathCBox,pwd())
     update!(filespanel)
 end
 
+init(pathCBox)#need on_path_change to be defined
 
 ##
 function restart(new_workspace=false)

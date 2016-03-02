@@ -12,7 +12,7 @@ type Console <: GtkScrolledWindow
     prompt_position::Integer
     stdout_buffer::IOBuffer
     worker_idx::Int
-    run_worker::RemoteRef
+    run_worker::Channel
     history::HistoryProvider
 
     function Console(w_idx::Int)
@@ -55,7 +55,7 @@ type Console <: GtkScrolledWindow
 
         history = setup_history(w_idx)
 
-        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,RemoteRef(),history)
+        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel(),history)
         Gtk.gobject_move_ref(n, sc)
     end
 end
@@ -98,8 +98,8 @@ function on_return(c::Console,cmd::AbstractString)
     cmd = strip(cmd)
     buffer = c.buffer
 
-    history_add(c.history,cmd)
-    history_seek_end(c.history)
+    push!(c.history,cmd)
+    seek_end(c.history)
 
     (found,t) = check_console_commands(cmd)
 
@@ -525,7 +525,7 @@ function add_console()
     i = addprocs(1)[1]
     c = Console(i)
     init(c)
-    
+
     g_timeout_add(100,print_to_console,c)
     c
 end
