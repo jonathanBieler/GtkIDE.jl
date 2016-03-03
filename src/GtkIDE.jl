@@ -1,4 +1,3 @@
-=======
 #FIXME deal properly with workers
 rmprocs(workers())
 
