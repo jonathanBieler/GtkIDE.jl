@@ -1,5 +1,4 @@
 include("EditorUtils.jl")
-include("SearchWindow.jl")
 include("Actions.jl")
 
 sourcemap = nothing
@@ -21,14 +20,15 @@ type EditorTab <: GtkScrolledWindow
     filename::AbstractString
     modified::Bool
     search_context::GtkSourceSearchContext
-    search_mark
+    search_mark_start
+    search_mark_end
     scroll_target::AbstractFloat
     scroll_target_line::Integer
     autocomplete_words::Array{AbstractString,1}
 
     function EditorTab(filename::AbstractString)
 
-        lang = haskey(languageDefinitions,extension(filename)) ? 
+        lang = haskey(languageDefinitions,extension(filename)) ?
         languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
 
         filename = isabspath(filename) ? filename : joinpath(pwd(),filename)
@@ -54,7 +54,7 @@ type EditorTab <: GtkScrolledWindow
         search_con = @GtkSourceSearchContext(b,search_settings)
         highlight(search_con,true)
 
-        t = new(sc.handle,v,b,filename,false,search_con,nothing)
+        t = new(sc.handle,v,b,filename,false,search_con,nothing,nothing)
         Gtk.gobject_move_ref(t, sc)
     end
     EditorTab() = EditorTab("")
@@ -68,6 +68,7 @@ getbuffer(textview::GtkTextView) = getproperty(textview,:buffer,GtkSourceBuffer)
 get_current_tab() = get_tab(ntbook,get_current_page_idx(ntbook))
 
 include("CompletionWindow.jl")
+include("SearchWindow.jl")
 
 import Base.open
 function open(t::EditorTab, filename::AbstractString)
@@ -91,7 +92,7 @@ function open(t::EditorTab, filename::AbstractString)
 end
 
 function save(t::EditorTab)
-    
+
     if basename(t.filename) == ""
         save_as(t)
         return
@@ -274,11 +275,11 @@ end
     end
 
     mod = get_default_mod_mask()
-    
+
     if Int(event.button) == 1 && event.state & mod == PrimaryModifier
         open_method(textview) && return INTERRUPT
     end
-    
+
     return PROPAGATE
 end
 
@@ -403,9 +404,9 @@ end
     buffer = getbuffer(textview)
     t = user_data
     console = get_current_console()
-    
+
 #    println(event.state)
-    
+
     if doing(Actions.save, event)
         save(t)
     end
@@ -465,7 +466,7 @@ end
             selection_bounds(buffer,its,ite)
         end
         signal_emit(textview, "cut-clipboard", Void)
-        
+
         return INTERRUPT
     end
     if doing(Actions.move_to_line_start,event) ||
@@ -479,7 +480,7 @@ end
         return INTERRUPT
     end
     if doing(Action(GdkKeySyms.Right, PrimaryModifier+GdkModifierType.SHIFT),event)
-    
+
         #FIXME put this and bellow in a function
         (found,its,ite) = selection_bounds(buffer)
         if !found
@@ -494,9 +495,9 @@ end
             selection_bounds(buffer,ite,its)
         end
         return INTERRUPT
-    end  
+    end
     if doing(Action(GdkKeySyms.Left, PrimaryModifier+GdkModifierType.SHIFT),event)
-    
+
         (found,its,ite) = selection_bounds(buffer)
         if !found
             ite = get_text_iter_at_cursor(buffer)
@@ -510,8 +511,8 @@ end
             selection_bounds(buffer,its,ite)
         end
         return INTERRUPT
-    end  
-   
+    end
+
     if doing(Actions.toggle_comment,event)
         user_action(toggle_comment, buffer)#make sure undo works
     end
@@ -531,7 +532,7 @@ end
         (cmd, itstart, itend) = get_current_line_text(buffer)
         insert!(buffer,itend,"\n" * cmd)
     end
-    
+
     !update_completion_window(event,buffer) && return INTERRUPT
 
     return PROPAGATE
@@ -658,7 +659,7 @@ function modified(t::EditorTab,v::Bool)
     f = f == "" ? "Untitled" : f
 
     if v
-        s = f * "*" 
+        s = f * "*"
     else
         s = f
     end
@@ -689,13 +690,13 @@ function add_tab(filename::AbstractString)
     set_font(t)
 
     #we need to use the view here to capture all the keystrokes
-    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t) 
+    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t)
     signal_connect(tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
     signal_connect(tab_buffer_changed_cb,t.buffer,"changed", Void, (), false,t)
 
-#    signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint, 
+#    signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint,
 #    (Ptr{Void},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}), false)
 
     signal_connect(tab_adj_changed_cb, getproperty(t.view,:vadjustment,GtkAdjustment) , "changed", Void, (), false,t)
