@@ -97,14 +97,38 @@ function open_file(treeview::GtkTreeView,list::GtkTreeStore)
         open_in_new_tab(file)
     end
 end
+#=File path menu =#
+function path_dialog_create_file_cb(ptr::Ptr, data)
+    (path,filename) = data
+    println(getproperty(filename, :text, AbstractString))
+    return nothing
+end
+function path_dialog_filename_insert_at_cursor(text_entry_ptr::Ptr, data::Cstring,path)
+    text_entry = convert(GtkEntry, text_entry_ptr)
+    
+
+    return nothing
+end
+
+function show_file_path_dialog(path)
+    path = string(path,"/")
+    b = Gtk.GtkBuilderLeaf(filename=joinpath(dirname(@__FILE__),"forms/forms.glade"))
+    w = GAccessor.object(b,"DialogCreateFile")
+    btn_create_file = GAccessor.object(b,"btnCreateFile")
+    te_filename = GAccessor.object(b,"filename")
+    setproperty!(te_filename, :text,path);
+
+    signal_connect(path_dialog_filename_insert_at_cursor,te_filename, "insert-at-cursor",Void,(Cstring),true,(path))
+    signal_connect(path_dialog_create_file_cb,btn_create_file, "clicked",Void,(),false,(path,te_filename))
+    showall(w)
+end
+#==========#
 
 function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     (list,menu) = user_data
-
     if event.button == 3
-
         showall(menu)
         popup(menu,event)
     else
@@ -127,24 +151,13 @@ function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, user_dat
 
     return PROPAGATE
 end
-function create_file_cb(ptr::Ptr, data)
-    (path,filename) = data
-    println(getproperty(filename, :text, String))
-    return nothing
-end
+
 function filespanel_newFileItem_activate_cb(widgetptr::Ptr,user_data)
-
     (list,treeview)     = user_data
-
     path = get_selected_path(treeview,list)
     if (path!=nothing)
         path = dirname(path)
-        b = Gtk.GtkBuilderLeaf(filename=joinpath(dirname(@__FILE__),"forms/forms.glade"))
-        w = GAccessor.object(b,"DialogCreateFile")
-        btn_create_file = GAccessor.object(b,"btnCreateFile")
-        te_filename = GAccessor.object(b,"filename")
-        signal_connect(create_file_cb,btn_create_file, "clicked",Void,(),false,(path,te_filename))
-        showall(w)
+        show_file_path_dialog(path)
     end
     return nothing
 end

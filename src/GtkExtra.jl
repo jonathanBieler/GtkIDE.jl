@@ -17,3 +17,19 @@ function GtkIconThemeLoadIconForScale(iconTheme,icon_name::AbstractString, size:
   end
    return GdkPixbufLeaf(pixbuf)
 end
+
+Gtk.@Gtype GtkEntryBuffer Gtk.libgtk gtk_entry_buffer
+
+function delete_text(entry::GtkEntryBuffer, position::Integer, n_chars::Integer)
+        return ccall((:gtk_entry_buffer_delete_text,Gtk.libgtk),Ptr{Void},(Ptr{Gtk.GObject},Cuint,Cint),entry,position,n_chars)
+end
+function insert_text(entry::GtkEntryBuffer, position::Integer, data::AbstractString, n_chars::Integer)
+  return ccall((:gtk_entry_buffer_insert_text,Gtk.libgtk),
+               Ptr{Void},
+              (Ptr{Gtk.GObject},Cuint,Cstring,Cint),
+              entry,position,pointer(data),n_chars)
+end
+import Gtk
+function buffer(entry::Gtk.GtkEntry)
+       return convert(GtkEntryBuffer,ccall((:gtk_entry_get_buffer,Gtk.libgtk),Ptr{GtkEntryBuffer},(Ptr{Gtk.GObject},),entry))
+end
