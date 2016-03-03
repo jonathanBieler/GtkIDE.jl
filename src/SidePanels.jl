@@ -58,7 +58,6 @@ function selected(tree_view::GtkTreeView,list::GtkTreeStore)
     selmodel = Gtk.G_.selection(tree_view)
     if hasselection(selmodel)
         iter = selected(selmodel)
-        println(iter)
         return list[iter]
     end
     return nothing
@@ -103,13 +102,29 @@ function path_dialog_create_file_cb(ptr::Ptr, data)
     println(getproperty(filename, :text, AbstractString))
     return nothing
 end
-function path_dialog_filename_insert_at_cursor(text_entry_ptr::Ptr, data::Cstring,path)
-    text_entry = convert(GtkEntry, text_entry_ptr)
-    
-
+function path_dialog_filename_inserted_text(text_entry_buffer_ptr::Ptr, cursor_pos,new_text::Cstring,n_chars,data)
+    path = data[1]
+    delete_signal_id = data[2]
+    text_entry_buffer = convert(GtkEntryBuffer, text_entry_buffer_ptr)
+    if (cursor_pos < length(path))
+        Gtk.signal_handler_block(text_entry_buffer, delete_signal_id[])
+        delete_text(text_entry_buffer,cursor_pos,n_chars)
+        Gtk.signal_handler_unblock(text_entry_buffer, delete_signal_id[])
+    end
     return nothing
 end
-
+function path_dialog_filename_deleted_text(text_entry_buffer_ptr::Ptr, cursor_pos,n_chars,data)
+    path = data[1]
+    insert_signal_id = data[2]
+    text_entry_buffer = convert(GtkEntryBuffer, text_entry_buffer_ptr)
+    if (cursor_pos < length(path))
+        println(cursor_pos)
+        Gtk.signal_handler_block(text_entry_buffer, insert_signal_id[])
+        insert_text(text_entry_buffer,cursor_pos, path[cursor_pos+1:min(end,cursor_pos+n_chars+1)],n_chars)
+        Gtk.signal_handler_unblock(text_entry_buffer, insert_signal_id[])
+    end
+    return nothing
+end
 function show_file_path_dialog(path)
     path = string(path,"/")
     b = Gtk.GtkBuilderLeaf(filename=joinpath(dirname(@__FILE__),"forms/forms.glade"))
@@ -117,8 +132,19 @@ function show_file_path_dialog(path)
     btn_create_file = GAccessor.object(b,"btnCreateFile")
     te_filename = GAccessor.object(b,"filename")
     setproperty!(te_filename, :text,path);
-
-    signal_connect(path_dialog_filename_insert_at_cursor,te_filename, "insert-at-cursor",Void,(Cstring),true,(path))
+    te_filename_buffer = buffer(te_filename)
+    const id_signal_insert = [Culong(0)]
+    const id_signal_delete = [Culong(0)]
+    id_signal_insert[1] = signal_connect(path_dialog_filename_inserted_text,
+                  te_filename_buffer,
+                  "inserted-text",
+                  Void,
+                  (Cuint,Cstring,Cuint),false,(path,id_signal_delete))
+    id_signal_delete[1] = signal_connect(path_dialog_filename_deleted_text,
+                   te_filename_buffer,
+                   "deleted-text",
+                    Void,
+                    (Cuint,Cuint),false,(path,id_signal_insert))
     signal_connect(path_dialog_create_file_cb,btn_create_file, "clicked",Void,(),false,(path,te_filename))
     showall(w)
 end
