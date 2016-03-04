@@ -1,15 +1,16 @@
-## special commands that can be called from the console
-# FIXME evaluate in console?
+"
+    ConsoleCommand 
 
-type Console_command
+Commands that are first executed in the console before Julia code, e.g. `cd src`"
+type ConsoleCommand
 	r::Regex
 	f::Function
 	completion_context::Symbol
 end
 
-global console_commands = Array(Console_command,0)
-add_console_command(r::Regex,f::Function) = push!(console_commands,Console_command(r,f,:normal))
-add_console_command(r::Regex,f::Function,c::Symbol) = push!(console_commands,Console_command(r,f,c))
+global console_commands = Array(ConsoleCommand,0)
+add_console_command(r::Regex,f::Function) = push!(console_commands,ConsoleCommand(r,f,:normal))
+add_console_command(r::Regex,f::Function,c::Symbol) = push!(console_commands,ConsoleCommand(r,f,c))
 
 add_console_command(r"^edit (.*)",(m) -> begin
     open_in_new_tab(m.captures[1])

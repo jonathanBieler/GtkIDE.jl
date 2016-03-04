@@ -59,6 +59,8 @@ function word_button_toggled_cb(widgetptr::Ptr, user_data)
     return nothing
 end
 
+get_search_text(s::GtkSourceSearchSettings) = getproperty(s,:search_text,AbstractString)
+
 const search_window = SearchWindow()
 const search_settings = @GtkSourceSearchSettings()
 setproperty!(search_settings,:wrap_around,true)
@@ -78,7 +80,6 @@ function search_entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
 
     if event.keyval == Gtk.GdkKeySyms.Return
-
         t = get_current_tab()
         search_forward(t)
     end

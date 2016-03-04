@@ -1,8 +1,11 @@
 include("CommandHistory.jl")
 include("ConsoleCommands.jl")
 
-"Each Console has an associated worker, the fist Console runs on worker 1 alongside
-Gtk and printing is handled a bit differently."
+"
+    Console <: GtkScrolledWindow
+
+Each `Console` has an associated worker, the first `Console` runs on worker 1 alongside
+Gtk and printing is handled a bit differently than for other workers."
 type Console <: GtkScrolledWindow
 
     handle::Ptr{Gtk.GObject}
@@ -88,6 +91,11 @@ function write(c::Console,str::AbstractString,set_prompt=false)
 end
 write(c::Console,x,set_prompt=false) = write(c,string(x),set_prompt)
 
+"""
+    clear(c::Console)
+    
+    Clear the console.
+"""
 function clear(c::Console)
     setproperty!(c.buffer,:text,"")
 end
@@ -493,11 +501,12 @@ function init(c::Console)
     Cint, (Ptr{Gtk.GdkEvent},), false,c)
     signal_connect(_console_button_press_cb,c.view, "button-press-event",
     Cint, (Ptr{Gtk.GdkEvent},),false,c)
-    signal_connect(console_motion_notify_event_cb,c,"motion-notify-event",
+    signal_connect(console_motion_notify_event_cb,c, "motion-notify-event",
     Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(console_scroll_cb, c.view, "size-allocate", Void,
     (Ptr{Gtk.GdkRectangle},), false,c)
     push!(console_ntkbook,c)
+    set_tab_label_text(console_ntkbook,c,"C" * string(c.worker_idx))
 end
 
 "Run from the main Gtk loop, and print to console
@@ -519,10 +528,29 @@ function print_to_console(user_data)
 end
 #cfunction(print_to_console, Cint, Ptr{Console})
 
+"    free_workers()
+Returns the list of workers not linked to a `Console`"
+function free_workers()
+    w = workers()
+    used_w = Array(Int,0)
+
+    for i=1:length(console_ntkbook)
+        c = console_ntkbook[i]
+        push!(used_w,c.worker_idx)
+    end
+    setdiff(w,used_w)
+end
+
 const console_ntkbook = @GtkNotebook()
 
 function add_console()
-    i = addprocs(1)[1]
+
+    free_w = free_workers()
+    if isempty(free_w)
+        i = addprocs(1)[1]
+    else
+        i = free_w[1]
+    end
     c = Console(i)
     init(c)
 
@@ -532,12 +560,14 @@ end
 function first_console()
     c = Console(1)
     init(c)
-
     c
 end
 
 const console = first_console()
 add_console()
+for i=1:length(free_workers())
+    add_console()
+end
 
 get_current_console() = get_tab(console_ntkbook,get_current_page_idx(console_ntkbook))
 

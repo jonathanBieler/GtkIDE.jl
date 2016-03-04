@@ -1,5 +1,6 @@
-#FIXME deal properly with workers
-rmprocs(workers())
+if(myid()!=1)
+    error("GtkIDE need to run on the first worker")
+end
 
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
 const REDIRECT_STDOUT = true
@@ -9,6 +10,7 @@ using Gtk
 using GtkSourceWidget
 using JSON
 using Compat
+include("GtkExtensions.jl"); #using GtkExtenstions
 
 # Compatitbily with 0.5
 if !isdefined(Base,:(showlimited))
@@ -19,22 +21,16 @@ else
 end
 
 import Base.REPLCompletions.completions
-include("GtkExtensions.jl"); #using GtkExtenstions
 
 ## globals
-global is_running = true #should probably use g_main_loop_is_running or something of the sort
+const is_running = true #should probably use g_main_loop_is_running or something of the sort
 
 sourceStyleManager = @GtkSourceStyleSchemeManager()
 GtkSourceWidget.set_search_path(sourceStyleManager,
   Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
 
-global style = style_scheme(sourceStyleManager,"autumn")
 
-@linux_only begin
-    global style = style_scheme(sourceStyleManager,"tango")
-end
-
-global languageDefinitions = Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}()
+const languageDefinitions = Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}()
 sourceLanguageManager = @GtkSourceLanguageManager()
 GtkSourceWidget.set_search_path(sourceLanguageManager,
   Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/language-specs/",C_NULL])
@@ -42,6 +38,7 @@ languageDefinitions[".jl"] = GtkSourceWidget.language(sourceLanguageManager,"jul
 languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"markdown")
 
 @windows_only begin
+    const style = style_scheme(sourceStyleManager,"autumn")
     global fontsize = 13
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Consolas, Courier, monospace;
@@ -49,6 +46,7 @@ languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"mar
     }"""
 end
 @osx_only begin
+    const style = style_scheme(sourceStyleManager,"autumn")
     global fontsize = 13
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Monaco, Consolas, Courier, monospace;
@@ -56,6 +54,7 @@ end
     }"""
 end
 @linux_only begin
+    const style = style_scheme(sourceStyleManager,"tango")
     global fontsize = 12
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Consolas, Courier, monospace;
@@ -63,7 +62,7 @@ end
     }"""
 end
 
-global provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
+const provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 
 #Order matters
 include("PlotWindow.jl")
@@ -72,8 +71,8 @@ include("Console.jl")
 include("Editor.jl")
 include("PathDisplay.jl")
 
-if sourcemap == nothing
-    sourcemap = @GtkBox(:v)
+if editor.sourcemap == nothing
+    editor.sourcemap = @GtkBox(:v)
 end
 
 ##
@@ -106,8 +105,8 @@ win = @GtkWindow("GtkIDE.jl",1800,1200) |>
     ) |>
     ((editorVBox = @GtkBox(:v)) |>
         ((editorBox = @GtkBox(:h)) |>
-            ntbook |>
-            sourcemap
+            editor |>
+            editor.sourcemap
         ) |>
         search_window
     )
@@ -116,9 +115,6 @@ sidePan |>
     (sidepanel_ntbook = @GtkNotebook()) |>
     mainPan
 
-#FIXME is right left?
-##setproperty!(ntbook, :width_request, 800)
-
 include("SidePanels.jl")
 
 setproperty!(statusBar,:margin,2)
@@ -126,19 +122,16 @@ setproperty!(statusBar,:margin,2)
 sbidx = Gtk.context_id(statusBar, "context")
 push!(statusBar,sbidx,"Julia $VERSION")
 
-
 Gtk.G_.position(sidePan,160)
 
-setproperty!(ntbook,:vexpand,true)
-setproperty!(editorBox,:expand,ntbook,true)
+setproperty!(editor,:vexpand,true)
+setproperty!(editorBox,:expand,editor,true)
 setproperty!(mainPan,:margin,0)
 Gtk.G_.position(mainPan,600)
 Gtk.G_.position(rightPan,450)
 #-
 
 setproperty!(topBarBox,:hexpand,true)
-
-
 
 ################
 ## MENU THINGS
@@ -267,16 +260,11 @@ function restart(new_workspace=false)
         destroy(win_)
 
     #end
-
 end
 
 function run_tests()
     include( joinpath(Pkg.dir(),"GtkIDE","test","runtests.jl") )
 end
-
-sleep(0.2)
-#versioninfo()
-
 
 # @schedule begin
 #     th = linspace(0,8*π,500)
