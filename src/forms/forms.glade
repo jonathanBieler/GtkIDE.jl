@@ -7,6 +7,7 @@
     <property name="can_focus">False</property>
     <property name="resizable">False</property>
     <property name="modal">True</property>
+    <property name="window_position">center</property>
     <property name="type_hint">dock</property>
     <property name="gravity">north</property>
     <child internal-child="vbox">
@@ -46,6 +47,8 @@
           <object class="GtkListBox" id="listbox1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="selection_mode">none</property>
+            <property name="activate_on_single_click">False</property>
             <child>
               <object class="GtkListBoxRow" id="listboxrow1">
                 <property name="visible">True</property>
@@ -57,6 +60,7 @@
                     <property name="can_focus">False</property>
                     <property name="valign">start</property>
                     <property name="label" translatable="yes">Enter the path for the new file</property>
+                    <property name="track_visited_links">False</property>
                   </object>
                 </child>
               </object>

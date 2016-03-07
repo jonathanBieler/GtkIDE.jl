@@ -99,7 +99,9 @@ end
 #=File path menu =#
 function path_dialog_create_file_cb(ptr::Ptr, data)
     (path,filename) = data
-    println(getproperty(filename, :text, AbstractString))
+    touch(getproperty(filename, :text, AbstractString))
+    #println(getproperty(filename, :text, AbstractString))
+    update!(filespanel)
     return nothing
 end
 function path_dialog_filename_inserted_text(text_entry_buffer_ptr::Ptr, cursor_pos,new_text::Cstring,n_chars,data)
@@ -118,7 +120,7 @@ function path_dialog_filename_deleted_text(text_entry_buffer_ptr::Ptr, cursor_po
     insert_signal_id = data[2]
     text_entry_buffer = convert(GtkEntryBuffer, text_entry_buffer_ptr)
     if (cursor_pos < length(path))
-        println(cursor_pos)
+
         Gtk.signal_handler_block(text_entry_buffer, insert_signal_id[])
         insert_text(text_entry_buffer,cursor_pos, path[cursor_pos+1:min(end,cursor_pos+n_chars+1)],n_chars)
         Gtk.signal_handler_unblock(text_entry_buffer, insert_signal_id[])
@@ -150,13 +152,22 @@ function show_file_path_dialog(path)
 end
 #==========#
 
-function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+
+
+function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
-    (list,menu) = user_data
+
+    list = filespanel.list
+    menu = filespanel.menu
     if event.button == 3
-        showall(menu)
-        popup(menu,event)
+        (ret,current_path) = Gtk.path_at_pos(treeview,round(Int,event.x),round(Int,event.y));
+        if ret
+          (ret,current_iter) = Gtk.iter(Gtk.GtkTreeModel(filespanel.list),current_path)
+          filespanel.current_path = Gtk.getindex(filespanel.list,current_iter,3)
+          showall(menu)
+          popup(menu,event)
+        end
     else
         if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
             open_file(treeview,list)
@@ -166,10 +177,10 @@ function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, user_data
     return PROPAGATE
 end
 
-function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
-    list = user_data
+    list = filespanel.list
 
     if event.keyval == Gtk.GdkKeySyms.Return
         open_file(treeview,list)
@@ -178,12 +189,15 @@ function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, user_dat
     return PROPAGATE
 end
 
-function filespanel_newFileItem_activate_cb(widgetptr::Ptr,user_data)
-    (list,treeview)     = user_data
-    path = get_selected_path(treeview,list)
-    if (path!=nothing)
-        path = dirname(path)
-        show_file_path_dialog(path)
+function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
+    if (filespanel.current_path!=nothing)
+        if isfile(filespanel.current_path)
+           current_path = dirname(filespanel.current_path)
+       else
+           current_path = filespanel.current_path
+       end
+
+        show_file_path_dialog(current_path)
     end
     return nothing
 end
@@ -194,6 +208,7 @@ type FilesPanel <: GtkScrolledWindow
     list::GtkTreeStore
     tree_view::GtkTreeView
     menu::GtkMenu
+    current_path::AbstractString
     function FilesPanel()
 
         (tv,list,cols) = files_tree_view(["Icon","Name"])
@@ -205,10 +220,7 @@ type FilesPanel <: GtkScrolledWindow
             (quitMenuItem = @GtkMenuItem("Quit"))
 
 
-        signal_connect(filespanel_treeview_clicked_cb,tv, "button-press-event",
-        Cint, (Ptr{Gtk.GdkEvent},), false,(list,menu))
-        signal_connect(filespanel_treeview_keypress_cb,tv, "key-press-event",
-        Cint, (Ptr{Gtk.GdkEvent},), false,list)
+
 
         sc = @GtkScrolledWindow()
         push!(sc,tv)
@@ -216,11 +228,14 @@ type FilesPanel <: GtkScrolledWindow
 
 
 
-        signal_connect(filespanel_newFileItem_activate_cb, newFileItem,
-                        "activate", Void, (), false, (list,tv))
-
-
         t = new(sc.handle,list,tv,menu)
+        signal_connect(filespanel_treeview_clicked_cb,tv, "button-press-event",
+        Cint, (Ptr{Gtk.GdkEvent},), false,t)
+        signal_connect(filespanel_treeview_keypress_cb,tv, "key-press-event",
+        Cint, (Ptr{Gtk.GdkEvent},), false,t)
+        signal_connect(filespanel_newFileItem_activate_cb, newFileItem,
+                        "activate",Void, (),false,t)
+
         Gtk.gobject_move_ref(t,sc)
     end
 end
