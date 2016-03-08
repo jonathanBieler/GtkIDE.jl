@@ -466,7 +466,7 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart)
         n_per_line = round(Int,w/nchar_to_width(maxLength))
 
         out = "\n"
-        for i=1:length(comp)
+        for i = 1:length(comp)
             spacing = repeat(" ",maxLength-length(comp[i]))
             out = "$out $(comp[i]) $spacing"
             if mod(i,n_per_line) == 0

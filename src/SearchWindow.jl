@@ -1,3 +1,9 @@
+"    SearchWindow <: GtkFrame
+Search/replace panel that pops-up at the bottom of the editor.
+It uses a global `GtkSourceSearchSettings` (search_settings) alongside
+each `EditorTab` `GtkSourceSearchContext` (search_context).
+Each tab also store the position of the current match using `GtkTextMark`'s.
+"
 type SearchWindow <: GtkFrame
 
     handle::Ptr{Gtk.GObject}

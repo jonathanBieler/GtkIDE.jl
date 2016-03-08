@@ -2,6 +2,8 @@ include("EditorUtils.jl")
 include("Actions.jl")
 include("EditorTab.jl")
 
+"     Editor <: GtkNotebook
+"
 type Editor <: GtkNotebook
 
     handle::Ptr{Gtk.GObject}
