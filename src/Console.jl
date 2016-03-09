@@ -271,7 +271,6 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
     at_prompt(pos::Integer) = pos+1 == console.prompt_position
 
     #put back the cursor after the prompt
-
     if before_prompt()
         #check that we are not trying to copy or something of the sort
         if !ismodkey(event,mod)
@@ -299,7 +298,7 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
         end
         return PROPAGATE
     end
-
+    
     if event.keyval == Gtk.GdkKeySyms.Up
         if found
             if !before_prompt(offset(it_start))
@@ -327,20 +326,24 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
         autocomplete(console,cmd,pos)
         return INTERRUPT
     end
-
+    if doing(Actions.select_all,event)#select only prompt
+        its = GtkTextIter(buffer,console.prompt_position)
+        ite = end_iter(buffer)
+        selection_bounds(buffer,mutable(its),ite)
+        return INTERRUPT
+    end
     if doing(Actions.interrupt_run,event)
         kill_current_task(console)
         return INTERRUPT
     end
     if doing(Actions.copy,event)
-        #warn("copying")
         signal_emit(textview, "copy-clipboard", Void)
         return INTERRUPT
     end
     if doing(Actions.paste,event)
         signal_emit(textview, "paste-clipboard", Void)
         return INTERRUPT
-    end
+    end        
 
     return PROPAGATE
 end
@@ -430,6 +433,8 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
 
     firstpart = cmd[1:i-1]
     cmd = cmd[i:j]
+    
+    isempty(cmd) && return
 
     if ctx == :normal
         (comp,dotpos) = completions(cmd, endof(cmd))

@@ -2,6 +2,8 @@ if(myid()!=1)
     error("GtkIDE need to run on the first worker")
 end
 
+#module GtkIDE
+
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
 const REDIRECT_STDOUT = true
 
@@ -266,16 +268,4 @@ function run_tests()
     include( joinpath(Pkg.dir(),"GtkIDE","test","runtests.jl") )
 end
 
-# @schedule begin
-#     th = linspace(0,8*π,500)
-#     for i = 1:500
-#
-#         #p = text(-1,0.6, "GtkIDE.jl")
-#
-#         plot( sin(1*th*1/10+i/200).*cos((1+i/1000)*th),exp(-th/12).*sin(th),
-#             xrange=(-1.1,1.1),
-#             yrange=(-0.75,0.95)
-#         )
-#         drawnow()
-#     end
-# end
+#end#module

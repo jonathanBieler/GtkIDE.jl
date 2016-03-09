@@ -1,7 +1,15 @@
 "
-    ConsoleCommand 
+    ConsoleCommand
 
-Commands that are first executed in the console before Julia code, e.g. `cd src`"
+Commands that are first executed in the console before Julia code.
+
+- `edit filename` : open filename in the Editor. If filename does not exists it will be created instead.
+- `clc` : clear the console.
+- `pwd` : get the current working directory.
+- `cd dirname` : set the current working directory.
+- `open name` : open name with default application (e.g. `open .` opens the current directory).
+- `mkdir dirname` : make a new directory.
+"
 type ConsoleCommand
 	r::Regex
 	f::Function
@@ -51,7 +59,6 @@ add_console_command(r"^cd (.*)",(m) -> begin
 	end
 end,:file)
 add_console_command(r"^\?\s*(.*)",(m) -> begin
-
     try
         h = Symbol(m.captures[1])
         h = Base.doc(Base.Docs.Binding(
@@ -63,7 +70,26 @@ add_console_command(r"^\?\s*(.*)",(m) -> begin
         println(err)
     end
 end)
+add_console_command(r"^open (.*)",(m) -> begin
+	try
+        v = m.captures[1]
+        @windows_only begin
+            run(`cmd /c start "$v" `)
+        end
+	catch err
+		println(sprint(show,err))
+	end
+end,:file)
+add_console_command(r"^mkdir (.*)",(m) -> begin
+	try
+        v = m.captures[1]
+        mkdir(v)
+	catch err
+		println(sprint(show,err))
+	end
+end,:file)
 
+##
 function console_commands_context(cmd::AbstractString)
     for c in console_commands
         m = match(c.r,cmd)
@@ -73,7 +99,6 @@ function console_commands_context(cmd::AbstractString)
     end
     return (:normal,nothing)
 end
-
 function check_console_commands(cmd::AbstractString)
     for c in console_commands
         m = match(c.r,cmd)

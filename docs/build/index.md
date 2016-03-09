@@ -39,7 +39,14 @@ Each `Console` has an associated worker, the first `Console` runs on worker 1 al
 ConsoleCommand
 ```
 
-Commands that are first executed in the console before Julia code, e.g. `cd src`
+Commands that are first executed in the console before Julia code.
+
+  * `edit filename` : open filename in the Editor. If filename does not exists it will be created instead. 
+  * `clc` : clear the console.
+  * `pwd` : get the current working directory.
+  * `cd dirname` : set the current working directory.
+  * `open name` : open name with default application (e.g. `open .` opens the current directory).
+  * `mkdir dirname` : make a new directory.
 
 ---
 
@@ -50,7 +57,7 @@ Commands that are first executed in the console before Julia code, e.g. `cd src`
 SearchWindow <: GtkFrame
 ```
 
-Search/replace panel that pops-up at the bottom of the editor. It uses a global `GtkSourceSearchSettings` (search_settings) alongside each `EditorTab` GtkSourceSearchContext` (search_context). Each tab also store the position of the current match using `GtkTextMark`s.
+Search/replace panel that pops-up at the bottom of the editor. It uses a global `GtkSourceSearchSettings` (search_settings) alongside each `EditorTab` `GtkSourceSearchContext` (search_context). Each tab also store the position of the current match using `GtkTextMark`'s.
 
 ---
 
