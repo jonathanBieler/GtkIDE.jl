@@ -41,6 +41,8 @@ function filespanel_context_menu_create(t::FilesPanel)
   "activate",Void, (),false,t)
   signal_connect(filespanel_deleteItem_activate_cb, deleteItem,
   "activate",Void, (),false,t)
+  signal_connect(filespanel_renameItem_activate_cb, renameItem,
+  "activate",Void, (),false,t)
   return menu
 end
 
@@ -101,6 +103,11 @@ function path_dialog_create_file_cb(ptr::Ptr, filename)
   update!(filespanel)
   return nothing
 end
+function path_dialog_rename_file_cb(ptr::Ptr, previous_filename, filename)
+  mv(previous_filename,filename)
+  update!(filespanel)
+  return nothing
+end
 function path_dialog_filename_inserted_text(text_entry_buffer_ptr::Ptr, cursor_pos,new_text::Cstring,n_chars,data)
   path = data[1]
   delete_signal_id = data[2]
@@ -124,27 +131,33 @@ function path_dialog_filename_deleted_text(text_entry_buffer_ptr::Ptr, cursor_po
   end
   return nothing
 end
-function show_file_path_dialog(path)
+
+function configure_text_entry_fixed_content(te, fixed, nonfixed="")
+
+  setproperty!(te, :text,string(fixed,nonfixed));
+  te = buffer(te)
+  const id_signal_insert = [Culong(0)]
+  const id_signal_delete = [Culong(0)]
+  id_signal_insert[1] = signal_connect(path_dialog_filename_inserted_text,
+  te,
+  "inserted-text",
+  Void,
+  (Cuint,Cstring,Cuint),false,(fixed,id_signal_delete))
+  id_signal_delete[1] = signal_connect(path_dialog_filename_deleted_text,
+  te,
+  "deleted-text",
+  Void,
+  (Cuint,Cuint),false,(fixed,id_signal_insert))
+end
+
+function show_file_path_dialog(action::Function,path,filename="")
   path = string(path,"/")
   b = Gtk.GtkBuilderLeaf(filename=joinpath(dirname(@__FILE__),"forms/forms.glade"))
   w = GAccessor.object(b,"DialogCreateFile")
   btn_create_file = GAccessor.object(b,"btnCreateFile")
   te_filename = GAccessor.object(b,"filename")
-  setproperty!(te_filename, :text,path);
-  te_filename_buffer = buffer(te_filename)
-  const id_signal_insert = [Culong(0)]
-  const id_signal_delete = [Culong(0)]
-  id_signal_insert[1] = signal_connect(path_dialog_filename_inserted_text,
-  te_filename_buffer,
-  "inserted-text",
-  Void,
-  (Cuint,Cstring,Cuint),false,(path,id_signal_delete))
-  id_signal_delete[1] = signal_connect(path_dialog_filename_deleted_text,
-  te_filename_buffer,
-  "deleted-text",
-  Void,
-  (Cuint,Cuint),false,(path,id_signal_insert))
-  signal_connect(path_dialog_create_file_cb,btn_create_file, "clicked",Void,(),false,(te_filename))
+  configure_text_entry_fixed_content(te_filename,path,filename)
+  signal_connect(action,btn_create_file, "clicked",Void,(),false,(te_filename))
   showall(w)
 end
 #==========#
@@ -193,8 +206,7 @@ function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
     else
       current_path = filespanel.current_path
     end
-
-    show_file_path_dialog(current_path)
+    show_file_path_dialog(path_dialog_create_file_cb,current_path)
   end
   return nothing
 end
@@ -202,6 +214,16 @@ end
 function filespanel_deleteItem_activate_cb(widgetptr::Ptr,filespanel)
   if (filespanel.current_path!=nothing)
     rm(filespanel.current_path,recursive=true)
+  end
+  return nothing
+end
+function filespanel_renameItem_activate_cb(widgetptr::Ptr,filespanel)
+  if (filespanel.current_path!=nothing)
+    base_path = dirname(filespanel.current_path)
+    resource  = filespanel.current_path[length(base_path)+2:end]
+    rename_callback = (ptr::Ptr, filename) -> path_dialog_rename_file_cb(ptr,filespanel.current_path,filename)
+
+    show_file_path_dialog(rename_callback,base_path,resource)
   end
   return nothing
 end

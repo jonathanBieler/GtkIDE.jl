@@ -31,7 +31,7 @@ end
 
 function save(w::Project)
     update!(w::Project)
-    
+
     !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
     open( joinpath(HOMEDIR,"config","project") ,"w") do io
         JSON.print(io,w)
@@ -45,7 +45,7 @@ function load(w::Project)
     if !isfile( joinpath(HOMEDIR,"config","project") )
         w.path = pwd()
         return
-    end
+    end    
     j = JSON.parsefile( joinpath(HOMEDIR,"config","project") )
     w.path = j["path"]
     w.files = j["files"]
