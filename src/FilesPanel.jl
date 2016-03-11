@@ -25,7 +25,7 @@ end
 function filespanel_context_menu_create(t::FilesPanel)
   menu = @GtkMenu(file) |>
   (changeDirectoryItem = @GtkMenuItem("Change Directory")) |>
-  (addToPathItem = @GtkMenuItem("Add to Pah")) |>
+  (addToPathItem = @GtkMenuItem("Add to Path")) |>
   @GtkSeparatorMenuItem() |>
   (newFileItem = @GtkMenuItem("New File")) |>
   (newFolderItem = @GtkMenuItem("New Folder")) |>
