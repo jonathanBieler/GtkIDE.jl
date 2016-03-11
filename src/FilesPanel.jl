@@ -3,15 +3,16 @@ type FilesPanel <: GtkScrolledWindow
   handle::Ptr{Gtk.GObject}
   list::GtkTreeStore
   tree_view::GtkTreeView
+  paste_action
   menu::GtkMenu
   current_path::AbstractString
+
   function FilesPanel()
     sc = @GtkScrolledWindow()
     (tv,list,cols) = files_tree_view(["Icon","Name"])
     push!(sc,tv)
 
-    t = new(sc.handle,list,tv);
-
+    t = new(sc.handle,list,tv,nothing);
     t.menu = filespanel_context_menu_create(t)
 
     signal_connect(filespanel_treeview_clicked_cb,tv, "button-press-event",
@@ -37,11 +38,25 @@ function filespanel_context_menu_create(t::FilesPanel)
   @GtkSeparatorMenuItem() |>
   (copyFullPathItem = @GtkMenuItem("Copy Full Path"))
 
+  signal_connect(filespanel_changeDirectoryItem_activate_cb, changeDirectoryItem,
+  "activate",Void, (),false,t)
+  signal_connect(filespanel_addToPathItem_activate_cb, addToPathItem,
+  "activate",Void, (),false,t)
   signal_connect(filespanel_newFileItem_activate_cb, newFileItem,
+  "activate",Void, (),false,t)
+  signal_connect(filespanel_newFolderItem_activate_cb, newFolderItem,
   "activate",Void, (),false,t)
   signal_connect(filespanel_deleteItem_activate_cb, deleteItem,
   "activate",Void, (),false,t)
   signal_connect(filespanel_renameItem_activate_cb, renameItem,
+  "activate",Void, (),false,t)
+  signal_connect(filespanel_copyItem_activate_cb, copyItem,
+  "activate",Void, (),false,t)
+  signal_connect(filespanel_cutItem_activate_cb, cutItem,
+  "activate",Void, (),false,t)
+  signal_connect(filespanel_pasteItem_activate_cb, pasteItem,
+  "activate",Void, (),false,t)
+  signal_connect(filespanel_copyFullPathItem_activate_cb, copyFullPathItem,
   "activate",Void, (),false,t)
   return menu
 end
@@ -224,6 +239,50 @@ function filespanel_renameItem_activate_cb(widgetptr::Ptr,filespanel)
     rename_callback = (ptr::Ptr, filename) -> path_dialog_rename_file_cb(ptr,filespanel.current_path,filename)
 
     show_file_path_dialog(rename_callback,base_path,resource)
+  end
+  return nothing
+end
+function filespanel_changeDirectoryItem_activate_cb(widgetptr::Ptr,filespanel)
+  if (filespanel.current_path!=nothing)
+    try
+        cd(filespanel.current_path)
+    catch err
+        println(string(err))
+    end
+    on_path_change()
+  end
+  return nothing
+end
+function filespanel_addToPathItem_activate_cb(widgetptr::Ptr,filespanel)
+  if (filespanel.current_path!=nothing)
+    push!(LOAD_PATH,filespanel.current_path)
+  end
+  return nothing
+end
+function filespanel_newFolderItem_activate_cb(widgetptr::Ptr,filespanel)
+  return nothing
+end
+function filespanel_copyItem_activate_cb(widgetptr::Ptr,filespanel)
+  if (filespanel.current_path!=nothing)
+     filespanel.paste_action = ("copy", filespanel.current_path)
+  end
+  return nothing
+end
+function filespanel_cutItem_activate_cb(widgetptr::Ptr,filespanel)
+  if (filespanel.current_path!=nothing)
+     filespanel.paste_action = ("cut", filespanel.current_path)
+  end
+  return nothing
+end
+function filespanel_pasteItem_activate_cb(widgetptr::Ptr,filespanel)
+  if (filespanel.paste_action != nothing) && (filespanel.current_path!=nothing)
+
+  end
+  return nothing
+end
+function filespanel_copyFullPathItem_activate_cb(widgetptr::Ptr,filespanel)
+  if (filespanel.current_path!=nothing)
+    clipboard(filespanel.current_path)
   end
   return nothing
 end
