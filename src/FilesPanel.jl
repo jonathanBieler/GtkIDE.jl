@@ -62,10 +62,26 @@ function filespanel_context_menu_create(t::FilesPanel)
 end
 
 
+
+
+
+function get_sorted_files(path)
+  sort_paths = (x,y)->        if isdir(x) && isdir(y)
+                        return x < y
+                   elseif isdir(x)
+                        return true
+                   elseif isdir(y)
+                        return false
+                   else
+                      return x < y
+                   end
+  sort(readdir(path),lt=sort_paths, by=(x)->return joinpath(path,x))
+end
+
 function update!(w::FilesPanel, path::AbstractString, parent=nothing)
   pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"folder",24,1,0)
   folder = push!(w.list,(pixbuf,basename(path),path),parent)
-  n = readdir(path)
+  n = get_sorted_files(path)
   for el in n
     full_path = joinpath(path,string(el))
     if isdir(full_path)
@@ -81,13 +97,8 @@ function update!(w::FilesPanel, path::AbstractString, parent=nothing)
 end
 
 function update!(w::FilesPanel)
-
-
-  sel_val = selected(w.tree_view,w.list)
   empty!(w.list)
   update!(w,pwd())
-
-  sel_val != nothing && select_value(w.tree_view,w.list,sel_val)
 end
 #### FILES PANEL
 function get_selected_path(treeview::GtkTreeView,list::GtkTreeStore)
@@ -113,12 +124,23 @@ function open_file(treeview::GtkTreeView,list::GtkTreeStore)
   end
 end
 #=File path menu =#
-function path_dialog_create_file_cb(ptr::Ptr, filename)
-  touch(getproperty(filename, :text, AbstractString))
+function path_dialog_create_file_cb(ptr::Ptr, te_filename)
+  #TODO check overwrite
+  filename = getproperty(te_filename, :text, AbstractString)
+  touch(filename)
+  update!(filespanel)
+  open_in_new_tab(filename)
+  return nothing
+end
+function path_dialog_create_directory_cb(ptr::Ptr, te_filename)
+  #TODO check overwrite
+  filename = getproperty(te_filename, :text, AbstractString)
+  mkdir(filename)
   update!(filespanel)
   return nothing
 end
 function path_dialog_rename_file_cb(ptr::Ptr, previous_filename, filename)
+  #TODO check overwrite
   mv(previous_filename,filename)
   update!(filespanel)
   return nothing
@@ -229,6 +251,7 @@ end
 function filespanel_deleteItem_activate_cb(widgetptr::Ptr,filespanel)
   if (filespanel.current_path!=nothing)
     rm(filespanel.current_path,recursive=true)
+    update!(filespanel)
   end
   return nothing
 end
@@ -236,9 +259,13 @@ function filespanel_renameItem_activate_cb(widgetptr::Ptr,filespanel)
   if (filespanel.current_path!=nothing)
     base_path = dirname(filespanel.current_path)
     resource  = filespanel.current_path[length(base_path)+2:end]
-    rename_callback = (ptr::Ptr, filename) -> path_dialog_rename_file_cb(ptr,filespanel.current_path,filename)
+    #TODO check overwrite
+    rename_callback = (ptr::Ptr, filename) -> begin
+                         path_dialog_rename_file_cb(ptr,filespanel.current_path,filename);
 
+                       end
     show_file_path_dialog(rename_callback,base_path,resource)
+
   end
   return nothing
 end
@@ -260,6 +287,14 @@ function filespanel_addToPathItem_activate_cb(widgetptr::Ptr,filespanel)
   return nothing
 end
 function filespanel_newFolderItem_activate_cb(widgetptr::Ptr,filespanel)
+  if (filespanel.current_path!=nothing)
+    if isfile(filespanel.current_path)
+      current_path = dirname(filespanel.current_path)
+    else
+      current_path = filespanel.current_path
+    end
+    show_file_path_dialog(path_dialog_create_directory_cb,current_path)
+  end
   return nothing
 end
 function filespanel_copyItem_activate_cb(widgetptr::Ptr,filespanel)
@@ -277,12 +312,22 @@ end
 function filespanel_pasteItem_activate_cb(widgetptr::Ptr,filespanel)
   if (filespanel.paste_action != nothing) && (filespanel.current_path!=nothing)
 
+     #TODO check overwrite
+     destination = joinpath(filespanel.current_path,basename(filespanel.paste_action[2]))
+     if (filespanel.paste_action[1]=="copy")
+         cp(filespanel.paste_action[2],destination)
+     else
+         mv(filespanel.paste_action[2],destination)
+     end
+     filespanel.paste_action=nothing
+     update!(filespanel)
   end
   return nothing
 end
 function filespanel_copyFullPathItem_activate_cb(widgetptr::Ptr,filespanel)
   if (filespanel.current_path!=nothing)
     clipboard(filespanel.current_path)
+
   end
   return nothing
 end
