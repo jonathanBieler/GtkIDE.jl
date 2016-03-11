@@ -15,7 +15,7 @@ function GtkIconThemeLoadIconForScale(iconTheme,icon_name::AbstractString, size:
 
   return pixbuf !== C_NULL
   end
-   return GdkPixbufLeaf(pixbuf)
+   return convert(GdkPixbuf,pixbuf)
 end
 
 Gtk.@Gtype GtkEntryBuffer Gtk.libgtk gtk_entry_buffer

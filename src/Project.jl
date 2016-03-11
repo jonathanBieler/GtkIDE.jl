@@ -45,7 +45,7 @@ function load(w::Project)
     if !isfile( joinpath(HOMEDIR,"config","project") )
         w.path = pwd()
         return
-    end
+    end    
     j = JSON.parsefile( joinpath(HOMEDIR,"config","project") )
     w.path = j["path"]
     w.files = j["files"]
