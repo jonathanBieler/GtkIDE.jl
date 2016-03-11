@@ -124,25 +124,32 @@ function open_file(treeview::GtkTreeView,list::GtkTreeStore)
   end
 end
 #=File path menu =#
-function path_dialog_create_file_cb(ptr::Ptr, te_filename)
+function path_dialog_create_file_cb(ptr::Ptr, data)
+  (te_filename, window) = data
   #TODO check overwrite
   filename = getproperty(te_filename, :text, AbstractString)
   touch(filename)
   update!(filespanel)
   open_in_new_tab(filename)
+  destroy(window)
   return nothing
 end
-function path_dialog_create_directory_cb(ptr::Ptr, te_filename)
+function path_dialog_create_directory_cb(ptr::Ptr, data)
+  (te_filename, window) = data
   #TODO check overwrite
   filename = getproperty(te_filename, :text, AbstractString)
   mkdir(filename)
   update!(filespanel)
+  destroy(window)
   return nothing
 end
 function path_dialog_rename_file_cb(ptr::Ptr, previous_filename, filename)
   #TODO check overwrite
+  (te_filename, window) = data
+  filename = getproperty(te_filename, :text, AbstractString)
   mv(previous_filename,filename)
   update!(filespanel)
+  destroy(window)
   return nothing
 end
 function path_dialog_filename_inserted_text(text_entry_buffer_ptr::Ptr, cursor_pos,new_text::Cstring,n_chars,data)
@@ -194,7 +201,8 @@ function show_file_path_dialog(action::Function,path,filename="")
   btn_create_file = GAccessor.object(b,"btnCreateFile")
   te_filename = GAccessor.object(b,"filename")
   configure_text_entry_fixed_content(te_filename,path,filename)
-  signal_connect(action,btn_create_file, "clicked",Void,(),false,(te_filename))
+  signal_connect(action,btn_create_file, "clicked",Void,(),false,(te_filename,w))
+
   showall(w)
 end
 #==========#
