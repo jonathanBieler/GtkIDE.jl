@@ -193,17 +193,11 @@ function collect_symbols(t::EditorTab)
                 S = [S; collect_symbols(ex)]
             end
         catch err
-
             idx = findfirst(pos .>= i)#FIXME only give us the start of the block in which the error is
             line = idx > 0 ? idx : length(pos)
 
-            @schedule begin #I'm not sure why I need a task here
-
-                println("error while parsing $(t.filename) near line $line")
-                println(err)
-                sleep(0.05)
-                new_prompt(console)#FIXME global
-            end
+            println("error while parsing $(t.filename) in expression starting at line $line")
+            println(err)
 
             break
         end
