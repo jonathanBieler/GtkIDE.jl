@@ -15,10 +15,10 @@ function update!(w::Project)
     w.path = pwd()
     w.files = Array(AbstractString,0)
     w.scroll_position = Array(AbstractFloat,0)
-    w.ntbook_idx = get_current_page_idx(ntbook)
+    w.ntbook_idx = get_current_page_idx(editor)
 
-    for i=1:length(ntbook)
-        t = get_tab(ntbook,i)
+    for i=1:length(editor)
+        t = get_tab(editor,i)
         if typeof(t) == EditorTab && t.filename != ""#in case we want to have something else in the editor
 
             adj = getproperty(t,:vadjustment, GtkAdjustment)
@@ -31,7 +31,7 @@ end
 
 function save(w::Project)
     update!(w::Project)
-    
+
     !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
     open( joinpath(HOMEDIR,"config","project") ,"w") do io
         JSON.print(io,w)
