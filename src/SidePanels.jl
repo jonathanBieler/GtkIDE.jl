@@ -3,35 +3,6 @@ function add_side_panel(w::Gtk.GtkWidget,title::AbstractString)
     push!(sidepanel_ntbook,w)
     set_tab_label_text(sidepanel_ntbook,w,title)
 end
-function files_tree_view(rownames)
-    n  = length(rownames)
-    t = (Gtk.GdkPixbuf,AbstractString, AbstractString)
-    list = @GtkTreeStore(t...)
-
-    tv = @GtkTreeView(GtkTreeModel(list))
-
-
-
-    cols = Array(GtkTreeViewColumn,0)
-
-    r1 = @GtkCellRendererPixbuf()
-    c1 = @GtkTreeViewColumn(rownames[1], r1, Dict([("pixbuf",0)]))
-    Gtk.G_.sort_column_id(c1,0)
-    push!(cols,c1)
-    Gtk.G_.max_width(c1,Int(200/n))
-    push!(tv,c1)
-
-    r2 = @GtkCellRendererText()
-    c2 = @GtkTreeViewColumn(rownames[2], r2, Dict([("text",1)]))
-    Gtk.G_.sort_column_id(c2,1)
-    push!(cols,c2)
-    Gtk.G_.max_width(c2,Int(200/n))
-    push!(tv,c2)
-
-
-
-    return (tv,list,cols)
-end
 function give_me_a_treeview(n,rownames)
 
     t = ntuple(i->AbstractString,n)

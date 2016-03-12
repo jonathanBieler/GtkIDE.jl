@@ -1,3 +1,32 @@
+function files_tree_view(rownames)
+    n  = length(rownames)
+    t = (Gtk.GdkPixbuf,AbstractString, AbstractString)
+    list = @GtkTreeStore(t...)
+
+    tv = @GtkTreeView(GtkTreeModel(list))
+
+
+
+    cols = Array(GtkTreeViewColumn,0)
+
+    r1 = @GtkCellRendererPixbuf()
+    c1 = @GtkTreeViewColumn(rownames[1], r1, Dict([("pixbuf",0)]))
+    Gtk.G_.sort_column_id(c1,0)
+    push!(cols,c1)
+    Gtk.G_.max_width(c1,Int(200/n))
+    push!(tv,c1)
+
+    r2 = @GtkCellRendererText()
+    c2 = @GtkTreeViewColumn(rownames[2], r2, Dict([("text",1)]))
+    Gtk.G_.sort_column_id(c2,1)
+    push!(cols,c2)
+    Gtk.G_.max_width(c2,Int(200/n))
+    push!(tv,c2)
+
+
+
+    return (tv,list,cols)
+end
 
 type FilesPanel <: GtkScrolledWindow
     handle::Ptr{Gtk.GObject}
