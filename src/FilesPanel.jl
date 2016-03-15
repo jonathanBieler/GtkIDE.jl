@@ -34,7 +34,7 @@ type FilesPanel <: GtkScrolledWindow
     tree_view::GtkTreeView
     paste_action
     menu::GtkMenu
-    current_path::AbstractString
+    current_iterator::GtkTreeIterator
 
     function FilesPanel()
         sc = @GtkScrolledWindow()
@@ -224,21 +224,24 @@ function configure_text_entry_fixed_content(te, fixed, nonfixed="")
     (Cuint,Cuint),false,(fixed,id_signal_insert))
 end
 
-function show_file_path_dialog(action::Function,
-                              path,
-                              button_name,
-                              filename="", params=())
-    path = string(path,"/")
-    b = Gtk.GtkBuilderLeaf(filename=joinpath(dirname(@__FILE__),"forms/forms.glade"))
-    w = GAccessor.object(b,"DialogCreateFile")
-    btn_create_file = GAccessor.object(b,"btnCreateFile")
-    setproperty!(btn_create_file,:label,button_name)
-    te_filename = GAccessor.object(b,"filename")
-    configure_text_entry_fixed_content(te_filename,path,filename)
-    signal_connect(action,btn_create_file, "clicked",Void,(),false,tuple((te_filename,w)...,params...))
-
-    showall(w)
+function file_path_dialog_create(action::Function,
+                                 current_iterator,
+                                 path::AbstractString,
+                                 filename::AbstractString="",
+                                 params=()  )
+  b = Gtk.GtkBuilderLeaf(filename=joinpath(dirname(@__FILE__),"forms/forms.glade"))
+  w = GAccessor.object(b,"DialogCreateFile")
+  te_filename = GAccessor.object(w,"filename")
+  configure_text_entry_fixed_content(te_filename,path,filename)
+  signal_connect(action,btn_create_file, "clicked",Void,(),false,tuple((te_filename,current_iterator)...,params...))
+  return w
 end
+function file_path_dialog_set_button_caption(w, caption::AbstractString)
+  btn_create_file = GAccessor.object(w,"btnCreateFile")
+  setproperty!(btn_create_file,:label,caption)
+end
+
+
 #==========#
 
 
@@ -252,8 +255,7 @@ function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespane
     if event.button == 3
         (ret,current_path) = Gtk.path_at_pos(treeview,round(Int,event.x),round(Int,event.y));
         if ret
-            (ret,current_iter) = Gtk.iter(Gtk.GtkTreeModel(filespanel.list),current_path)
-            filespanel.current_path = Gtk.getindex(filespanel.list,current_iter,3)
+            (ret,filespanel.current_iterator) = Gtk.iter(Gtk.GtkTreeModel(filespanel.list),current_path)
             showall(menu)
             popup(menu,event)
         end
@@ -279,21 +281,25 @@ function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, filespan
 end
 
 function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
-    if (filespanel.current_path!=nothing)
-        if isfile(filespanel.current_path)
-            current_path = dirname(filespanel.current_path)
-        else
-            current_path = filespanel.current_path
+    if (filespanel.current_iterator!=nothing)
+        current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
+        if isfile(current_path)
+            current_path = dirname(current_path)
         end
-        show_file_path_dialog(path_dialog_create_file_cb,current_path,"+")
+        dialog = file_path_dialog_create(path_dialog_create_file_cb,
+                                         filespanel.current_iterator,
+                                         current_path )
+        file_path_dialog_set_button_caption(dialog,"+")
+        showall(dialog)
     end
     return nothing
 end
 
 function filespanel_deleteItem_activate_cb(widgetptr::Ptr,filespanel)
-    if (filespanel.current_path!=nothing)
-        rm(filespanel.current_path,recursive=true)
-        update!(filespanel)
+    if (filespanel.current_iterator!=nothing)
+        current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
+        rm(current_path,recursive=true)
+
     end
     return nothing
 end
