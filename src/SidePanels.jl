@@ -46,19 +46,19 @@ end
 
 
 
-
+form_builder = Gtk.GtkBuilderLeaf(filename=joinpath(dirname(@__FILE__),"forms/forms.glade"))
 filespanel = FilesPanel()
 update!(filespanel)
 add_side_panel(filespanel,"Files")
 
-#FIXME I should stop all tasks when exiting
+#=#FIXME I should stop all tasks when exiting
 #this can make it crash if it runs while sorting
 @schedule begin
     while(false)
         sleep(1.0)
         update!(filespanel)
     end
-end
+end=#
 
 #### WORKSPACE PANEL
 
