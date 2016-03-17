@@ -2,6 +2,18 @@
 #include(joinpath(Pkg.dir(),"GtkIDE","src","GtkIDE.jl"))
 
 ###############
+## NON-GUI
+
+d =  ["g","ge","get","get(","α","","","α","αw","αw_","αw_1",""]
+txt_ = "get(α +αw_1)"
+for k = 1:length(d)
+
+    txt = SolidString(txt_,k)
+    i,j = select_word_backward(txt, k, false)
+    @assert txt[i:j] == d[k]
+end
+
+###############
 ## EDITOR
 
 cd(joinpath(Pkg.dir(),"GtkIDE"))

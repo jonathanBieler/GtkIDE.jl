@@ -65,8 +65,6 @@ function insert_autocomplete(s::AbstractString,itstart::GtkTextIters,itend::GtkT
         replace_text(buffer,itstart,itend,s)
     end
     if mode == :tuple
-
-
         insert!(buffer,itstart,s)
     end
 end

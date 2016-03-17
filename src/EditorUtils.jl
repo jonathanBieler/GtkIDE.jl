@@ -3,6 +3,31 @@ extension(f::AbstractString) = splitext(f)[2]
 ######################
 ## WORD BREAKING
 
+immutable SolidString
+    c::Array{Char,1}
+    function SolidString(s::AbstractString,l::Integer)
+        l > length(s) && error("Offset larger than string length.")
+
+        c = Array(Char,0)
+        i = start(s)
+        count = 0
+        while !done(s,i) && count < l
+            push!(c,s[i])
+            (k,i) = next(s,i)
+            count +=1
+        end
+        new(c)
+    end
+    SolidString(s::AbstractString) = SolidString(s,length(s))
+end
+
+import Base.length
+length(s::SolidString) = length(s.c)
+
+import Base.getindex
+getindex(s::SolidString,i::Integer) = s.c[i]
+getindex(s::SolidString,i::UnitRange) = string(s.c[i]...)
+
 # maybe not the most efficient way of doing this.
 const _word_bounardy = [' ', '\n','\t','(',')','[',']',',','\'',
                        '*','+','/','\\','%','{','}','#',':',
@@ -10,7 +35,6 @@ const _word_bounardy = [' ', '\n','\t','(',')','[',']',',','\'',
 const _word_bounardy_dot = [_word_bounardy; '.']#include dot in function of the context
 
 function is_word_boundary(s::Char,include_dot::Bool)
-
     w = include_dot ? _word_bounardy_dot : _word_bounardy
     for c in w
         s == c && return true
@@ -18,8 +42,7 @@ function is_word_boundary(s::Char,include_dot::Bool)
     false
 end
 
-function extend_word_backward(it::Integer,txt::AbstractString,include_dot::Bool)
-
+function extend_word_backward(it::Integer,txt::SolidString,include_dot::Bool)
     it <= 1 && return 1
 
     while !is_word_boundary(txt[it],include_dot)
@@ -29,7 +52,6 @@ function extend_word_backward(it::Integer,txt::AbstractString,include_dot::Bool)
     return it+1 #I stopped at the boundary
 end
 function extend_word_forward(it::Integer,txt::AbstractString,include_dot::Bool)
-
     it >= length(txt) && return length(txt)
 
     while !is_word_boundary(txt[it],include_dot)
@@ -75,6 +97,7 @@ function select_word_backward(it::GtkTextIter,buffer::GtkTextBuffer,include_dot:
         GtkTextIter(buffer,offset(it)))
     end
 
+    txt = SolidString(txt,pos)
     (i,j) = select_word_backward(txt,pos,include_dot)
 
     its = GtkTextIter(buffer, i + offset(line_start) )
@@ -82,7 +105,7 @@ function select_word_backward(it::GtkTextIter,buffer::GtkTextBuffer,include_dot:
 
     return (txt[i:j],its,it)
 end
-function select_word_backward(txt::AbstractString,pos::Integer,include_dot::Bool)
+function select_word_backward(txt::SolidString,pos::Integer,include_dot::Bool)
 
     j = pos
     #allow for autocomplete on functions
@@ -96,8 +119,12 @@ function select_word_backward(txt::AbstractString,pos::Integer,include_dot::Bool
 
     return (i,j)
 end
+select_word_backward(txt::AbstractString,pos::Integer,include_dot::Bool) = 
+select_word_backward(SolidString(txt,pos),pos,include_dot)
 
-##
+
+######################
+## Utility functions
 
 function select_tuple(it::GtkTextIter,buffer::GtkTextBuffer)
 
@@ -120,10 +147,10 @@ end
 function text_iter_line_start(it::GtkTextIter)
 
     b = getbuffer(it)
-    (txt, line_start, line_end) = get_line_text(b,it)        
+    (txt, line_start, line_end) = get_line_text(b,it)
     i = lstrip_idx(txt)
     i > length(txt) && return it
-    
+
     return GtkTextIter(b, offset(line_start) + i)
 end
 
@@ -139,8 +166,6 @@ function lstrip_idx(s::AbstractString, chars::Base.Chars=Base._default_delims)
     i
 end
 
-
-## Utility functions
 
 get_buffer(view::GtkTextView) = getproperty(view,:buffer,GtkTextBuffer)
 cursor_position(b::GtkTextBuffer) = getproperty(b,:cursor_position,Int)
