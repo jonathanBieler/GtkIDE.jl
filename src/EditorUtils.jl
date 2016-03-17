@@ -72,7 +72,8 @@ function select_word(it::GtkTextIter,buffer::GtkTextBuffer,include_dot::Bool)#in
         GtkTextIter(buffer,offset(it)))
     end
 
-    i = extend_word_backward(pos,txt,include_dot)
+    stxt = SolidString(txt)#this is a bit of a mess
+    i = extend_word_backward(pos,stxt,include_dot)
     j = extend_word_forward(pos,txt,include_dot)
 
     if j < length(txt) && txt[j+1] == '!' #allow for a single ! at the end of words
@@ -98,14 +99,14 @@ function select_word_backward(it::GtkTextIter,buffer::GtkTextBuffer,include_dot:
     end
 
     txt = SolidString(txt,pos)
-    (i,j) = select_word_backward(txt,pos,include_dot)
+    (i,j) = select_word_backward(pos,txt,include_dot)
 
     its = GtkTextIter(buffer, i + offset(line_start) )
     ite = GtkTextIter(buffer, offset(it))
 
     return (txt[i:j],its,it)
 end
-function select_word_backward(txt::SolidString,pos::Integer,include_dot::Bool)
+function select_word_backward(pos::Integer,txt::SolidString,include_dot::Bool)
 
     j = pos
     #allow for autocomplete on functions
@@ -119,8 +120,8 @@ function select_word_backward(txt::SolidString,pos::Integer,include_dot::Bool)
 
     return (i,j)
 end
-select_word_backward(txt::AbstractString,pos::Integer,include_dot::Bool) = 
-select_word_backward(SolidString(txt,pos),pos,include_dot)
+select_word_backward(pos::Integer,txt::AbstractString,include_dot::Bool) =
+select_word_backward(pos,SolidString(txt,pos),include_dot)
 
 
 ######################

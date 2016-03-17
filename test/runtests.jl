@@ -9,7 +9,7 @@ txt_ = "get(α +αw_1)"
 for k = 1:length(d)
 
     txt = SolidString(txt_,k)
-    i,j = select_word_backward(txt, k, false)
+    i,j = select_word_backward(k,txt,false)
     @assert txt[i:j] == d[k]
 end
 
@@ -19,13 +19,13 @@ end
 cd(joinpath(Pkg.dir(),"GtkIDE"))
 update_pathEntry()
 
-sleep_time = 0.5 
+sleep_time = 0.2
 sleep(0.5)#time for loading
 open_in_new_tab(joinpath("test","testfile.jl"))
 sleep(0.5)#time for loading
 
 t = get_current_tab()
-buffer = t.buffer
+b = t.buffer
 #some helper functions
 function goto_line(buffer::GtkTextBuffer,line::Integer)
 
@@ -41,19 +41,19 @@ end
 function _test_completion_232_(x::Int64, y::Float64)
 end
 
-goto_line(buffer,1)
+goto_line(b,1)
     sleep(sleep_time)
-run_line(console, buffer)
+run_line(console, b)
     sleep(sleep_time)
 
 @assert x == 2
 
-goto_line(buffer,2)
-to_line_end(buffer)
+goto_line(b,2)
+to_line_end(b)
 editor_autocomplete(t.view,t)
 sleep(0.1)
 
-(txt,its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer) )
+(txt,its,ite) = get_line_text(b, get_text_iter_at_cursor(b) )
 
 @assert txt == "_test_completion_232_"
 

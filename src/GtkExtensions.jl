@@ -347,6 +347,4 @@ function buffer(entry::Gtk.GtkEntry)
 end
 
 
-
-
 #end#module

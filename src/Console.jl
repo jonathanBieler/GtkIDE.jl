@@ -429,7 +429,7 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
     pos > length(cmd) && return
 
     scmd = SolidString(cmd)
-    (i,j) = select_word_backward(scmd,pos,false)
+    (i,j) = select_word_backward(pos,scmd,false)
     (ctx, m) = console_commands_context(cmd)
 
     firstpart = scmd[1:i-1]
