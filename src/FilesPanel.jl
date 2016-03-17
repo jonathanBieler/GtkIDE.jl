@@ -113,7 +113,6 @@ function create_treestore_file_item(path::AbstractString,filename::AbstractStrin
   return (pixbuf,filename, joinpath(path,filename))
 end
 function add_file(list::GtkTreeStore,path::AbstractString,filename::AbstractString, parent=nothing)
-
   return push!(list,create_treestore_file_item(path,filename),parent)
 end
 function add_folder(list::GtkTreeStore,path::AbstractString, parent=nothing)
@@ -121,19 +120,23 @@ function add_folder(list::GtkTreeStore,path::AbstractString, parent=nothing)
   return push!(list,(pixbuf,basename(path),path),parent)
 end
 function update!(w::FilesPanel, path::AbstractString, parent=nothing)
-  folder = add_folder(w.list,path,parent)
-  n = get_sorted_files(path)
-  for el in n
-    full_path = joinpath(path,string(el))
-    if isdir(full_path)
-      update!(w,full_path, folder )
+    if isdir(path)
+        folder = add_folder(w.list,path,parent)
+        n = get_sorted_files(path)
+        for el in n
+            full_path = joinpath(path,string(el))
+            if isdir(full_path)
+                update!(w,full_path, folder )
+            else
+                file_parts = splitext(el)
+                if  (file_parts[2]==".jl")
+                    add_file(w.list,path,el,folder)
+                end
+            end
+        end
     else
-      file_parts = splitext(el)
-      if  (file_parts[2]==".jl")
-        add_file(w.list,path,el,folder)
-      end
+        add_file(w.list,dirname(path),basename(path),parent)
     end
-  end
 end
 
 function update!(w::FilesPanel)
@@ -313,11 +316,11 @@ function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
 end
 
 function filespanel_deleteItem_activate_cb(widgetptr::Ptr,filespanel)
-  #=if (filespanel.current_iterator!=nothing)
-  current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
-  rm(current_path,recursive=true)
-
-end=#
+  if (filespanel.current_iterator!=nothing)
+    current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
+    delete!(filespanel.list,filespanel.current_iterator)
+    rm(current_path,recursive=true)
+  end
 return nothing
 end
 
@@ -397,13 +400,17 @@ function filespanel_cutItem_activate_cb(widgetptr::Ptr,filespanel)
 end
 function filespanel_pasteItem_activate_cb(widgetptr::Ptr,filespanel)
   #TODO check overwrite
-  if (filespanel.paste_action != nothing) && (filespanel.current_path!=nothing)
-      destination = joinpath(filespanel.current_path,basename(filespanel.paste_action[2]))
+  if (filespanel.paste_action != nothing) && (filespanel.current_iterator!=nothing)
+      current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
+      destination = joinpath(current_path,basename(filespanel.paste_action[2]))
       if (filespanel.paste_action[1]=="copy")
           cp(filespanel.paste_action[2],destination)
       else
           mv(filespanel.paste_action[2],destination)
+          delete!(filespanel.list, filespanel.current_iterator)
       end
+      update!(filespanel, destination,filespanel.current_iterator)
+      filespanel.current_iterator  = nothing
       filespanel.paste_action=nothing
   end
   return nothing
