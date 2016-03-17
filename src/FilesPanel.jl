@@ -194,10 +194,11 @@ function path_dialog_rename_file_cb(ptr::Ptr,  data)
   current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
   filename = getproperty(te_filename, :text, AbstractString)
   mv(current_path,filename)
-  Gtk.tree_store_set_values(filespanel.list,
-  Gtk.mutable(filespanel.current_iterator),
-  create_treestore_file_item(dirname(filename),basename(filename)) )
-
+  #TODO: Currently i'm treating the rename action like a move action
+  #      perhaps it would be nicer if only we change the third field
+  #      of every child of the element renamed
+  delete!(filespanel.list, filespanel.current_iterator)
+  update!(filespanel, destination,filespanel.current_iterator)
 
   destroy(filespanel.dialog)
   filespanel.dialog=nothing
