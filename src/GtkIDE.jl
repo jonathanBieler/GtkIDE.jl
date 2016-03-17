@@ -77,6 +77,8 @@ if editor.sourcemap == nothing
     editor.sourcemap = @GtkBox(:v)
 end
 
+GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(HOMEDIR,"../icons/"))
+
 ##
 menubar = @GtkMenuBar() |>
     (file = @GtkMenuItem("_File"))

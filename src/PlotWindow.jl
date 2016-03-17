@@ -8,7 +8,6 @@ function Immerse.figure(;name::AbstractString="Figure $(Immerse.nextfig(Immerse.
                  height::Integer=400)
                  
     i = Immerse.nextfig(Immerse._display)
-
     f = Immerse.Figure()
     Gtk.on_signal_destroy((x...)->Immerse.dropfig(Immerse._display,i), f)
 
