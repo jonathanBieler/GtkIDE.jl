@@ -1,6 +1,6 @@
 function files_tree_view(rownames)
   n  = length(rownames)
-  t = (Gtk.GdkPixbuf,AbstractString, AbstractString)
+  t = (Gtk.GdkPixbuf,AbstractString, AbstractString, Bool)
   list = @GtkTreeStore(t...)
 
   tv = @GtkTreeView(GtkTreeModel(list))
@@ -46,9 +46,11 @@ type FilesPanel <: GtkScrolledWindow
     t.menu = filespanel_context_menu_create(t)
 
     signal_connect(filespanel_treeview_clicked_cb,tv, "button-press-event",
-    Cint, (Ptr{Gtk.GdkEvent},), false,t)
+                   Cint, (Ptr{Gtk.GdkEvent},), false,t)
     signal_connect(filespanel_treeview_keypress_cb,tv, "key-press-event",
-    Cint, (Ptr{Gtk.GdkEvent},), false,t)
+                   Cint, (Ptr{Gtk.GdkEvent},), false,t)
+    signal_connect(filespanel_treeview_row_expanded_cb,tv, "row-expanded",
+                   Void, (Ptr{Gtk.TreeIter},Ptr{Gtk.TreePath}))
     Gtk.gobject_move_ref(t,sc)
   end
 end
@@ -110,38 +112,48 @@ end
 
 function create_treestore_file_item(path::AbstractString,filename::AbstractString)
   pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"code",24,1,0)
-  return (pixbuf,filename, joinpath(path,filename))
+  return (pixbuf,filename, joinpath(path,filename), true)
+end
+function add_placeholder(list::GtkTreeStore, parent=nothing)
+  return push!(list,create_treestore_file_item("",""),parent)
 end
 function add_file(list::GtkTreeStore,path::AbstractString,filename::AbstractString, parent=nothing)
   return push!(list,create_treestore_file_item(path,filename),parent)
 end
 function add_folder(list::GtkTreeStore,path::AbstractString, parent=nothing)
   pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"folder",24,1,0)
-  return push!(list,(pixbuf,basename(path),path),parent)
+  return push!(list,(pixbuf,basename(path),path,false),parent)
 end
-function update!(w::FilesPanel, path::AbstractString, parent=nothing)
+function populate_folder(w::GtkTreeStore,folder::GtkTreeIter)
+
+  w[folder,4] = true #mark folderr as loaded
+  path        = w[folder,3]
+  n           = get_sorted_files(path)
+  for el in n
+      full_path = joinpath(path,string(el))
+      if isdir(full_path)
+          child = add_folder(w,full_path,folder)
+          add_placeholder(w,child)
+      else
+          file_parts = splitext(el)
+          if  (file_parts[2]==".jl")
+              add_file(w,path,el,folder)
+          end
+      end
+  end
+end
+function update!(w::GtkTreeStore, path::AbstractString, parent=nothing)
     if isdir(path)
-        folder = add_folder(w.list,path,parent)
-        n = get_sorted_files(path)
-        for el in n
-            full_path = joinpath(path,string(el))
-            if isdir(full_path)
-                update!(w,full_path, folder )
-            else
-                file_parts = splitext(el)
-                if  (file_parts[2]==".jl")
-                    add_file(w.list,path,el,folder)
-                end
-            end
-        end
+        folder = add_folder(w,path,parent)
+        populate_folder(w,folder)
     else
-        add_file(w.list,dirname(path),basename(path),parent)
+        add_file(w,dirname(path),basename(path),parent)
     end
 end
 
 function update!(w::FilesPanel)
   empty!(w.list)
-  update!(w,pwd())
+  update!(w.list,pwd())
 end
 #### FILES PANEL
 function get_selected_path(treeview::GtkTreeView,list::GtkTreeStore)
@@ -198,7 +210,7 @@ function path_dialog_rename_file_cb(ptr::Ptr,  data)
   #      perhaps it would be nicer if only we change the third field
   #      of every child of the element renamed
   delete!(filespanel.list, filespanel.current_iterator)
-  update!(filespanel, destination,filespanel.current_iterator)
+  update!(filespanel.list, destination,filespanel.current_iterator)
 
   destroy(filespanel.dialog)
   filespanel.dialog=nothing
@@ -266,7 +278,24 @@ function file_path_dialog_set_button_caption(w, caption::AbstractString)
   btn_create_file = GAccessor.object(form_builder,"btnCreateFile")
   setproperty!(btn_create_file,:label,caption)
 end
-
+function model(tree_view::Gtk.GtkTreeView)
+      return convert(Gtk.GtkTreeStore,ccall((:gtk_tree_view_get_model,Gtk.libgtk),Ptr{Gtk.GObject},(Ptr{Gtk.GObject},),tree_view))
+  end
+function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
+                                             iterptr::Ptr{Gtk.TreeIter},
+                                             path::Ptr{Gtk.TreePath},
+                                             data)
+    treeview        = convert(GtkTreeView,treeviewptr)
+    iter            = unsafe_load(iterptr)
+    tree_view_model = model(treeview)
+    if (!tree_view_model[iter,4])
+        child_iter = Gtk.mutable(GtkTreeIter)
+        Gtk.iter_nth_child (tree_view_model,child_iter,1)
+        delete!(tree_view_model, child_iter)
+        populate_folder(tree_view_model,iter)
+    end
+    return nothing
+end
 function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
   treeview = convert(GtkTreeView, widgetptr)
   event = convert(Gtk.GdkEvent, eventptr)
@@ -410,7 +439,7 @@ function filespanel_pasteItem_activate_cb(widgetptr::Ptr,filespanel)
           mv(filespanel.paste_action[2],destination)
           delete!(filespanel.list, filespanel.current_iterator)
       end
-      update!(filespanel, destination,filespanel.current_iterator)
+      update!(filespanel.list, destination,filespanel.current_iterator)
       filespanel.current_iterator  = nothing
       filespanel.paste_action=nothing
   end
