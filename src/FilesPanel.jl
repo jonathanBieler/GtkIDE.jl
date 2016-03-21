@@ -40,11 +40,11 @@ type FilesPanel <: GtkScrolledWindow
         t.menu = filespanel_context_menu_create(t)
 
         signal_connect(filespanel_treeview_clicked_cb,tv, "button-press-event",
-        Cint, (Ptr{Gtk.GdkEvent},), false,t)
+                       Cint, (Ptr{Gtk.GdkEvent},), false,t)
         signal_connect(filespanel_treeview_keypress_cb,tv, "key-press-event",
-        Cint, (Ptr{Gtk.GdkEvent},), false,t)
-        signal_connect(filespanel_treeview_row_expanded_cb,tv, "row-expanded",
-        Void, (Ptr{Gtk.TreeIter},Ptr{Gtk.TreePath}))
+                       Cint, (Ptr{Gtk.GdkEvent},), false,t)
+        signal_connect(filespanel_treeview_row_expanded_cb,tv, "test-expand-row",
+                       Void, (Ptr{Gtk.TreeIter},Ptr{Gtk.TreePath}))
         Gtk.gobject_move_ref(t,sc)
     end
 end
@@ -274,13 +274,7 @@ function file_path_dialog_set_button_caption(w, caption::AbstractString)
     btn_create_file = GAccessor.object(form_builder,"btnCreateFile")
     setproperty!(btn_create_file,:label,caption)
 end
-function model(tree_view::Gtk.GtkTreeView)
-    return convert(Gtk.GtkTreeStore,
-                   ccall((:gtk_tree_view_get_model, Gtk.libgtk),
-                   Ptr{Gtk.GObject},
-                  (Ptr{Gtk.GObject},),
-                  tree_view))
-end
+
 function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
                                              iterptr::Ptr{Gtk.TreeIter},
                                              path::Ptr{Gtk.TreePath},

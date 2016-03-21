@@ -352,5 +352,11 @@ function insert(store::GtkTreeStore, it::GtkTreeIter, parent::GtkTreeIter, pos::
             store,it,parent,pos)
 end
 
-
+function model(tree_view::Gtk.GtkTreeView)
+    return convert(Gtk.GtkTreeStore,
+                   ccall((:gtk_tree_view_get_model, Gtk.libgtk),
+                   Ptr{Gtk.GObject},
+                  (Ptr{Gtk.GObject},),
+                  tree_view))
+end
 #end#module
