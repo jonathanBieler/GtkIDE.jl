@@ -291,11 +291,13 @@ function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
     end
     return Cint(0)
 end
+
 function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     list = filespanel.list
     menu = filespanel.menu
+
     if event.button == 3
         (ret,current_path) = Gtk.path_at_pos(treeview,round(Int,event.x),round(Int,event.y));
         if ret
