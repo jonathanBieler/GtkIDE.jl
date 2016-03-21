@@ -44,7 +44,7 @@ type FilesPanel <: GtkScrolledWindow
         signal_connect(filespanel_treeview_keypress_cb,tv, "key-press-event",
                        Cint, (Ptr{Gtk.GdkEvent},), false,t)
         signal_connect(filespanel_treeview_row_expanded_cb,tv, "test-expand-row",
-                       Void, (Ptr{Gtk.TreeIter},Ptr{Gtk.TreePath}))
+                       Cint, (Ptr{Gtk.TreeIter},Ptr{Gtk.TreePath}))
         Gtk.gobject_move_ref(t,sc)
     end
 end
@@ -289,7 +289,7 @@ function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
         end
         populate_folder(tree_view_model,iter)
     end
-    return nothing
+    return Cint(0)
 end
 function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
     treeview = convert(GtkTreeView, widgetptr)
