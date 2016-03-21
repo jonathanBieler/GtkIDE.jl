@@ -628,12 +628,17 @@ if REDIRECT_STDOUT
     stderr = STDERR
 
     read_stdout, wr = redirect_stdout()
+    read_stderr, wre = redirect_stderr()
 
-    function watch_stdio()
+    function watch_stdout()
         @schedule watch_stream(read_stdout,console)
     end
+    function watch_stderr()
+        @schedule watch_stream(read_stderr,console)
+    end
 
-    watch_stdio_tastk = watch_stdio()
+    watch_stdout_tastk = watch_stdout()
+    watch_stderr_tastk = watch_stderr()
 
     g_timeout_add(100,print_to_console,console)
 end
@@ -646,7 +651,7 @@ function stop_console_redirect(t::Task,out,err)
     redirect_stdout(out)
     redirect_stderr(err)
 end
-##
+#
 
 
 
