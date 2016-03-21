@@ -1,6 +1,8 @@
+
+(type_folder, type_file, type_placeholder) = (1,2,3)
 function files_tree_view(rownames)
   n  = length(rownames)
-  t = (Gtk.GdkPixbuf,AbstractString, AbstractString, Bool)
+  t = (Gtk.GdkPixbuf,AbstractString, AbstractString, Bool, Int)
   list = @GtkTreeStore(t...)
 
   tv = @GtkTreeView(GtkTreeModel(list))
@@ -112,17 +114,21 @@ end
 
 function create_treestore_file_item(path::AbstractString,filename::AbstractString)
   pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"code",24,1,0)
-  return (pixbuf,filename, joinpath(path,filename), true)
+  return (pixbuf,filename, joinpath(path,filename), true, type_file)
+end
+function create_treestore_placeholder_item()
+  pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"code",24,1,0)
+  return (pixbuf,"", "", true, type_placeholder)
 end
 function add_placeholder(list::GtkTreeStore, parent=nothing)
-  return push!(list,create_treestore_file_item("",""),parent)
+  return push!(list,create_treestore_placeholder_item(),parent)
 end
 function add_file(list::GtkTreeStore,path::AbstractString,filename::AbstractString, parent=nothing)
   return push!(list,create_treestore_file_item(path,filename),parent)
 end
 function add_folder(list::GtkTreeStore,path::AbstractString, parent=nothing)
   pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"folder",24,1,0)
-  return push!(list,(pixbuf,basename(path),path,false),parent)
+  return push!(list,(pixbuf,basename(path),path,false,type_folder ),parent)
 end
 function populate_folder(w::GtkTreeStore,folder::GtkTreeIter)
 
@@ -158,7 +164,7 @@ end
 #### FILES PANEL
 function get_selected_path(treeview::GtkTreeView,list::GtkTreeStore)
   v = selected(treeview, list)
-  if v != nothing && length(v) == 3
+  if v != nothing
     return v[3]
   else
     return nothing
@@ -288,10 +294,11 @@ function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
     treeview        = convert(GtkTreeView,treeviewptr)
     iter            = unsafe_load(iterptr)
     tree_view_model = model(treeview)
-    if (!tree_view_model[iter,4])
-        child_iter = Gtk.mutable(GtkTreeIter)
-        Gtk.iter_nth_child (tree_view_model,child_iter,1)
-        delete!(tree_view_model, child_iter)
+    if (tree_view_model[iter,5]==type_folder) && (!tree_view_model[iter,4])
+        child_iter =Gtk.mutable(GtkTreeIter)
+        if Gtk.iter_nth_child (GtkTreeModel(tree_view_model),child_iter,iter,1)
+            delete!(tree_view_model, child_iter[])
+        end
         populate_folder(tree_view_model,iter)
     end
     return nothing
