@@ -76,6 +76,9 @@ add_console_command(r"^open (.*)",(m) -> begin
         @windows_only begin
             run(`cmd /c start "$v" `)
         end
+        @osx_only begin
+            run(`open $v`)
+        end
 	catch err
 		println(sprint(show,err))
 	end

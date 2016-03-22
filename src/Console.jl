@@ -322,7 +322,7 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
 
     if event.keyval == Gtk.GdkKeySyms.Tab
         #convert cursor position into index
-        pos = clamp(pos+1,1,length(cmd))
+#        pos = clamp(pos+1,1,length(cmd))
         autocomplete(console,cmd,pos)
         return INTERRUPT
     end
@@ -428,11 +428,13 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
     isempty(cmd) && return
     pos > length(cmd) && return
 
-    (i,j) = select_word_backward(cmd,pos,false)
+    scmd = SolidString(cmd)
+    (i,j) = select_word_backward(pos,scmd,false)
     (ctx, m) = console_commands_context(cmd)
 
-    firstpart = cmd[1:i-1]
-    cmd = cmd[i:j]
+    firstpart = scmd[1:i-1]
+    lastpart = j < length(scmd) ? scmd[j+1:end] : ""
+    cmd = scmd[i:j]
     
     isempty(cmd) && return
 
@@ -451,12 +453,12 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
         dotpos = 1:1
     end
 
-    update_completions(c,comp,dotpos,cmd,firstpart)
+    update_completions(c,comp,dotpos,cmd,firstpart,lastpart)
 end
 
 # cmd is the word, including dots we are trying to complete
 
-function update_completions(c::Console,comp,dotpos,cmd,firstpart)
+function update_completions(c::Console,comp,dotpos,cmd,firstpart,lastpart)
 
     isempty(comp) && return
 
@@ -485,10 +487,11 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart)
         out = prefix * comp[1]
     end
 
+    offset = length(firstpart) + length(out)#place the cursor after the newly inserted piece
     #update entry
-    out = firstpart * out
+    out = firstpart * out * lastpart
     out = remove_filename_from_methods_def(out)
-    prompt(c,out)
+    prompt(c,out,offset)
     #set_position!(console.entry,endof(out))
 
 end
@@ -625,12 +628,17 @@ if REDIRECT_STDOUT
     stderr = STDERR
 
     read_stdout, wr = redirect_stdout()
+    read_stderr, wre = redirect_stderr()
 
-    function watch_stdio()
+    function watch_stdout()
         @schedule watch_stream(read_stdout,console)
     end
+    function watch_stderr()
+        @schedule watch_stream(read_stderr,console)
+    end
 
-    watch_stdio_tastk = watch_stdio()
+    watch_stdout_tastk = watch_stdout()
+    watch_stderr_tastk = watch_stderr()
 
     g_timeout_add(100,print_to_console,console)
 end
@@ -643,7 +651,7 @@ function stop_console_redirect(t::Task,out,err)
     redirect_stdout(out)
     redirect_stderr(err)
 end
-##
+#
 
 
 
