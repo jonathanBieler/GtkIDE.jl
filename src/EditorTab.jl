@@ -600,7 +600,7 @@ function modified(t::EditorTab,v::Bool)
     else
         s = f
     end
-    set_tab_label_text(editor,t,s)
+    #set_tab_label_text(editor,t,s)
 end
 
 function tab_buffer_changed_cb(widgetptr::Ptr,user_data)

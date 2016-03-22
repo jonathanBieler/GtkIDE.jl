@@ -17,11 +17,10 @@ type Editor <: GtkNotebook
 
 
         if GtkSourceWidget.SOURCE_MAP #old linux libraries don't have GtkSourceMap
-            #sourcemap = @GtkSourceMap()
-            sourcemap=nothing
+            sourcemap = @GtkSourceMap()
             t = new(ntbook.handle,sourcemap)
         else
-            t = new(ntbook.handle,nothing)
+            t = new(ntbook.handle)
         end
         Gtk.gobject_move_ref(t, ntbook)
     end
@@ -60,24 +59,53 @@ function ntbook_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
 end
 signal_connect(ntbook_motion_notify_event_cb,editor,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
 
-function close_tab()
-    idx = get_current_page_idx(editor)
-    splice!(editor,idx)
-    set_current_page_idx(editor,max(idx-1,0))
+
+function close_tab(idx::Int)
+  splice!(editor,idx)
+  set_current_page_idx(editor,max(idx-1,0))
 end
-function close_tab(widget, tab)
-    
+close_tab() = close_tab(get_current_page_idx(editor))
+
+function close_tab_cb(btn::Ptr, data)
+   (notebook, tab) = data
+   println(page_num(notebook,tab))
+   return nothing
 end
-function set_tab_widget(editor,t,filename)
+function close_others_tab_cb(btn::Ptr,data)
+end
+function tab_clicked_cb(btn::Ptr, data)
+
+end
+
+function create_tab_menu(t)
+  menu =  @GtkMenu() |>
+  (closeTabItem = @GtkMenuItem("Close Tab")) |>
+  (closeOthersTabsItem = @GtkMenuItem("Close Others Tabs")) |>
+  (closeTabsRight = @GtkMenuItem("Close Tabs to the Right ")) |>
+  (closeAllTabs = @GtkMenuItem("Close All Tabs")) |>
+  @GtkSeparatorMenuItem() |>
+  (revealInTreeItem = @GtkMenuItem("Reveal in Tree View"))
+
+  signal_connect(close_tab_cb, closeTabItem, "clicked", Void,(),false,(editor,t))
+  #signal_connect(close_others_tab_cb, closeTabItem, "clicked", Void,(),false,(editor,t))
+  return menu
+
+end
+
+function get_tab_widget(editor,t,filename)
     layout = @GtkBox(:h)
 
+
+    #signal_connect(tab_clicked_cb, layout, "clicked",Void,(,),false)
     lbl = @GtkLabel(basename(filename))
     btn = @GtkButton("X")
-    signal_connect(close_tab, btn, "clicked", Void,(),false,t)
+    signal_connect(close_tab_cb, btn, "clicked", Void,(),false,(editor,t))
+
     push!(layout,lbl)
     push!(layout,btn)
     showall(layout)
-    Gtk.GAccessor.tab_label(editor,t,layout)
+    return layout
+
 end
 import Base.open
 function open(t::EditorTab, filename::AbstractString)
@@ -86,7 +114,7 @@ function open(t::EditorTab, filename::AbstractString)
             f = Base.open(filename)
             set_text!(t,readall(f))
             t.modified = false
-            set_tab_widget(editor,t,filename)
+            #set_tab_widget(editor,t,filename)
             #set_tab_label_text(editor,t,basename(filename))#the label get modified when inserting
         else
             f = Base.open(filename,"w")
@@ -108,11 +136,12 @@ function add_tab(filename::AbstractString)
     t.scroll_target_line = 0
 
     idx = get_current_page_idx(editor)+1
-    insert!(editor, idx, t, "Page $idx")
+    insert!(editor, idx, t, get_tab_widget(editor,t,filename),create_tab_menu(t))
+    # get_tab_widget(editor,t,filename))
     showall(editor)
     set_current_page_idx(editor,idx)
 
-    set_tab_widget(editor,t,filename)
+
 
     Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")

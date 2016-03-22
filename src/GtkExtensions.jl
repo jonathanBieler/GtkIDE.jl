@@ -201,6 +201,16 @@ get_tab(notebook::Gtk.GtkNotebook,page_num::Int) = convert(Gtk.GtkWidget,ccall((
 set_tab_label_text(notebook::Gtk.GtkNotebook,child,tab_text) = ccall((:gtk_notebook_set_tab_label_text,Gtk.libgtk),Void,(Ptr{Gtk.GObject},
 Ptr{Gtk.GObject},Ptr{UInt8}),notebook,child,tab_text)
 
+page_num(notebook::Gtk.GtkNotebook,widget) = ccall((:gtk_notebook_page_num,Gtk.libgtk),Cint,(Ptr{Gtk.GObject},
+Ptr{Gtk.GObject}),notebook,child)
+import Base.insert!   
+function insert!(w::Gtk.GtkNotebook, position::Integer, x::Union{Gtk.GtkWidget,Gtk.AbstractStringLike}, label::Union{Gtk.GtkWidget,Gtk.AbstractStringLike}, menu::Gtk.GtkWidget)
+    ccall((:gtk_notebook_insert_page_menu,libgtk), Cint,
+        (Ptr{GObject}, Ptr{Gtk.GObject}, Ptr{Gtk.GObject},Ptr{Gtk.GObject}, Cint),
+        w, x, label, menu,position-1)+1
+    w
+end
+
 ## entry
 
 function set_position!(editable::Gtk.Entry,position_)
