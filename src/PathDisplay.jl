@@ -4,7 +4,6 @@ type PathComboBox <: GtkComboBoxText
     time_last_keypress::AbstractFloat
 
     function PathComboBox()
-
         cbox = @GtkComboBoxText(true)
         entry = cbox[1]
 
@@ -20,7 +19,6 @@ function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     event = convert(Gtk.GdkEvent, eventptr)
 
     pathCBox = user_data
-
     pathCBox.time_last_keypress = time()
 
     if event.keyval == Gtk.GdkKeySyms.Return
