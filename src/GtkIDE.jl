@@ -10,6 +10,7 @@ const REDIRECT_STDOUT = true
 using Immerse
 using Gtk
 using GtkSourceWidget
+using GtkUtilities
 using JSON
 using Compat
 include("GtkExtensions.jl"); #using GtkExtenstions
@@ -20,6 +21,10 @@ if !isdefined(Base,:(showlimited))
     showlimited(io::IO,x) = show(io,x)
 else
     import Base.showlimited
+end
+if !GtkSourceWidget.SOURCE_MAP
+    macro GtkSourceMap() end
+    type GtkSourceMap end
 end
 
 import Base.REPLCompletions.completions
@@ -256,7 +261,7 @@ function restart(new_workspace=false)
         sleep(0.1)
         is_running = false
 
-        REDIRECT_STDOUT && stop_console_redirect(watch_stdio_tastk,stdout,stderr)
+        REDIRECT_STDOUT && stop_console_redirect(watch_stdout_tastk,stdout,stderr)
 
         save(project)
         win_ = win

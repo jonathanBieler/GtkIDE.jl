@@ -188,7 +188,15 @@ function collect_symbols(t::EditorTab)
         try
             (ex,i) = parse(str,i)
             if ex != nothing
-                S = [S; collect_symbols(ex)]
+                S_ = collect_symbols(ex)
+                if typeof(S_) == Array{Symbol,1}
+                    append!(S, S_)
+                elseif typeof(S_) == Symbol
+                    push!(S, S_)
+                else
+                    warn("collect_symbols didn't return an array of Symbol:")
+                    @show S_
+                end
             end
         catch err
             idx = findfirst(pos .>= i)#FIXME only give us the start of the block in which the error is
@@ -218,7 +226,7 @@ function collect_symbols(ex::Expr)
     S
 end
 collect_symbols(s::Symbol) = s
-collect_symbols(other) = nothing
+collect_symbols(other) = :nothing
 
 ##
 function complete_additional_symbols(str,S)
