@@ -7,7 +7,7 @@ include("EditorTab.jl")
 type Editor <: GtkNotebook
 
     handle::Ptr{Gtk.GObject}
-    sourcemap
+    sourcemap::GtkSourceMap
 
     function Editor()
 
@@ -15,12 +15,12 @@ type Editor <: GtkNotebook
         setproperty!(ntbook,:scrollable, true)
         setproperty!(ntbook,:enable_popup, true)
 
-        #if GtkSourceWidget.SOURCE_MAP #old linux libraries don't have GtkSourceMap
-    #        sourcemap = @GtkSourceMap()
-    #        t = new(ntbook.handle,sourcemap)
-    #    else
+        if GtkSourceWidget.SOURCE_MAP #old linux libraries don't have GtkSourceMap
+            sourcemap = @GtkSourceMap()
+            t = new(ntbook.handle,sourcemap)
+        else
             t = new(ntbook.handle,nothing)
-    #    end
+        end
         Gtk.gobject_move_ref(t, ntbook)
     end
 end
