@@ -65,11 +65,15 @@ function close_tab()
     splice!(editor,idx)
     set_current_page_idx(editor,max(idx-1,0))
 end
+function close_tab(widget, tab)
+    
+end
 function set_tab_widget(editor,t,filename)
     layout = @GtkBox(:h)
 
     lbl = @GtkLabel(basename(filename))
     btn = @GtkButton("X")
+    signal_connect(close_tab, btn, "clicked", Void,(),false,t)
     push!(layout,lbl)
     push!(layout,btn)
     showall(layout)
