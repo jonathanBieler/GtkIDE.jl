@@ -284,7 +284,7 @@ function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
     tree_view_model = model(treeview)
     if (tree_view_model[iter,5]==type_folder) && (!tree_view_model[iter,4])
         child_iter =Gtk.mutable(GtkTreeIter)
-        if Gtk.iter_nth_child (GtkTreeModel(tree_view_model),child_iter,iter,1)
+        if Gtk.iter_nth_child(GtkTreeModel(tree_view_model),child_iter,iter,1)
             delete!(tree_view_model, child_iter[])
         end
         populate_folder(tree_view_model,iter)

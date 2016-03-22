@@ -15,6 +15,7 @@ type Editor <: GtkNotebook
         setproperty!(ntbook,:scrollable, true)
         setproperty!(ntbook,:enable_popup, true)
 
+
         if GtkSourceWidget.SOURCE_MAP #old linux libraries don't have GtkSourceMap
             #sourcemap = @GtkSourceMap()
             sourcemap=nothing
@@ -64,7 +65,16 @@ function close_tab()
     splice!(editor,idx)
     set_current_page_idx(editor,max(idx-1,0))
 end
+function set_tab_widget(editor,t,filename)
+    layout = @GtkBox(:h)
 
+    lbl = @GtkLabel(basename(filename))
+    btn = @GtkButton("X")
+    push!(layout,lbl)
+    push!(layout,btn)
+    showall(layout)
+    Gtk.GAccessor.tab_label(editor,t,layout)
+end
 import Base.open
 function open(t::EditorTab, filename::AbstractString)
     try
@@ -72,7 +82,8 @@ function open(t::EditorTab, filename::AbstractString)
             f = Base.open(filename)
             set_text!(t,readall(f))
             t.modified = false
-            set_tab_label_text(editor,t,basename(filename))#the label get modified when inserting
+            set_tab_widget(editor,t,filename)
+            #set_tab_label_text(editor,t,basename(filename))#the label get modified when inserting
         else
             f = Base.open(filename,"w")
             t.modified = true
@@ -97,7 +108,7 @@ function add_tab(filename::AbstractString)
     showall(editor)
     set_current_page_idx(editor,idx)
 
-    set_tab_label_text(editor,t,basename(filename))
+    set_tab_widget(editor,t,filename)
 
     Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
