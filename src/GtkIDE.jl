@@ -22,6 +22,10 @@ if !isdefined(Base,:(showlimited))
 else
     import Base.showlimited
 end
+if !GtkSourceWidget.SOURCE_MAP
+    macro GtkSourceMap() end
+    type GtkSourceMap end
+end
 
 import Base.REPLCompletions.completions
 
