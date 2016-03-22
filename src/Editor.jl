@@ -19,7 +19,7 @@ type Editor <: GtkNotebook
             sourcemap = @GtkSourceMap()
             t = new(ntbook.handle,sourcemap)
         else
-            t = new(ntbook.handle,nothing)
+            t = new(ntbook.handle)
         end
         Gtk.gobject_move_ref(t, ntbook)
     end
