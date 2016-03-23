@@ -16,6 +16,7 @@ type EditorTab <: GtkScrolledWindow
     scroll_target::AbstractFloat
     scroll_target_line::Integer
     autocomplete_words::Array{AbstractString,1}
+    label::GtkLabel
 
     function EditorTab(filename::AbstractString)
 
@@ -600,7 +601,8 @@ function modified(t::EditorTab,v::Bool)
     else
         s = f
     end
-    #set_tab_label_text(editor,t,s)
+    setproperty!(t.label,:label,s)
+
 end
 
 function tab_buffer_changed_cb(widgetptr::Ptr,user_data)
