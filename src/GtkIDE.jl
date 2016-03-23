@@ -78,10 +78,6 @@ include("Console.jl")
 include("Editor.jl")
 include("PathDisplay.jl")
 
-if editor.sourcemap == nothing
-    editor.sourcemap = @GtkBox(:v)
-end
-
 GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(HOMEDIR,"../icons/"))
 
 ##

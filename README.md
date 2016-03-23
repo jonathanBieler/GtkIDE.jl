@@ -23,8 +23,8 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
     
 ## Usage
 
-**Warning:** make sure to backup or commit your work before editing files, as a crash could 
-wipe them out.
+**Warning:** make sure to backup or commit your work before editing files, as this editor is
+still somewhat experimental.
 
 ### Opening files
 
@@ -38,6 +38,16 @@ See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
 - `F5`: Include the current file
 - `Ctrl+Return`: Run selected code, or run code between two `## ' (like Matlab's code sections).
 - `Ctrl+Shift+Return`: Run selected code, or run current line.
+
+### Making plots
+
+Currently interactive plots are available via [Immerse.jl](https://github.com/JuliaGraphics/Immerse.jl).
+You can create new figures by typing `figure()` into the console (see Immerse documentation).
+Immerse uses [Gadfly.jl](https://github.com/dcjones/Gadfly.jl) to create plots.
+
+Since displaying images is slow in Gadly there is also an `Image` widget available.
+Use `image(randexp(500,500))` to display a matrix. Zooming on images is handled by Immerse. 
+Press `r` to reset the zoom.
 
 ### Shortcuts
 
