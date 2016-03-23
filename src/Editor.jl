@@ -13,14 +13,14 @@ type Editor <: GtkNotebook
 
         ntbook = @GtkNotebook()
         setproperty!(ntbook,:scrollable, true)
-        setproperty!(ntbook,:enable_popup, true)
+        setproperty!(ntbook,:enable_popup, false)
 
 
         if GtkSourceWidget.SOURCE_MAP #old linux libraries don't have GtkSourceMap
             sourcemap = @GtkSourceMap()
             t = new(ntbook.handle,sourcemap)
         else
-            t = new(ntbook.handle)
+            t = new(ntbook.handle,nothing)
         end
         Gtk.gobject_move_ref(t, ntbook)
     end
@@ -68,17 +68,15 @@ close_tab() = close_tab(get_current_page_idx(editor))
 
 function close_tab_cb(btn::Ptr, data)
    (notebook, tab) = data
-   println(page_num(notebook,tab))
+   num = page_num(notebook,tab)
+   close_tab(num)
    return nothing
 end
 function close_others_tab_cb(btn::Ptr,data)
 end
-function tab_clicked_cb(btn::Ptr, data)
-
-end
 
 function create_tab_menu(t)
-  menu =  @GtkMenu() |>
+  menu =  @GtkMenu(t) |>
   (closeTabItem = @GtkMenuItem("Close Tab")) |>
   (closeOthersTabsItem = @GtkMenuItem("Close Others Tabs")) |>
   (closeTabsRight = @GtkMenuItem("Close Tabs to the Right ")) |>
@@ -88,23 +86,31 @@ function create_tab_menu(t)
 
   signal_connect(close_tab_cb, closeTabItem, "clicked", Void,(),false,(editor,t))
   #signal_connect(close_others_tab_cb, closeTabItem, "clicked", Void,(),false,(editor,t))
+  showall(menu)
   return menu
 
 end
 
+function tab_clicked_cb(btn::Ptr,eventptr::Ptr, data)
+    event = convert(Gtk.GdkEvent,eventptr)
+    popup(crate_tab_menu(data),event)
+    return nothing
+end
+
 function get_tab_widget(editor,t,filename)
     layout = @GtkBox(:h)
-
-
-    #signal_connect(tab_clicked_cb, layout, "clicked",Void,(,),false)
+    event_box = @GtkEventBox()
+    push!(event_box,layout)
+    signal_connect(tab_clicked_cb, event_box, "button-press-event",Void, (Ptr{Gtk.GdkEvent},), false,t)
     lbl = @GtkLabel(basename(filename))
     btn = @GtkButton("X")
     signal_connect(close_tab_cb, btn, "clicked", Void,(),false,(editor,t))
 
+
     push!(layout,lbl)
     push!(layout,btn)
-    showall(layout)
-    return layout
+    showall(event_box)
+    return event_box
 
 end
 import Base.open
@@ -136,7 +142,7 @@ function add_tab(filename::AbstractString)
     t.scroll_target_line = 0
 
     idx = get_current_page_idx(editor)+1
-    insert!(editor, idx, t, get_tab_widget(editor,t,filename),create_tab_menu(t))
+    insert!(editor, idx, t, get_tab_widget(editor,t,filename))
     # get_tab_widget(editor,t,filename))
     showall(editor)
     set_current_page_idx(editor,idx)
