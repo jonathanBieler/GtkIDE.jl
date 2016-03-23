@@ -346,5 +346,18 @@ function buffer(entry::Gtk.GtkEntry)
     return convert(GtkEntryBuffer,ccall((:gtk_entry_get_buffer,Gtk.libgtk),Ptr{GtkEntryBuffer},(Ptr{Gtk.GObject},),entry))
 end
 
+##GtkTreeStore
+function insert(store::GtkTreeStore, it::GtkTreeIter, parent::GtkTreeIter, pos::Int)
+    ccall((:gtk_tree_store_insert, Gtk.libgtk), Void,  (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreeIter},Ptr{Gtk.GtkTreeIter},Cint),
+            store,it,parent,pos)
+end
+
+function model(tree_view::Gtk.GtkTreeView)
+    return convert(Gtk.GtkTreeStore,
+                   ccall((:gtk_tree_view_get_model, Gtk.libgtk),
+                   Ptr{Gtk.GObject},
+                  (Ptr{Gtk.GObject},),
+                  tree_view))
+end
 
 #end#module

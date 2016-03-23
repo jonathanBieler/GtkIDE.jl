@@ -62,7 +62,7 @@ update_pathEntry() = setproperty!(pathCBox.entry, :text, pwd())
 
 function init(pathCBox::PathComboBox)
 
-    setproperty!(pathCBox.entry, :widht_request, 400)
+    setproperty!(pathCBox.entry, :width_request, 400)
     
     update_pathEntry()
 
