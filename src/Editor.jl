@@ -7,7 +7,7 @@ include("EditorTab.jl")
 type Editor <: GtkNotebook
 
     handle::Ptr{Gtk.GObject}
-    sourcemap
+    sourcemap::Gtk.GtkWidget
 
     function Editor()
 
@@ -20,7 +20,8 @@ type Editor <: GtkNotebook
             sourcemap = @GtkSourceMap()
             t = new(ntbook.handle,sourcemap)
         else
-            t = new(ntbook.handle,nothing)
+            sourcemap = @GtkBox(:v)#put a dummy box instead
+            t = new(ntbook.handle,sourcemap)
         end
         Gtk.gobject_move_ref(t, ntbook)
     end
@@ -164,7 +165,7 @@ function add_tab(filename::AbstractString)
     t.scroll_target_line = 0
 
     idx = get_current_page_idx(editor)
-    (event_box,t.label) = get_tab_widget(idx, filename)    
+    (event_box,t.label) = get_tab_widget(idx, filename)
     insert!(editor, idx, t, event_box)
     showall(editor)
     set_current_page_idx(editor,idx)
