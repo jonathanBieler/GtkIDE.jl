@@ -24,6 +24,8 @@ get_default_mod_mask() = ccall((:gtk_accelerator_get_default_mod_mask , libgtk),
 
 grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr{Gtk.GObject},),w)#this should work?
 grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr{Gtk.GObject},),w)
+hide(w::Gtk.GtkWidget) = ccall((:gtk_widget_hide , libgtk),Void,(Ptr{Gtk.GObject},),w)
+
 
 ## TextIters
 

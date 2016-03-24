@@ -72,7 +72,7 @@ function close_tab_cb(btn::Ptr, tab)
     return nothing
 end
 
-@guarded (nothing) function close_other_tabs_cb(btn::Ptr,tab)
+function close_other_tabs_cb(btn::Ptr,tab)
     while Gtk.GAccessor.n_pages(editor) > 1
         if get_tab(editor,1) == tab
             splice!(editor,2)
@@ -166,11 +166,6 @@ end
 
 function add_tab(filename::AbstractString)
 
-    for t in editor.filenames
-        if t==filename
-            return nothing
-        end
-    end
     t = EditorTab(filename);
     t.scroll_target = 0.
     t.scroll_target_line = 0
