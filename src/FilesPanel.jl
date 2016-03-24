@@ -116,7 +116,7 @@ function get_sorted_files(path)
 end
 
 function create_treestore_file_item(path::AbstractString, filename::AbstractString)
-    pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"code",24,1,0)
+    pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"code",16,1,0)
     return (pixbuf,filename, joinpath(path,filename), true, type_file)
 end
 function create_treestore_placeholder_item()
@@ -194,7 +194,7 @@ function open_file(treeview::GtkTreeView,list::GtkTreeStore)
     if file != nothing && file_idx==-1
         open_in_new_tab(file)
     else
-        set_current_page_idx(editor,file_idx)        
+        set_current_page_idx(editor,file_idx)
     end
 end
 #=File path menu =#
@@ -219,7 +219,7 @@ function path_dialog_create_directory_cb(ptr::Ptr, data)
 
     return nothing
 end
-function path_dialog_rename_file_cb(ptr::Ptr,  data)
+@guarded nothing function path_dialog_rename_file_cb(ptr::Ptr,  data)
     #TODO check overwrite
     (te_filename, filespanel) = data
     current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
@@ -228,8 +228,10 @@ function path_dialog_rename_file_cb(ptr::Ptr,  data)
     #TODO: Currently i'm treating the rename action like a move action
     #      perhaps it would be nicer if only we change the third field
     #      of every child of the element renamed
+    parent_iterator = Gtk.mutable(Gtk.GtkTreeIter)
+    Gtk.iter_parent(GtkTreeModel(filespanel.list),parent_iterator, filespanel.current_iterator )
     delete!(filespanel.list, filespanel.current_iterator)
-    update!(filespanel.list, destination,filespanel.current_iterator)
+    update!(filespanel.list, filename,parent_iterator[])
     hide(filespanel.path_dialog.dialog)
 
     return nothing
@@ -398,12 +400,13 @@ end
     if (filespanel.current_iterator!=nothing)
         current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
         base_path = dirname(current_path)
-        resource  = current_path[length(base_path)+2:end]
+        resource  = basename(current_path)
         #TODO check overwrite
         configure(filespanel.path_dialog ,
                   path_dialog_rename_file_cb,
                   filespanel,
-                  current_path )
+                  base_path,
+                  resource )
         file_path_dialog_set_button_caption(filespanel.path_dialog,"Rename it")
         run(filespanel.path_dialog.dialog)
     end
