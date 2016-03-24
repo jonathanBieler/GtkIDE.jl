@@ -25,12 +25,13 @@ type FilePathDialog
   dialog::GtkDialog
   signal_insert_id::Culong
   signal_delete_id::Culong
+  btn_create_file_signal::Culong
 end
 function FilePathDialog()
     w = GAccessor.object(form_builder,"DialogCreateFile")
     Gtk.GAccessor.transient_for(w,win)
     Gtk.GAccessor.modal(w,true)
-    return FilePathDialog(w,0,0)
+    return FilePathDialog(w,0,0,0)
 end
 
 type FilesPanel <: GtkScrolledWindow
@@ -286,6 +287,7 @@ function configure(dialog::FilePathDialog,
                    params=())
   #Disconnect the Text Entry
     te_filename = GAccessor.object(form_builder,"filename")
+    btn_create_file = GAccessor.object(form_builder,"btnCreateFile")
     te = buffer(te_filename)
     if (dialog.signal_insert_id > 0)
         signal_handler_disconnect(te,dialog.signal_insert_id)
@@ -293,12 +295,17 @@ function configure(dialog::FilePathDialog,
     if (dialog.signal_delete_id > 0)
         signal_handler_disconnect(te,dialog.signal_delete_id)
     end
+    if (dialog.btn_create_file_signal > 0)
+        signal_handler_disconnect(btn_create_file,dialog.btn_create_file_signal)
+    end
     if (!endswith(path,'/'))
         path = string(path,'/')
     end
     (dialog.signal_insert_id, dialog.signal_delete_id) = configure_text_entry_fixed_content(te_filename,path,filename)
-    btn_create_file = GAccessor.object(form_builder,"btnCreateFile")
-    signal_connect(action,btn_create_file, "clicked",Void,(),false,tuple((te_filename,files_panel)...,params...))
+
+    dialog.btn_create_file_signal = signal_connect(action,btn_create_file, "clicked",
+                   Void, (),false,
+                   tuple((te_filename,files_panel)...,params...))
 end
 
 function file_path_dialog_set_button_caption(w, caption::AbstractString)
@@ -390,7 +397,7 @@ end
         resource  = current_path[length(base_path)+2:end]
         #TODO check overwrite
         configure(filespanel.path_dialog ,
-                  path_dialog_create_file_cb,
+                  path_dialog_rename_file_cb,
                   filespanel,
                   current_path )
         file_path_dialog_set_button_caption(filespanel.path_dialog,"Rename it")
@@ -434,7 +441,7 @@ function filespanel_newFolderItem_activate_cb(widgetptr::Ptr,filespanel)
             current_path = dirname(current_path)
         end
         configure(filespanel.path_dialog ,
-                  path_dialog_create_file_cb,
+                  path_dialog_create_directory_cb,
                   filespanel,
                   current_path )
         file_path_dialog_set_button_caption(filespanel.path_dialog,"+")
