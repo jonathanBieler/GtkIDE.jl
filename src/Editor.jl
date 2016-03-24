@@ -67,29 +67,35 @@ function close_tab(idx::Int)
 end
 close_tab() = close_tab(get_current_page_idx(editor))
 
-function close_tab_cb(btn::Ptr, num)
-   close_tab(num)
-   return nothing
+function close_tab_cb(btn::Ptr, tab)
+    close_tab(tab_num(editor,tab))
+    return nothing
 end
 
-function close_other_tabs_cb(btn::Ptr,idx)
-  for i =1:Gtk.GAccessor.n_pages(editor)+1
-    if (i!=idx)
-      splice!(editor,i)
+@guarded (nothing) function close_other_tabs_cb(btn::Ptr,tab)
+    while Gtk.GAccessor.n_pages(editor) > 1
+        if get_tab(editor,1) == tab
+            splice!(editor,2)
+        else
+            splice!(editor,1)
+        end
     end
-  end
+    return nothing
 end
-function close_tabs_right_cb(btn::Ptr,idx)
-  for i =idx+1:Gtk.GAccessor.n_pages(editor)+1
-      splice!(editor,i)
-  end
+function close_tabs_right_cb(btn::Ptr,tab)
+    idx = tab_num(editor,tab)
+    while (Gtk.GAccessor.n_pages(editor) > idx)
+        close_tab(idx+1)
+    end
+    return nothing
 end
-function close_all_tabs(btn::Ptr,idx)
-  for i =1:Gtk.GAccessor.n_pages(editor)+1
-      splice!(editor,i)
-  end
+function close_all_tabs(btn::Ptr,tab)
+    while (Gtk.GAccessor.n_pages(editor) > 0)
+        close_tab(1)
+    end
+    return nothing
 end
-function create_tab_menu(container, idx)
+function create_tab_menu(container, tab)
   menu =  @GtkMenu() |>
   (closeTabItem = @GtkMenuItem("Close Tab")) |>
   (closeOthersTabsItem = @GtkMenuItem("Close Others Tabs")) |>
@@ -98,38 +104,37 @@ function create_tab_menu(container, idx)
   @GtkSeparatorMenuItem() |>
   (revealInTreeItem = @GtkMenuItem("Reveal in Tree View"))
 
-  signal_connect(close_tab_cb, closeTabItem, "activate", Void,(),false,idx)
-  signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Void,(),false,idx)
-  signal_connect(close_tabs_right_cb, closeTabsRight, "activate", Void,(),false,idx)
-  signal_connect(close_all_tabs, closeAllTabs, "activate", Void,(),false,idx)
+  signal_connect(close_tab_cb, closeTabItem, "activate", Void,(),false,tab)
+  signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Void,(),false,tab)
+  signal_connect(close_tabs_right_cb, closeTabsRight, "activate", Void,(),false,tab)
+  signal_connect(close_all_tabs, closeAllTabs, "activate", Void,(),false,tab)
 
   showall(menu)
   return menu
 
 end
 
-  function tab_button_press_event_cb(event_box_ptr::Ptr,eventptr::Ptr, idx)
+  function tab_button_press_event_cb(event_box_ptr::Ptr,eventptr::Ptr, tab)
     event_box = convert(GtkEventBox, event_box_ptr)
     event     = convert(Gtk.GdkEvent,eventptr)
     if (event.button == 3)
-        popup(create_tab_menu(event_box, idx),event)
-        return 1
+        popup(create_tab_menu(event_box, tab),event)
+        return Cint(1)
     else
-        return 0
+        return Cint(0)
     end
-    return 0
-
+    return Cint(0)
 end
 
-function get_tab_widget(idx, filename)
+function get_tab_widget(tab, filename)
     layout = @GtkBox(:h)
     event_box = @GtkEventBox()
     push!(event_box,layout)
-    signal_connect(tab_button_press_event_cb, event_box, "button-press-event",Cint, (Ptr{Gtk.GdkEvent},), false,idx)
+    signal_connect(tab_button_press_event_cb, event_box, "button-press-event",Cint, (Ptr{Gtk.GdkEvent},), false,tab)
     lbl = @GtkLabel(basename(filename))
     setproperty!(lbl,:name, "filename_label")
     btn = @GtkButton("X")
-    signal_connect(close_tab_cb, btn, "clicked", Void,(),false,idx)
+    signal_connect(close_tab_cb, btn, "clicked", Void,(),false,tab)
 
 
     push!(layout,lbl)
@@ -145,6 +150,7 @@ function open(t::EditorTab, filename::AbstractString)
             f = Base.open(filename)
             set_text!(t,readall(f))
             t.modified = false
+            modified(t,t.modified)
         else
             f = Base.open(filename,"w")
             t.modified = true
@@ -160,12 +166,17 @@ end
 
 function add_tab(filename::AbstractString)
 
+    for t in editor.filenames
+        if t==filename
+            return nothing
+        end
+    end
     t = EditorTab(filename);
     t.scroll_target = 0.
     t.scroll_target_line = 0
 
     idx = get_current_page_idx(editor)
-    (event_box,t.label) = get_tab_widget(idx, filename)
+    (event_box,t.label) = get_tab_widget(t, filename)
     insert!(editor, idx, t, event_box)
     showall(editor)
     set_current_page_idx(editor,idx)

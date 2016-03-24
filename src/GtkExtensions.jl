@@ -204,7 +204,7 @@ popup_disble(notebook::Gtk.GtkNotebook) = ccall((:gtk_notebook_popup_disable ,Gt
       Void,
       (Ptr{Gtk.GObject},),
       notebook)
-function page_num(notebook::Gtk.GtkNotebook,widget)
+function tab_num(notebook::Gtk.GtkNotebook,widget)
     return ccall((:gtk_notebook_page_num,Gtk.libgtk),
           Cint,
           (Ptr{Gtk.GObject},Ptr{Gtk.GObject}),
