@@ -78,10 +78,6 @@ include("Console.jl")
 include("Editor.jl")
 include("PathDisplay.jl")
 
-if editor.sourcemap == nothing
-    editor.sourcemap = @GtkBox(:v)
-end
-
 GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(HOMEDIR,"../icons/"))
 
 ##
@@ -243,8 +239,11 @@ end
 signal_connect(editorButtonclicked_cb, editorButton, "clicked", Void, (), false)
 
 function on_path_change()
+    c_path = bytestring(Gtk.G_.active_text(pathCBox))
     update_pathEntry()
-    push!(pathCBox,pwd())
+    if pwd() != c_path
+        push!(pathCBox,pwd())
+    end
     update!(filespanel)
 end
 

@@ -7,7 +7,7 @@ include("EditorTab.jl")
 type Editor <: GtkNotebook
 
     handle::Ptr{Gtk.GObject}
-    sourcemap::GtkSourceMap
+    sourcemap::Gtk.GtkWidget
 
     function Editor()
 
@@ -19,7 +19,8 @@ type Editor <: GtkNotebook
             sourcemap = @GtkSourceMap()
             t = new(ntbook.handle,sourcemap)
         else
-            t = new(ntbook.handle)
+            sourcemap = @GtkBox(:v)#put a dummy box instead
+            t = new(ntbook.handle,sourcemap)
         end
         Gtk.gobject_move_ref(t, ntbook)
     end

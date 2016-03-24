@@ -32,6 +32,10 @@ type Image <: GtkBox
 
         i = new(b.handle,data,c)
         Gtk.gobject_move_ref(i, b)
+        
+        signal_connect(image_key_press_cb, i, "key-press-event",
+        Cint, (Ptr{Gtk.GdkEvent},), false, i)
+        i
     end
 end
 
@@ -73,6 +77,16 @@ function image(img)
     set_current_page_idx(fig_ntbook,idx)
     nothing
 end
+
+@guarded (PROPAGATE) function image_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+    i = user_data
+    event = convert(Gtk.GdkEvent, eventptr)
+    if doing(Action(keyval("r"),""),event)
+        GtkUtilities.PanZoom.zoom_reset(i.c)
+    end
+    return PROPAGATE
+end
+   
 
 Base.show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
 
