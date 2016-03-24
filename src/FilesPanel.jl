@@ -179,19 +179,22 @@ function get_selected_file(treeview::GtkTreeView,list::GtkTreeStore)
         return nothing
     end
 end
-function file_already_opened(filename)
+function file_tab_index(filename)
     for i=1:length(editor)
         t = get_tab(editor,i)
         if typeof(t) == EditorTab && t.filename == filename #in case we want to have something else in the editor
-            return true
+            return i
         end
     end
-    return false
+    return -1
 end
 function open_file(treeview::GtkTreeView,list::GtkTreeStore)
     file = get_selected_file(treeview,list)
-    if file != nothing && !file_already_opened(file)
+    file_idx = file_tab_index(file)
+    if file != nothing && file_idx==-1
         open_in_new_tab(file)
+    else
+        set_current_page_idx(editor,file_idx)        
     end
 end
 #=File path menu =#
@@ -285,7 +288,7 @@ function configure(dialog::FilePathDialog,
                    path::AbstractString,
                    filename::AbstractString="",
                    params=())
-  #Disconnect the Text Entry
+    #Disconnect the Text Entry
     te_filename = GAccessor.object(form_builder,"filename")
     btn_create_file = GAccessor.object(form_builder,"btnCreateFile")
     te = buffer(te_filename)
@@ -330,7 +333,8 @@ function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
     return Cint(0)
 end
 
-@guarded PROPAGATE function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
+
+function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     list = filespanel.list
@@ -363,7 +367,7 @@ function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, filespan
     return PROPAGATE
 end
 
- @guarded nothing function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
+function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
     if (filespanel.current_iterator != nothing)
         current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
         if isfile(current_path)
