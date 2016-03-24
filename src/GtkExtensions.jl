@@ -24,6 +24,8 @@ get_default_mod_mask() = ccall((:gtk_accelerator_get_default_mod_mask , libgtk),
 
 grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr{Gtk.GObject},),w)#this should work?
 grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr{Gtk.GObject},),w)
+hide(w::Gtk.GtkWidget) = ccall((:gtk_widget_hide , libgtk),Void,(Ptr{Gtk.GObject},),w)
+
 
 ## TextIters
 
@@ -200,6 +202,23 @@ get_tab(notebook::Gtk.GtkNotebook,page_num::Int) = convert(Gtk.GtkWidget,ccall((
 
 set_tab_label_text(notebook::Gtk.GtkNotebook,child,tab_text) = ccall((:gtk_notebook_set_tab_label_text,Gtk.libgtk),Void,(Ptr{Gtk.GObject},
 Ptr{Gtk.GObject},Ptr{UInt8}),notebook,child,tab_text)
+popup_disble(notebook::Gtk.GtkNotebook) = ccall((:gtk_notebook_popup_disable ,Gtk.libgtk),
+      Void,
+      (Ptr{Gtk.GObject},),
+      notebook)
+function tab_num(notebook::Gtk.GtkNotebook,widget)
+    return ccall((:gtk_notebook_page_num,Gtk.libgtk),
+          Cint,
+          (Ptr{Gtk.GObject},Ptr{Gtk.GObject}),
+          notebook,widget) +1
+end
+import Base.insert!
+function insert!(w::Gtk.GtkNotebook, position::Integer, x::Union{Gtk.GtkWidget,Gtk.AbstractStringLike}, label::Union{Gtk.GtkWidget,Gtk.AbstractStringLike}, menu::Gtk.GtkWidget)
+    ccall((:gtk_notebook_insert_page_menu,libgtk), Cint,
+        (Ptr{GObject}, Ptr{Gtk.GObject}, Ptr{Gtk.GObject},Ptr{Gtk.GObject}, Cint),
+        w, x, label, menu,position-1)+1
+    w
+end
 
 ## entry
 
@@ -359,5 +378,9 @@ function model(tree_view::Gtk.GtkTreeView)
                   (Ptr{Gtk.GObject},),
                   tree_view))
 end
+#GtkEventBox
+Gtk.@gtktype GtkEventBox
+GtkEventBoxLeaf() =  GtkEventBoxLeaf(ccall((:gtk_event_box_new ,libgtk), Ptr{GObject},
+        ()))
 
 #end#module
