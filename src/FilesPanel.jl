@@ -274,7 +274,7 @@ end
     touch(filename)
     update!(filespanel.list, filename, iterator)
     open_in_new_tab(filename)
-    hide(filespanel.path_dialog.dialog)
+    visible(filespanel.path_dialog.dialog,false)
 
     return nothing
 end
@@ -286,7 +286,7 @@ function path_dialog_create_directory_cb(ptr::Ptr, data)
     filename = getproperty(te_filename, :text, AbstractString)
     mkdir(filename)
     update!(filespanel.list,filename,iterator)
-    hide(filespanel.path_dialog.dialog)
+    visible(filespanel.path_dialog.dialog,false)
     return nothing
 end
 
@@ -300,7 +300,7 @@ end
     update!(filespanel.list, filename,copy_up(GtkTreeModel(filespanel.list),filespanel.current_iterator))
     delete!(filespanel.list, filespanel.current_iterator)
 
-    hide(filespanel.path_dialog.dialog)
+    visible(filespanel.path_dialog.dialog,false)
 
     return nothing
 end
