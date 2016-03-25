@@ -359,6 +359,20 @@ function insert(store::GtkTreeStore, it::GtkTreeIter, parent::GtkTreeIter, pos::
     ccall((:gtk_tree_store_insert, Gtk.libgtk), Void,  (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreeIter},Ptr{Gtk.GtkTreeIter},Cint),
             store,it,parent,pos)
 end
+## update iter pointing to nth child n in 1:nchildren)
+## return boolean
+function iter_nth_child(treeModel::Gtk.GtkTreeModel, iter::Gtk.Mutable{Gtk.GtkTreeIter}, piter, n::Int)
+  if (piter==nothing)
+    ret = ccall((:gtk_tree_model_iter_nth_child, Gtk.libgtk), Cint,
+        (Ptr{Gtk.GObject}, Ptr{GtkTreeIter}, Ptr{Gtk.GtkTreeIter}, Cint),
+        treeModel, iter, C_NULL, n - 1) # 0-based
+  else
+      ret = ccall((:gtk_tree_model_iter_nth_child, Gtk.libgtk), Cint,
+          (Ptr{Gtk.GObject}, Ptr{Gtk.GtkTreeIter}, Ptr{Gtk.GtkTreeIter}, Cint),
+          treeModel, iter, Gtk.mutable(piter), n - 1) # 0-based
+  end
+    ret != 0
+end
 
 function model(tree_view::Gtk.GtkTreeView)
     return convert(Gtk.GtkTreeStore,
