@@ -370,13 +370,27 @@ function insert(store::GtkTreeStore, it::GtkTreeIter, parent::GtkTreeIter, pos::
     ccall((:gtk_tree_store_insert, Gtk.libgtk), Void,  (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreeIter},Ptr{Gtk.GtkTreeIter},Cint),
             store,it,parent,pos)
 end
-
+#GtkTereView
 function model(tree_view::Gtk.GtkTreeView)
     return convert(Gtk.GtkTreeStore,
                    ccall((:gtk_tree_view_get_model, Gtk.libgtk),
                    Ptr{Gtk.GObject},
                   (Ptr{Gtk.GObject},),
                   tree_view))
+end
+function set_cursor_on_cell(tree_view::Gtk.GtkTreeView, path::Gtk.GtkTreePath)
+    return  ccall((:gtk_tree_view_set_cursor_on_cell , Gtk.libgtk),
+                   Void,
+                  (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreePath},Ptr{Gtk.GObject},Ptr{Gtk.GObject},Cint),
+                  tree_view,path,C_NULL,C_NULL,false)
+end
+
+#GtkTreeModel
+function foreach(model::Gtk.GtkTreeModel, f::Function, data)
+  const foreach_function = cfunction(f, Cint, (Ptr{Gtk.GObject}, Ptr{Gtk.GtkTreePath}, Ptr{Gtk.GtkTreeIter}, Ptr{Void}))
+   ccall((:gtk_tree_model_foreach, Gtk.libgtk),      Void,
+                (Ptr{Gtk.GObject},Ptr{Void}, Ptr{Void}),
+                model,foreach_function,pointer_from_objref(data))
 end
 #GtkEventBox
 Gtk.@gtktype GtkEventBox

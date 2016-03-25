@@ -95,6 +95,29 @@ function close_all_tabs(btn::Ptr,tab)
     end
     return nothing
 end
+
+function find_filename(model_ptr, path_ptr, iter_ptr, data_ptr)
+  model = convert(Gtk.GtkTreeStoreLeaf,model_ptr)
+  iter  = unsafe_load(iter_ptr)
+  path  = Gtk.GtkTreePath(path_ptr)
+  data  = unsafe_pointer_to_objref(data_ptr)
+  if model[iter,3] == data[1]
+    data[2][1] = true
+    data[2][2] = path
+    return Cint(1)
+  else
+    return Cint(0)
+  end
+
+end
+@guarded nothing function reveal_in_tree_view(btn::Ptr, tab)
+    data = [false,nothing]
+    foreach(GtkTreeModel(filespanel.list),find_filename,(tab.filename,data))
+    if data[1]
+        set_cursor_on_cell(filespanel.tree_view, data[2])
+    end
+    return nothing
+end
 function create_tab_menu(container, tab)
   menu =  @GtkMenu() |>
   (closeTabItem = @GtkMenuItem("Close Tab")) |>
@@ -108,6 +131,7 @@ function create_tab_menu(container, tab)
   signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Void,(),false,tab)
   signal_connect(close_tabs_right_cb, closeTabsRight, "activate", Void,(),false,tab)
   signal_connect(close_all_tabs, closeAllTabs, "activate", Void,(),false,tab)
+  signal_connect(reveal_in_tree_view, revealInTreeItem, "activate", Void,(),false,tab)
 
   showall(menu)
   return menu
