@@ -206,12 +206,6 @@ popup_disble(notebook::Gtk.GtkNotebook) = ccall((:gtk_notebook_popup_disable ,Gt
       Void,
       (Ptr{Gtk.GObject},),
       notebook)
-function tab_num(notebook::Gtk.GtkNotebook,widget)
-    return ccall((:gtk_notebook_page_num,Gtk.libgtk),
-          Cint,
-          (Ptr{Gtk.GObject},Ptr{Gtk.GObject}),
-          notebook,widget) +1
-end
 import Base.insert!
 function insert!(w::Gtk.GtkNotebook, position::Integer, x::Union{Gtk.GtkWidget,Gtk.AbstractStringLike}, label::Union{Gtk.GtkWidget,Gtk.AbstractStringLike}, menu::Gtk.GtkWidget)
     ccall((:gtk_notebook_insert_page_menu,libgtk), Cint,

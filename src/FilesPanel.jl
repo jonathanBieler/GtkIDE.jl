@@ -182,15 +182,18 @@ function file_already_opened(filename)
     for i=1:length(editor)
         t = get_tab(editor,i)
         if typeof(t) == EditorTab && t.filename == filename #in case we want to have something else in the editor
-            return true
+            return (true,t)
         end
     end
-    return false
+    return (false,nothing)
 end
 function open_file(treeview::GtkTreeView,list::GtkTreeStore)
     file = get_selected_file(treeview,list)
-    if file != nothing && !file_already_opened(file)
+    (is_open, tab_file )  = file_already_opened(file)
+    if file != nothing && !is_open
         open_in_new_tab(file)
+      else
+        set_current_page_idx(editor,pagenumber(editor,tab_file)+1)
     end
 end
 #=File path menu =#

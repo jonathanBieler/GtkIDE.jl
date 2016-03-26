@@ -68,7 +68,7 @@ end
 close_tab() = close_tab(get_current_page_idx(editor))
 
 function close_tab_cb(btn::Ptr, tab)
-    close_tab(tab_num(editor,tab))
+    close_tab(Gtk.pagenumber(editor,tab)+1)
     return nothing
 end
 
@@ -83,7 +83,7 @@ function close_other_tabs_cb(btn::Ptr,tab)
     return nothing
 end
 function close_tabs_right_cb(btn::Ptr,tab)
-    idx = tab_num(editor,tab)
+    idx = Gtk.pagenumber(editor,tab) +1
     while (Gtk.GAccessor.n_pages(editor) > idx)
         close_tab(idx+1)
     end
@@ -141,7 +141,8 @@ end
   function tab_button_press_event_cb(event_box_ptr::Ptr,eventptr::Ptr, tab)
     event_box = convert(GtkEventBox, event_box_ptr)
     event     = convert(Gtk.GdkEvent,eventptr)
-    if (event.button == 3)
+    mod = get_default_mod_mask()
+    if event.button == 3 || (event.button == 1 && event.state & mod == SecondaryModifer)    
         popup(create_tab_menu(event_box, tab),event)
         return Cint(1)
     else
