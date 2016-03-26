@@ -381,6 +381,12 @@ function model(tree_view::Gtk.GtkTreeView)
                   (Ptr{Gtk.GObject},),
                   tree_view))
 end
+#GtkDialog
+function response(dialog::Gtk.GtkDialog, response::Integer)
+    ccall((:gtk_dialog_response, Gtk.libgtk), Void,
+       (Ptr{Gtk.GObject}, Cint),
+       dialog,response)
 
+end
 
 #end#module
