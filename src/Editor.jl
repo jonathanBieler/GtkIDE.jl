@@ -13,7 +13,8 @@ type Editor <: GtkNotebook
 
         ntbook = @GtkNotebook()
         setproperty!(ntbook,:scrollable, true)
-        setproperty!(ntbook,:enable_popup, true)
+        setproperty!(ntbook,:enable_popup, false)
+
 
         if GtkSourceWidget.SOURCE_MAP #old linux libraries don't have GtkSourceMap
             sourcemap = @GtkSourceMap()
@@ -59,12 +60,114 @@ function ntbook_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
 end
 signal_connect(ntbook_motion_notify_event_cb,editor,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
 
-function close_tab()
-    idx = get_current_page_idx(editor)
-    splice!(editor,idx)
-    set_current_page_idx(editor,max(idx-1,0))
+
+function close_tab(idx::Int)
+  splice!(editor,idx)
+  set_current_page_idx(editor,max(idx-1,0))
+end
+close_tab() = close_tab(get_current_page_idx(editor))
+
+function close_tab_cb(btn::Ptr, tab)
+    close_tab(Gtk.pagenumber(editor,tab)+1)
+    return nothing
 end
 
+function close_other_tabs_cb(btn::Ptr,tab)
+    while Gtk.GAccessor.n_pages(editor) > 1
+        if get_tab(editor,1) == tab
+            splice!(editor,2)
+        else
+            splice!(editor,1)
+        end
+    end
+    return nothing
+end
+function close_tabs_right_cb(btn::Ptr,tab)
+    idx = Gtk.pagenumber(editor,tab) +1
+    while (Gtk.GAccessor.n_pages(editor) > idx)
+        close_tab(idx+1)
+    end
+    return nothing
+end
+function close_all_tabs(btn::Ptr,tab)
+    while (Gtk.GAccessor.n_pages(editor) > 0)
+        close_tab(1)
+    end
+    return nothing
+end
+
+function find_filename(model_ptr, path_ptr, iter_ptr, data_ptr)
+  model = convert(Gtk.GtkTreeStoreLeaf,model_ptr)
+  iter  = unsafe_load(iter_ptr)
+  path  = Gtk.GtkTreePath(path_ptr)
+  data  = unsafe_pointer_to_objref(data_ptr)
+  if model[iter,3] == data[1]
+    data[2][1] = true
+    data[2][2] = path
+    return Cint(1)
+  else
+    return Cint(0)
+  end
+
+end
+@guarded nothing function reveal_in_tree_view(btn::Ptr, tab)
+    data = [false,nothing]
+    foreach(GtkTreeModel(filespanel.list),find_filename,(tab.filename,data))
+    if data[1]
+        set_cursor_on_cell(filespanel.tree_view, data[2])
+    end
+    return nothing
+end
+function create_tab_menu(container, tab)
+  menu =  @GtkMenu() |>
+  (closeTabItem = @GtkMenuItem("Close Tab")) |>
+  (closeOthersTabsItem = @GtkMenuItem("Close Others Tabs")) |>
+  (closeTabsRight = @GtkMenuItem("Close Tabs to the Right ")) |>
+  (closeAllTabs = @GtkMenuItem("Close All Tabs")) |>
+  @GtkSeparatorMenuItem() |>
+  (revealInTreeItem = @GtkMenuItem("Reveal in Tree View"))
+
+  signal_connect(close_tab_cb, closeTabItem, "activate", Void,(),false,tab)
+  signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Void,(),false,tab)
+  signal_connect(close_tabs_right_cb, closeTabsRight, "activate", Void,(),false,tab)
+  signal_connect(close_all_tabs, closeAllTabs, "activate", Void,(),false,tab)
+  signal_connect(reveal_in_tree_view, revealInTreeItem, "activate", Void,(),false,tab)
+
+  showall(menu)
+  return menu
+
+end
+
+  function tab_button_press_event_cb(event_box_ptr::Ptr,eventptr::Ptr, tab)
+    event_box = convert(GtkEventBox, event_box_ptr)
+    event     = convert(Gtk.GdkEvent,eventptr)
+    mod = get_default_mod_mask()
+    if event.button == 3 || (event.button == 1 && event.state & mod == SecondaryModifer)    
+        popup(create_tab_menu(event_box, tab),event)
+        return Cint(1)
+    else
+        return Cint(0)
+    end
+    return Cint(0)
+end
+
+function get_tab_widget(tab, filename)
+    layout = @GtkBox(:h)
+    event_box = @GtkEventBox()
+    push!(event_box,layout)
+    signal_connect(tab_button_press_event_cb, event_box, "button-press-event",Cint, (Ptr{Gtk.GdkEvent},), false,tab)
+    lbl = @GtkLabel(basename(filename))
+    setproperty!(lbl,:name, "filename_label")
+    btn = @GtkButton("X")
+    signal_connect(close_tab_cb, btn, "clicked", Void,(),false,tab)
+
+
+    push!(layout,lbl)
+    push!(layout,btn)
+    showall(event_box)
+    return (event_box, lbl)
+
+end
 import Base.open
 function open(t::EditorTab, filename::AbstractString)
     try
@@ -72,7 +175,7 @@ function open(t::EditorTab, filename::AbstractString)
             f = Base.open(filename)
             set_text!(t,readall(f))
             t.modified = false
-            set_tab_label_text(editor,t,basename(filename))#the label get modified when inserting
+            modified(t,t.modified)
         else
             f = Base.open(filename,"w")
             t.modified = true
@@ -92,12 +195,13 @@ function add_tab(filename::AbstractString)
     t.scroll_target = 0.
     t.scroll_target_line = 0
 
-    idx = get_current_page_idx(editor)+1
-    insert!(editor, idx, t, "Page $idx")
+    idx = get_current_page_idx(editor)
+    (event_box,t.label) = get_tab_widget(t, filename)
+    insert!(editor, idx, t, event_box)
     showall(editor)
     set_current_page_idx(editor,idx)
 
-    set_tab_label_text(editor,t,basename(filename))
+
 
     Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")

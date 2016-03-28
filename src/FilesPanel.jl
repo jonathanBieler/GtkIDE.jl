@@ -26,13 +26,12 @@ type FilePathDialog
   dialog::GtkDialog
   signal_insert_id::Culong
   signal_delete_id::Culong
-  btn_create_file_signal::Culong
 end
 function FilePathDialog()
     w = GAccessor.object(form_builder,"DialogCreateFile")
     Gtk.GAccessor.transient_for(w,win)
     Gtk.GAccessor.modal(w,true)
-    return FilePathDialog(w,0,0,0)
+    return FilePathDialog(w,0,0)
 end
 
 type FilesPanel <: GtkScrolledWindow
@@ -237,6 +236,7 @@ function get_selected_file(treeview::GtkTreeView,list::GtkTreeStore)
         return nothing
     end
 end
+
 function file_tab_index(filename)
     for i=1:length(editor)
         t = get_tab(editor,i)
@@ -276,6 +276,7 @@ end
     open_in_new_tab(filename)
     visible(filespanel.path_dialog.dialog,false)
 
+
     return nothing
 end
 function path_dialog_create_directory_cb(ptr::Ptr, data)
@@ -285,8 +286,10 @@ function path_dialog_create_directory_cb(ptr::Ptr, data)
     #TODO check overwrite
     filename = getproperty(te_filename, :text, AbstractString)
     mkdir(filename)
+
     update!(filespanel.list,filename,iterator)
     visible(filespanel.path_dialog.dialog,false)
+
     return nothing
 end
 
@@ -301,6 +304,7 @@ end
     delete!(filespanel.list, filespanel.current_iterator)
 
     visible(filespanel.path_dialog.dialog,false)
+
 
     return nothing
 end
@@ -358,9 +362,9 @@ function configure(dialog::FilePathDialog,
                    path::AbstractString,
                    filename::AbstractString="",
                    params=())
-    #Disconnect the Text Entry
+
+  #Disconnect the Text Entry
     te_filename = GAccessor.object(form_builder,"filename")
-    btn_create_file = GAccessor.object(form_builder,"btnCreateFile")
     te = buffer(te_filename)
     if (dialog.signal_insert_id > 0)
         signal_handler_disconnect(te,dialog.signal_insert_id)
@@ -368,17 +372,11 @@ function configure(dialog::FilePathDialog,
     if (dialog.signal_delete_id > 0)
         signal_handler_disconnect(te,dialog.signal_delete_id)
     end
-    if (dialog.btn_create_file_signal > 0)
-        signal_handler_disconnect(btn_create_file,dialog.btn_create_file_signal)
-    end
+
     if (!endswith(path,'/'))
         path = string(path,'/')
     end
     (dialog.signal_insert_id, dialog.signal_delete_id) = configure_text_entry_fixed_content(te_filename,path,filename)
-
-    dialog.btn_create_file_signal = signal_connect(action,btn_create_file, "clicked",
-                   Void, (),false,
-                   tuple((te_filename,files_panel)...,params...))
 end
 
 function file_path_dialog_set_button_caption(w, caption::AbstractString)
@@ -405,6 +403,7 @@ end
 
 
 function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
+
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     list = filespanel.list
@@ -437,7 +436,8 @@ function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, filespan
     return PROPAGATE
 end
 
-function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
+ function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
+
     if (filespanel.current_iterator != nothing)
         current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
         if isfile(current_path)
@@ -475,6 +475,7 @@ end
                   filespanel,
                   base_path,
                   resource )
+
         file_path_dialog_set_button_caption(filespanel.path_dialog,"Rename it")
         run(filespanel.path_dialog.dialog)
     end
