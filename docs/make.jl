@@ -1,4 +1,4 @@
-using Lapidary
+using Documenter
 
 makedocs()
 
