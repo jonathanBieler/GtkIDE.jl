@@ -463,8 +463,15 @@ end
         return INTERRUPT
     end
     if doing(Actions.delete_line,event)
-        (cmd, itstart, itend) = get_current_line_text(buffer)
-        splice!(buffer,itstart-1:itend)
+        (found,itstart,itend) = selection_bounds(buffer)
+        if found
+            itstart = text_iter_line_start(nonmutable(buffer,itstart))#FIXME need a mutable version
+            !getproperty(itend,:ends_line,Bool) && text_iter_forward_to_line_end(itend)
+            splice!(buffer,itstart-1:itend)
+        else
+            (cmd, itstart, itend) = get_current_line_text(buffer)
+            splice!(buffer,itstart-1:itend)
+        end
     end
     if doing(Actions.duplicate_line,event)
         (cmd, itstart, itend) = get_current_line_text(buffer)

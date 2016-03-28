@@ -525,6 +525,7 @@ function print_to_console(user_data)
 
     s = takebuf_string(console.stdout_buffer)
     if !isempty(s)
+        s = translate_colors(s)
         write(console,s)
     end
 
@@ -535,6 +536,16 @@ function print_to_console(user_data)
     end
 end
 #cfunction(print_to_console, Cint, Ptr{Console})
+
+#FIXME dirty hack?
+function translate_colors(s::AbstractString)
+
+    s = replace(s,"\e[1m\e[31m","* ")
+    s = replace(s,"\e[1m\e[31","* ")
+    s = replace(s,"\e[0m","")
+    s
+end
+
 
 "    free_workers()
 Returns the list of workers not linked to a `Console`"
@@ -578,7 +589,6 @@ for i=1:length(free_workers())
 end
 
 get_current_console() = get_tab(console_ntkbook,get_current_page_idx(console_ntkbook))
-
 
 function console_ntkbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
