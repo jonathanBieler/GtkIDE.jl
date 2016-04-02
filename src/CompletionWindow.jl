@@ -7,6 +7,7 @@ type CompletionWindow <: GtkWindow #FIXME not the right container?
     idx::Integer
     prefix::AbstractString
     func_names::Array{AbstractString,1}#store just the name of functions, for tuple autocomplete
+    mode::Symbol
 
     function CompletionWindow()
 
@@ -119,7 +120,6 @@ function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
             propagate = false
         end
     else
-
     end
     return propagate
 end
@@ -139,8 +139,9 @@ function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuf
     return true
 end
 
-function build_completion_window(comp,view,prefix)
+function build_completion_window(comp,view,prefix,mode::Symbol)
 
+    completion_window.mode = mode
     completion_window.content = comp
     completion_window.idx = 1
     completion_window.prefix = prefix
@@ -153,9 +154,12 @@ function build_completion_window(comp,view,prefix)
 
     showall(completion_window)
 end
+build_completion_window(comp,view,prefix) =
+build_completion_window(comp,view,prefix,:normal)
+ 
 function build_completion_window(comp,view,prefix,func_names)
     completion_window.func_names = func_names
-    build_completion_window(comp,view,prefix)
+    build_completion_window(comp,view,prefix,:tuple)
 end
 
 #############################################

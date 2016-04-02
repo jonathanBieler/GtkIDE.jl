@@ -21,10 +21,9 @@ immutable SolidString
     SolidString(s::AbstractString) = SolidString(s,length(s))
 end
 
-import Base.length
+import Base: length, getindex, endof
 length(s::SolidString) = length(s.c)
-
-import Base.getindex
+endof(s::SolidString) = length(s)
 getindex(s::SolidString,i::Integer) = s.c[i]
 getindex(s::SolidString,i::UnitRange) = string(s.c[i]...)
 

@@ -57,7 +57,7 @@ end
     global fontsize = 13
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Monaco, Consolas, Courier, monospace;
-        font-size: $(fontsize)
+        font-size: $(fontsize);
     }"""
 end
 @linux_only begin
@@ -72,6 +72,7 @@ end
 const provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 
 #Order matters
+include("ntbook_utils.jl")
 include("PlotWindow.jl")
 include("Project.jl")
 include("Console.jl")

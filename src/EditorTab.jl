@@ -181,7 +181,6 @@ function open_method(view::GtkTextView)
 end
 
 function line_to_adj_value(buffer::GtkTextBuffer,adj::GtkAdjustment,l::Integer)
-
     tot = line_count(buffer)
     scaling = getproperty(adj,:upper,AbstractFloat) -
               getproperty(adj,:page_size,AbstractFloat)
@@ -222,7 +221,6 @@ end
 end
 
 #FIXME: this should be reworked a bit with CompletionWindow code
-#FIXME: there a bug when trying to complete after π
 function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
 
     buffer = getbuffer(view)
@@ -512,7 +510,6 @@ function toggle_comment(buffer::GtkTextBuffer,it::GtkTextIter)
 end
 
 function run_code(console::Console, buffer::GtkTextBuffer)
-
     cmd = get_selected_text()
     if cmd == ""
         (found,it_start,it_end) = get_cell(buffer)
@@ -526,7 +523,6 @@ function run_code(console::Console, buffer::GtkTextBuffer)
 end
 
 function get_word_under_mouse_cursor(textview::GtkTextView)
-
     (x,y) = text_view_window_to_buffer_coords(textview,mousepos[1],mousepos[2])
     iter_end = get_iter_at_position(textview,x,y)
     buffer = getproperty(textview,:buffer,GtkTextBuffer)
@@ -603,13 +599,9 @@ function modified(t::EditorTab,v::Bool)
     f = basename(t.filename)
     f = f == "" ? "Untitled" : f
 
-    if v
-        s = f * "*"
-    else
-        s = f
-    end
-    setproperty!(t.label,:label,s)
+    s = v ? f * "*" : f
 
+    setproperty!(t.label,:label,s)
 end
 
 function tab_buffer_changed_cb(widgetptr::Ptr,user_data)

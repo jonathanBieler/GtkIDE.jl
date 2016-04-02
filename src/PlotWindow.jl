@@ -32,7 +32,7 @@ type Image <: GtkBox
 
         i = new(b.handle,data,c)
         Gtk.gobject_move_ref(i, b)
-        
+
         signal_connect(image_key_press_cb, i, "key-press-event",
         Cint, (Ptr{Gtk.GdkEvent},), false, i)
         i
@@ -86,7 +86,36 @@ end
     end
     return PROPAGATE
 end
-   
+
+@guarded (INTERRUPT) function fig_ntbook_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+    ntbook = convert(GtkNotebook, widgetptr)
+    event = convert(Gtk.GdkEvent,eventptr)
+    
+    if doing(Actions.newtab,event)
+        Immerse.figure()
+    end
+    if doing(Actions.closetab,event)
+        t = get_current_tab(ntbook)
+        if typeof(t) == Figure
+            Immerse.closefig(t.figno)
+        elseif typeof(t) == Image
+            close_tab(ntbook)
+        end
+    end
+    return PROPAGATE
+end
+signal_connect(fig_ntbook_key_press_cb,fig_ntbook, "key-press-event",Cint, (Ptr{Gtk.GdkEvent},), false)
+
+@guarded (nothing) function fig_ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
+
+    page = convert(Gtk.GtkWidget, pageptr)
+    if typeof(page) == Figure
+        Immerse.switchfig(_display, page.figno)
+    end
+    nothing
+end
+signal_connect(fig_ntbook_switch_page_cb,fig_ntbook,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
+
 
 Base.show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
 
@@ -132,8 +161,7 @@ function Immerse.closefig(i::Integer)
         if typeof(f) == Figure && f.figno == i
 
             Immerse.clear_hit(fig)
-            splice!(fig_ntbook,idx)
-            set_current_page_idx(fig_ntbook,max(idx-1,0))
+            close_tab(fig_ntbook,idx)
 
             destroy(fig)
             return

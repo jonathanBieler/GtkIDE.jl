@@ -60,10 +60,13 @@ function ntbook_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
 end
 signal_connect(ntbook_motion_notify_event_cb,editor,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
 
-
 function close_tab(idx::Int)
-  splice!(editor,idx)
-  set_current_page_idx(editor,max(idx-1,0))
+    if editor[idx].modified 
+        ok = ask_dialog("Unsaved changed, close anyway?",win)
+        !ok && return 
+    end
+    splice!(editor,idx)
+    set_current_page_idx(editor,max(idx-1,0))
 end
 close_tab() = close_tab(get_current_page_idx(editor))
 
@@ -97,19 +100,19 @@ function close_all_tabs(btn::Ptr,tab)
 end
 
 function find_filename(model_ptr, path_ptr, iter_ptr, data_ptr)
-  model = convert(Gtk.GtkTreeStoreLeaf,model_ptr)
-  iter  = unsafe_load(iter_ptr)
-  path  = Gtk.GtkTreePath(path_ptr)
-  data  = unsafe_pointer_to_objref(data_ptr)
-  if model[iter,3] == data[1]
-    data[2][1] = true
-    data[2][2] = path
-    return Cint(1)
-  else
-    return Cint(0)
-  end
-
+    model = convert(Gtk.GtkTreeStoreLeaf,model_ptr)
+    iter  = unsafe_load(iter_ptr)
+    path  = Gtk.GtkTreePath(path_ptr)
+    data  = unsafe_pointer_to_objref(data_ptr)
+    if model[iter,3] == data[1]
+        data[2][1] = true
+        data[2][2] = path
+        return Cint(1)
+    else
+        return Cint(0)
+    end
 end
+
 @guarded nothing function reveal_in_tree_view(btn::Ptr, tab)
     data = [false,nothing]
     foreach(GtkTreeModel(filespanel.list),find_filename,(tab.filename,data))
@@ -119,26 +122,25 @@ end
     return nothing
 end
 function create_tab_menu(container, tab)
-  menu =  @GtkMenu() |>
-  (closeTabItem = @GtkMenuItem("Close Tab")) |>
-  (closeOthersTabsItem = @GtkMenuItem("Close Others Tabs")) |>
-  (closeTabsRight = @GtkMenuItem("Close Tabs to the Right ")) |>
-  (closeAllTabs = @GtkMenuItem("Close All Tabs")) |>
-  @GtkSeparatorMenuItem() |>
-  (revealInTreeItem = @GtkMenuItem("Reveal in Tree View"))
+    menu =  @GtkMenu() |>
+    (closeTabItem = @GtkMenuItem("Close Tab")) |>
+    (closeOthersTabsItem = @GtkMenuItem("Close Others Tabs")) |>
+    (closeTabsRight = @GtkMenuItem("Close Tabs to the Right ")) |>
+    (closeAllTabs = @GtkMenuItem("Close All Tabs")) |>
+    @GtkSeparatorMenuItem() |>
+    (revealInTreeItem = @GtkMenuItem("Reveal in Tree View"))
 
-  signal_connect(close_tab_cb, closeTabItem, "activate", Void,(),false,tab)
-  signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Void,(),false,tab)
-  signal_connect(close_tabs_right_cb, closeTabsRight, "activate", Void,(),false,tab)
-  signal_connect(close_all_tabs, closeAllTabs, "activate", Void,(),false,tab)
-  signal_connect(reveal_in_tree_view, revealInTreeItem, "activate", Void,(),false,tab)
+    signal_connect(close_tab_cb, closeTabItem, "activate", Void,(),false,tab)
+    signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Void,(),false,tab)
+    signal_connect(close_tabs_right_cb, closeTabsRight, "activate", Void,(),false,tab)
+    signal_connect(close_all_tabs, closeAllTabs, "activate", Void,(),false,tab)
+    signal_connect(reveal_in_tree_view, revealInTreeItem, "activate", Void,(),false,tab)
 
-  showall(menu)
-  return menu
-
+    showall(menu)
+    return menu
 end
 
-  function tab_button_press_event_cb(event_box_ptr::Ptr,eventptr::Ptr, tab)
+function tab_button_press_event_cb(event_box_ptr::Ptr,eventptr::Ptr, tab)
     event_box = convert(GtkEventBox, event_box_ptr)
     event     = convert(Gtk.GdkEvent,eventptr)
     mod = get_default_mod_mask()
@@ -152,6 +154,7 @@ end
 end
 
 function get_tab_widget(tab, filename)
+
     layout = @GtkBox(:h)
     event_box = @GtkEventBox()
     push!(event_box,layout)
@@ -161,13 +164,12 @@ function get_tab_widget(tab, filename)
     btn = @GtkButton("X")
     signal_connect(close_tab_cb, btn, "clicked", Void,(),false,tab)
 
-
     push!(layout,lbl)
     push!(layout,btn)
     showall(event_box)
     return (event_box, lbl)
-
 end
+
 import Base.open
 function open(t::EditorTab, filename::AbstractString)
     try
@@ -200,8 +202,6 @@ function add_tab(filename::AbstractString)
     insert!(editor, idx, t, event_box)
     showall(editor)
     set_current_page_idx(editor,idx)
-
-
 
     Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
