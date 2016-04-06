@@ -193,10 +193,12 @@ scroll_to_iter(text_view::Gtk.GtkTextView,iter::GtkTextIters) = scroll_to_iter(t
 # notebook
 get_current_page_idx(notebook::Gtk.GtkNotebook) = ccall((:gtk_notebook_get_current_page,libgtk),Cint,
     (Ptr{Gtk.GObject},),notebook)+1
-index(notebook::GtkNotebook) = get_current_page_idx(notebook)
-
 set_current_page_idx(notebook::Gtk.GtkNotebook,page_num::Int) = ccall((:gtk_notebook_set_current_page,libgtk),Void,
     (Ptr{Gtk.GObject},Cint),notebook,page_num-1)
+    
+index(notebook::GtkNotebook) = get_current_page_idx(notebook)
+index(notebook::GtkNotebook,i::Integer) = set_current_page_idx(notebook,i)
+index(notebook::GtkNotebook, child::Gtk.GtkWidget) = pagenumber(notebook, child)+1
 
 get_tab(notebook::Gtk.GtkNotebook,page_num::Int) = convert(Gtk.GtkWidget,ccall((:gtk_notebook_get_nth_page,libgtk),Ptr{Gtk.GObject},
 	(Ptr{Gtk.GObject},Cint),notebook,page_num-1))

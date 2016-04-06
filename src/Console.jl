@@ -93,7 +93,7 @@ write(c::Console,x,set_prompt=false) = write(c,string(x),set_prompt)
 
 """
     clear(c::Console)
-    
+
     Clear the console.
 """
 function clear(c::Console)
@@ -248,7 +248,6 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
 
 
 #FIXME disable drag and drop text above cursor
-# ctrl-a to clear prompt
 @guarded (PROPAGATE) function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
@@ -298,7 +297,7 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
         end
         return PROPAGATE
     end
-    
+
     if event.keyval == Gtk.GdkKeySyms.Up
         if found
             if !before_prompt(offset(it_start))
@@ -322,7 +321,6 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
 
     if event.keyval == Gtk.GdkKeySyms.Tab
         #convert cursor position into index
-#        pos = clamp(pos+1,1,length(cmd))
         autocomplete(console,cmd,pos)
         return INTERRUPT
     end
@@ -343,7 +341,7 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
     if doing(Actions.paste,event)
         signal_emit(textview, "paste-clipboard", Void)
         return INTERRUPT
-    end        
+    end
 
     return PROPAGATE
 end
@@ -385,6 +383,17 @@ cfunction(_callback_only_for_return, Cint, (Ptr{Console},Ptr{Gtk.GdkEvent},Conso
         open_method(textview) && return INTERRUPT
     end
 
+    if rightclick(event)
+        menu = buildmenu([
+            MenuItem("Close Console",ntbook_close_tab_cb),
+            MenuItem("Add Console",add_console_cb)
+            ],
+            (console_ntkbook, get_current_console())
+        )
+        popup(menu,event)
+        return INTERRUPT
+    end
+
     return PROPAGATE
 end
 
@@ -422,7 +431,7 @@ end
 
 
 ## Auto-complete
-
+#FIXME call completions on the right worker
 function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
 
     isempty(cmd) && return
@@ -435,7 +444,7 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
     firstpart = scmd[1:i-1]
     lastpart = j < length(scmd) ? scmd[j+1:end] : ""
     cmd = scmd[i:j]
-    
+
     isempty(cmd) && return
 
     if ctx == :normal
@@ -457,7 +466,6 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
 end
 
 # cmd is the word, including dots we are trying to complete
-
 function update_completions(c::Console,comp,dotpos,cmd,firstpart,lastpart)
 
     isempty(comp) && return
@@ -480,8 +488,7 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart,lastpart)
                 out = out * "\n"
             end
         end
-        #write(c,out,true)
-        println(out)
+        write(c,out)#use write instead of print so it goes to the right console
         out = prefix * Base.LineEdit.common_prefix(comp)
     else
         out = prefix * comp[1]
@@ -576,6 +583,11 @@ function add_console()
     g_timeout_add(100,print_to_console,c)
     c
 end
+@guarded (nothing) function add_console_cb(btn::Ptr, user_data)
+    add_console()
+    return nothing
+end
+
 function first_console()
     c = Console(1)
     init(c)
@@ -588,7 +600,7 @@ for i=1:length(free_workers())
     add_console()
 end
 
-get_current_console() = get_tab(console_ntkbook,get_current_page_idx(console_ntkbook))
+get_current_console() = console_ntkbook[index(console_ntkbook)]
 
 function console_ntkbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 

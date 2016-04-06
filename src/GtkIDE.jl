@@ -72,7 +72,8 @@ end
 const provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 
 #Order matters
-include("ntbook_utils.jl")
+include("NtbookUtils.jl")
+include("MenuUtils.jl")
 include("PlotWindow.jl")
 include("Project.jl")
 include("Console.jl")
@@ -244,8 +245,8 @@ function on_path_change()
     update_pathEntry()
     if pwd() != c_path
         push!(pathCBox,pwd())
+        update!(filespanel)
     end
-    update!(filespanel)
 end
 
 init(pathCBox)#need on_path_change to be defined
@@ -260,6 +261,7 @@ function restart(new_workspace=false)
 
         REDIRECT_STDOUT && stop_console_redirect(watch_stdout_tastk,stdout,stderr)
 
+        update!(project)
         save(project)
         win_ = win
 

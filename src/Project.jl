@@ -11,7 +11,6 @@ type Project
 end
 
 function update!(w::Project)
-
     w.path = pwd()
     w.files = Array(AbstractString,0)
     w.scroll_position = Array(AbstractFloat,0)
@@ -39,7 +38,6 @@ function save(w::Project)
 end
 
 function load(w::Project)
-
     !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
 
     if !isfile( joinpath(HOMEDIR,"config","project") )

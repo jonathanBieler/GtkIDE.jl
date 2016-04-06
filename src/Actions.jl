@@ -45,6 +45,11 @@ function doing(a::Action, event::Gtk.GdkEvent)
     return (event.keyval == a.keyval) && (event.state & mod == a.state)
 end
 
+function rightclick(event)
+    mod = get_default_mod_mask()
+    return event.button == 3 || (event.button == 1 && event.state & mod == SecondaryModifer)    
+end
+
 baremodule Actions
     using Main.Action, Main.GdkModifierType, Main.keyval, Base.call, Main.Gtk, Base.+, Main.PrimaryModifier, Main.SecondaryModifer
 

@@ -7,7 +7,6 @@
 d =  ["g","ge","get","get(","α","","","α","αw","αw_","αw_1",""]
 txt_ = "get(α +αw_1)"
 for k = 1:length(d)
-
     txt = SolidString(txt_,k)
     i,j = select_word_backward(k,txt,false)
     @assert txt[i:j] == d[k]
@@ -28,7 +27,6 @@ t = get_current_tab()
 b = t.buffer
 #some helper functions
 function goto_line(buffer::GtkTextBuffer,line::Integer)
-
     it = mutable( GtkTextIter(buffer,1) )
     setproperty!(it,:line,line-1)
     text_buffer_place_cursor(buffer,it)
@@ -58,6 +56,8 @@ sleep(0.1)
 @assert txt == "_test_completion_232_"
 
 sleep(sleep_time)
+t = get_current_tab()
+t.modified = false
 close_tab()
 
 ###############

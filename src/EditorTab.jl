@@ -133,11 +133,11 @@ function hasselection(b::GtkTextBuffer)
 end
 hasselection(t::EditorTab) = hasselection(t.buffer)
 
-function get_selected_text(t::EditorTab)
+function selected_text(t::EditorTab)
     (found,it_start,it_end) = selection_bounds(t.buffer)
     return found ? text_iter_get_text(it_start,it_end) : ""
 end
-get_selected_text() = get_selected_text(get_current_tab())
+selected_text() = selected_text(get_current_tab())
 
 function open_method(view::GtkTextView)
 
@@ -309,7 +309,7 @@ end
 
 function run_line(console::Console,buffer::GtkTextBuffer)
 
-    cmd = get_selected_text()
+    cmd = selected_text()
     if cmd == ""
         (cmd, itstart, itend) = get_current_line_text(buffer)
         cmd = strip(cmd)
@@ -510,7 +510,7 @@ function toggle_comment(buffer::GtkTextBuffer,it::GtkTextIter)
 end
 
 function run_code(console::Console, buffer::GtkTextBuffer)
-    cmd = get_selected_text()
+    cmd = selected_text()
     if cmd == ""
         (found,it_start,it_end) = get_cell(buffer)
         if found

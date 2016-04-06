@@ -33,7 +33,7 @@ end
 
 const editor = Editor()
 
-get_current_tab() = get_tab(editor,get_current_page_idx(editor))
+get_current_tab() = get_tab(editor,index(editor))# remove this ?
 
 function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
@@ -66,9 +66,9 @@ function close_tab(idx::Int)
         !ok && return 
     end
     splice!(editor,idx)
-    set_current_page_idx(editor,max(idx-1,0))
+    index(editor,max(idx-1,0))
 end
-close_tab() = close_tab(get_current_page_idx(editor))
+close_tab() = close_tab(index(editor))
 
 function close_tab_cb(btn::Ptr, tab)
     close_tab(Gtk.pagenumber(editor,tab)+1)
@@ -121,14 +121,28 @@ end
     end
     return nothing
 end
+function switch_tab_cb(btn::Ptr, idx)
+    index(editor,idx)
+    return nothing
+end
 function create_tab_menu(container, tab)
+
     menu =  @GtkMenu() |>
     (closeTabItem = @GtkMenuItem("Close Tab")) |>
     (closeOthersTabsItem = @GtkMenuItem("Close Others Tabs")) |>
     (closeTabsRight = @GtkMenuItem("Close Tabs to the Right ")) |>
     (closeAllTabs = @GtkMenuItem("Close All Tabs")) |>
     @GtkSeparatorMenuItem() |>
-    (revealInTreeItem = @GtkMenuItem("Reveal in Tree View"))
+    (revealInTreeItem = @GtkMenuItem("Reveal in Tree View")) |>
+    (@GtkSeparatorMenuItem()) 
+    #show all open tabs
+    for i=1:length(editor)
+        if typeof(editor[i]) == EditorTab
+            s = @GtkMenuItem(basename(editor[i].filename))
+            push!(menu,s)
+            signal_connect(switch_tab_cb, s, "activate", Void,(),false,i)
+        end
+    end
 
     signal_connect(close_tab_cb, closeTabItem, "activate", Void,(),false,tab)
     signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Void,(),false,tab)
@@ -140,17 +154,17 @@ function create_tab_menu(container, tab)
     return menu
 end
 
-function tab_button_press_event_cb(event_box_ptr::Ptr,eventptr::Ptr, tab)
+@guarded (PROPAGATE) function tab_button_press_event_cb(event_box_ptr::Ptr,eventptr::Ptr, tab)
     event_box = convert(GtkEventBox, event_box_ptr)
     event     = convert(Gtk.GdkEvent,eventptr)
-    mod = get_default_mod_mask()
-    if event.button == 3 || (event.button == 1 && event.state & mod == SecondaryModifer)    
+    
+    if rightclick(event)
         popup(create_tab_menu(event_box, tab),event)
-        return Cint(1)
+        return INTERRUPT
     else
-        return Cint(0)
+        return PROPAGATE
     end
-    return Cint(0)
+    return PROPAGATE
 end
 
 function get_tab_widget(tab, filename)
@@ -197,11 +211,11 @@ function add_tab(filename::AbstractString)
     t.scroll_target = 0.
     t.scroll_target_line = 0
 
-    idx = get_current_page_idx(editor)
+    idx = index(editor)+1
     (event_box,t.label) = get_tab_widget(t, filename)
     insert!(editor, idx, t, event_box)
     showall(editor)
-    set_current_page_idx(editor,idx)
+    index(editor,idx)
 
     Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
@@ -211,7 +225,6 @@ function add_tab(filename::AbstractString)
     signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t)
     signal_connect(tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-
     signal_connect(tab_buffer_changed_cb,t.buffer,"changed", Void, (), false,t)
 
 #    signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint,
@@ -221,7 +234,7 @@ function add_tab(filename::AbstractString)
 
     return t
 end
-add_tab() = add_tab("Untitled")
+add_tab() = add_tab("Untitled.jl")
 
 function load_tabs(project::Project)
 
@@ -238,7 +251,7 @@ function load_tabs(project::Project)
     if length(editor)==0
         open_in_new_tab(joinpath(Pkg.dir(),"GtkIDE","README.md"))
     elseif ntbook_idx <= length(editor)
-        set_current_page_idx(editor,ntbook_idx)
+        index(editor,ntbook_idx)
     end
     t = get_current_tab()
     GtkSourceWidget.SOURCE_MAP && set_view(editor.sourcemap,t.view)
