@@ -46,7 +46,9 @@ function load(w::Project)
         w.path = pwd()
         return
     end    
+	println( joinpath(HOMEDIR,"config","project"))
     j = JSON.parsefile( joinpath(HOMEDIR,"config","project") )
+
     w.path = j["path"]
     w.files = j["files"]
     w.scroll_position = j["scroll_position"]

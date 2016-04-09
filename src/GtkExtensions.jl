@@ -394,6 +394,7 @@ function model(tree_view::Gtk.GtkTreeView)
                   (Ptr{Gtk.GObject},),
                   tree_view))
 end
+
 function set_cursor_on_cell(tree_view::Gtk.GtkTreeView, path::Gtk.GtkTreePath)
     return  ccall((:gtk_tree_view_set_cursor_on_cell , Gtk.libgtk),
                    Void,
@@ -413,5 +414,12 @@ Gtk.@gtktype GtkEventBox
 GtkEventBoxLeaf() =  GtkEventBoxLeaf(ccall((:gtk_event_box_new ,libgtk), Ptr{GObject},
         ()))
 
+#GtkDialog
+function response(dialog::Gtk.GtkDialog, response::Integer)
+    ccall((:gtk_dialog_response, Gtk.libgtk), Void,
+       (Ptr{Gtk.GObject}, Cint),
+       dialog,response)
+
+end
 
 #end#module
