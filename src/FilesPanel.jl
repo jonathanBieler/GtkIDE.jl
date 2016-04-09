@@ -367,8 +367,8 @@ function configure(dialog::FilePathDialog,
     if (dialog.signal_delete_id > 0)
         signal_handler_disconnect(te,dialog.signal_delete_id)
     end
-    if (!endswith(path,'/'))
-        path = string(path,'/')
+    if (!isdirpath(path))
+	    path = joinpath(path,"")        
     end
     (dialog.signal_insert_id, dialog.signal_delete_id) = configure_text_entry_fixed_content(te_filename,path,filename)
 
@@ -398,7 +398,7 @@ function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
 end
 
 
-function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
+@guarded (PROPAGATE) function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     list = filespanel.list
