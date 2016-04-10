@@ -268,7 +268,7 @@ function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
     return convert(Cint, true)
 end
 
-function tuple_autocomplete(it::GtkTextIter,buffer::GtkTextBuffer,completion_window::CompletionWindow,view::GtkTextView)
+function tuple_autocomplete(it::GtkTextIter, buffer::GtkTextBuffer, completion_window::CompletionWindow, view::GtkTextView)
 
     (found,tu,itstart) = select_tuple(it, buffer)
     !found && return PROPAGATE
