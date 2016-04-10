@@ -4,6 +4,7 @@ function files_tree_view(rownames)
     t = (Gtk.GdkPixbuf,AbstractString, AbstractString, Bool, Int)
     list = @GtkTreeStore(t...)
     tv = @GtkTreeView(GtkTreeModel(list))
+    setproperty!(tv,"level-indentation",4)
     cols = Array(GtkTreeViewColumn,0)
 
     r1 = @GtkCellRendererPixbuf()
@@ -26,13 +27,20 @@ type FilePathDialog
   signal_insert_id::Culong
   signal_delete_id::Culong
 end
+
 function FilePathDialog()
     w = GAccessor.object(form_builder,"DialogCreateFile")
     Gtk.GAccessor.transient_for(w,win)
     Gtk.GAccessor.modal(w,true)
+    btn_create_file = GAccessor.object(form_builder,"btnCreateFile")
+    signal_connect(close_file_path_dialog,btn_create_file, "clicked", Void, (), false,w)
     return FilePathDialog(w,0,0)
-end
 
+end
+ function close_file_path_dialog(btn::Ptr,dialog)
+    response(dialog,Gtk.GConstants.GtkResponseType.ACCEPT)
+    return nothing
+end
 type FilesPanel <: GtkScrolledWindow
     handle::Ptr{Gtk.GObject}
     list::GtkTreeStore
@@ -58,6 +66,15 @@ type FilesPanel <: GtkScrolledWindow
                        Cint, (Ptr{Gtk.TreeIter},Ptr{Gtk.TreePath}))
         Gtk.gobject_move_ref(t,sc)
     end
+end
+function copy_up(model::GtkTreeModel,iter::Gtk.GtkTreeIter)
+  parent_iterator = Gtk.mutable(Gtk.GtkTreeIter)
+  ret = Gtk.iter_parent(model,parent_iterator, iter)
+  if (!ret)
+    return nothing
+  else
+    return parent_iterator[]
+  end
 end
 function filespanel_context_menu_create(t::FilesPanel)
     menu = @GtkMenu() |>
@@ -115,7 +132,7 @@ function get_sorted_files(path)
 end
 
 function create_treestore_file_item(path::AbstractString, filename::AbstractString)
-    pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"code",24,1,0)
+    pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"code",16,1,0)
     return (pixbuf,filename, joinpath(path,filename), true, type_file)
 end
 function create_treestore_placeholder_item()
@@ -128,9 +145,18 @@ end
 function add_file(list::GtkTreeStore,path::AbstractString,filename::AbstractString, parent=nothing)
     return push!(list,create_treestore_file_item(path,filename),parent)
 end
+function insert_file(list::GtkTreeStore,path::AbstractString,filename::AbstractString, iter)
+  return insert!(list,iter,create_treestore_file_item(path,filename), how=:sibling, where=:before)
+end
+function create_treestore_folder_item(path::AbstractString)
+  pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"folder",24,1,0)
+  return (pixbuf,basename(path),path,false,type_folder )
+end
 function add_folder(list::GtkTreeStore,path::AbstractString, parent=nothing)
-    pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"folder",24,1,0)
-    return push!(list,(pixbuf,basename(path),path,false,type_folder ),parent)
+    return push!(list,create_treestore_folder_item(path),parent)
+end
+function insert_folder(list::GtkTreeStore,path::AbstractString, iter)
+    return insert!(list,iter,create_treestore_folder_item(path), how=:sibling, where=:before)
 end
 function populate_folder(w::GtkTreeStore,folder::GtkTreeIter)
     w[folder,4] = true #mark folderr as loaded
@@ -149,12 +175,51 @@ function populate_folder(w::GtkTreeStore,folder::GtkTreeIter)
         end
     end
 end
-function update!(w::GtkTreeStore, path::AbstractString, parent=nothing)
-    if isdir(path)
-        folder = add_folder(w,path,parent)
+function where_insert_folder(w::GtkTreeStore,path::AbstractString, parent)
+    iter = Gtk.mutable(Gtk.GtkTreeIter)
+    iter_valid = iter_nth_child(Gtk.GtkTreeModel(w),iter,parent,1)
+    while iter_valid && (w[iter,5] == type_folder && w[iter,2] < basename(path))
+        iter_valid = Gtk.get_iter_next(Gtk.GtkTreeModel(w), iter)
+    end
+    if iter_valid
+        return iter
+    else
+        return nothing
+    end
+end
+function where_insert_file(w::GtkTreeStore,p::AbstractString, parent)
+  iter = Gtk.mutable(Gtk.GtkTreeIter)
+
+  iter_valid = iter_nth_child(Gtk.GtkTreeModel(w),iter,parent,1)
+  #Skip folders
+  while iter_valid && w[iter,5] == type_folder
+    iter_valid = Gtk.get_iter_next(Gtk.GtkTreeModel(w), iter)
+  end
+  while iter_valid &&  w[iter,2] < basename(p)
+      iter_valid = Gtk.get_iter_next(Gtk.GtkTreeModel(w), iter)
+  end
+  if iter_valid
+      return iter
+  else
+      return nothing
+  end
+end
+function update!(w::GtkTreeStore, p::AbstractString, parent=nothing)
+    if isdir(p)
+        iter = where_insert_folder(w,p,parent)
+        if iter!=nothing
+            folder = insert_folder(w,p,iter)
+        else
+            folder = add_folder(w,p,parent)
+        end
         populate_folder(w,folder)
     else
-        add_file(w,dirname(path),basename(path),parent)
+      iter = where_insert_file(w,p,parent)
+      if iter!=nothing
+          insert_file(w,dirname(p),basename(p),iter)
+      else
+          add_file(w,dirname(p),basename(p),parent)
+      end
     end
 end
 function update!(w::FilesPanel)
@@ -178,7 +243,8 @@ function get_selected_file(treeview::GtkTreeView,list::GtkTreeStore)
         return nothing
     end
 end
-function file_already_opened(filename)
+
+function file_tab_index(filename)
     for i=1:length(editor)
         t = get_tab(editor,i)
         if typeof(t) == EditorTab && t.filename == filename #in case we want to have something else in the editor
@@ -189,47 +255,59 @@ function file_already_opened(filename)
 end
 function open_file(treeview::GtkTreeView,list::GtkTreeStore)
     file = get_selected_file(treeview,list)
-    tab_idx  = file_already_opened(file)
-    if file != nothing && tab_idx == -1
+    file_idx = file_tab_index(file)
+    if file != nothing && file_idx==-1
         open_in_new_tab(file)
-      else
-        set_current_page_idx(editor,tab_idx)
+    else
+        set_current_page_idx(editor,file_idx)
     end
 end
+function nearest_folder_from_current_iterator(filespanel)
+    if filespanel.list[filespanel.current_iterator,5] == type_file
+        #Get parent folder
+        iterator = copy_up(GtkTreeModel(filespanel.list),filespanel.current_iterator)
+    else
+        iterator = filespanel.current_iterator
+    end
+    return iterator
+end
 #=File path menu =#
-function path_dialog_create_file_cb(ptr::Ptr, data)
-    (te_filename, filespanel) = data
+ function path_dialog_create_file(filespanel)
+    te_filename = GAccessor.object(form_builder,"filename")
     #TODO check overwrite
+    iterator = nearest_folder_from_current_iterator(filespanel)
     filename = getproperty(te_filename, :text, AbstractString)
     touch(filename)
-    add_file(filespanel.list, dirname(filename), basename(filename), filespanel.current_iterator)
+    update!(filespanel.list, filename, iterator)
     open_in_new_tab(filename)
-    hide(filespanel.path_dialog.dialog)
 
     return nothing
 end
-function path_dialog_create_directory_cb(ptr::Ptr, data)
-    (te_filename, filespanel) = data
+function path_dialog_create_directory(filespanel)
+    te_filename = GAccessor.object(form_builder,"filename")
+    iterator = nearest_folder_from_current_iterator(filespanel)
     #TODO check overwrite
     filename = getproperty(te_filename, :text, AbstractString)
     mkdir(filename)
-    add_folder(filespanel.list,filename,filespanel.current_iterator)
-    hide(filespanel.path_dialog.dialog)
+
+    update!(filespanel.list,filename,iterator)
 
     return nothing
 end
-function path_dialog_rename_file_cb(ptr::Ptr,  data)
+
+function path_dialog_rename_file(filespanel)
+    te_filename = GAccessor.object(form_builder,"filename")
     #TODO check overwrite
-    (te_filename, filespanel) = data
+
     current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
     filename = getproperty(te_filename, :text, AbstractString)
     mv(current_path,filename)
-    #TODO: Currently i'm treating the rename action like a move action
-    #      perhaps it would be nicer if only we change the third field
-    #      of every child of the element renamed
+
+    update!(filespanel.list, filename,copy_up(GtkTreeModel(filespanel.list),filespanel.current_iterator))
     delete!(filespanel.list, filespanel.current_iterator)
-    update!(filespanel.list, destination,filespanel.current_iterator)
-    hide(filespanel.path_dialog.dialog)
+
+
+
 
     return nothing
 end
@@ -282,13 +360,12 @@ function configure_text_entry_fixed_content(te, fixed, nonfixed="")
     return (id_signal_insert, id_signal_delete)
 end
 function configure(dialog::FilePathDialog,
-                   action::Function,
                    files_panel::FilesPanel,
                    path::AbstractString,
-                   filename::AbstractString="",
-                   params=())
-  #Disconnect the Text Entry
+                   filename::AbstractString="")
+    #Disconnect the Text Entry
     te_filename = GAccessor.object(form_builder,"filename")
+
     te = buffer(te_filename)
     if (dialog.signal_insert_id > 0)
         signal_handler_disconnect(te,dialog.signal_insert_id)
@@ -296,12 +373,14 @@ function configure(dialog::FilePathDialog,
     if (dialog.signal_delete_id > 0)
         signal_handler_disconnect(te,dialog.signal_delete_id)
     end
-    if (!endswith(path,'/'))
-        path = string(path,'/')
+
+    if (!isdirpath(path))
+	    path = joinpath(path,"")        
     end
     (dialog.signal_insert_id, dialog.signal_delete_id) = configure_text_entry_fixed_content(te_filename,path,filename)
-    btn_create_file = GAccessor.object(form_builder,"btnCreateFile")
-    signal_connect(action,btn_create_file, "clicked",Void,(),false,tuple((te_filename,files_panel)...,params...))
+
+
+
 end
 
 function file_path_dialog_set_button_caption(w, caption::AbstractString)
@@ -326,7 +405,11 @@ function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
     return Cint(0)
 end
 
-@guarded PROPAGATE function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
+
+
+
+ function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
+
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     list = filespanel.list
@@ -359,21 +442,26 @@ function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, filespan
     return PROPAGATE
 end
 
- @guarded nothing function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
+ function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
+
     if (filespanel.current_iterator != nothing)
         current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
         if isfile(current_path)
             current_path = dirname(current_path)
         end
         configure(filespanel.path_dialog ,
-                  path_dialog_create_file_cb,
                   filespanel,
                   current_path )
 
 
         file_path_dialog_set_button_caption(filespanel.path_dialog,"+")
 
-        run(filespanel.path_dialog.dialog)
+        ret = run(filespanel.path_dialog.dialog)
+        visible(filespanel.path_dialog.dialog,false)
+        if ret == Gtk.GConstants.GtkResponseType.ACCEPT
+            path_dialog_create_file(filespanel)
+        end
+
     end
     return nothing
 end
@@ -390,14 +478,19 @@ end
     if (filespanel.current_iterator!=nothing)
         current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
         base_path = dirname(current_path)
-        resource  = current_path[length(base_path)+2:end]
+        resource  = basename(current_path)
         #TODO check overwrite
         configure(filespanel.path_dialog ,
-                  path_dialog_create_file_cb,
                   filespanel,
-                  current_path )
+                  base_path,
+                  resource )
+
         file_path_dialog_set_button_caption(filespanel.path_dialog,"Rename it")
-        run(filespanel.path_dialog.dialog)
+        ret = run(filespanel.path_dialog.dialog)
+        visible(filespanel.path_dialog.dialog,false)
+        if ret == Gtk.GConstants.GtkResponseType.ACCEPT
+            path_dialog_rename_file(filespanel)
+        end
     end
     return nothing
 end
@@ -437,42 +530,47 @@ function filespanel_newFolderItem_activate_cb(widgetptr::Ptr,filespanel)
             current_path = dirname(current_path)
         end
         configure(filespanel.path_dialog ,
-                  path_dialog_create_file_cb,
                   filespanel,
                   current_path )
+
         file_path_dialog_set_button_caption(filespanel.path_dialog,"+")
-        run(filespanel.path_dialog.dialog)
+        ret = run(filespanel.path_dialog.dialog)
+        visible(filespanel.path_dialog.dialog,false)
+        if ret ==Gtk.GConstants.GtkResponseType.ACCEPT
+            path_dialog_create_directory(filespanel)
+        end
+
     end
     return nothing
 end
 function filespanel_copyItem_activate_cb(widgetptr::Ptr,filespanel)
     if (filespanel.current_iterator!=nothing)
-        current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
-        filespanel.paste_action = ("copy", current_path)
+        filespanel.paste_action = ("copy", filespanel.current_iterator)
     end
     return nothing
 end
 function filespanel_cutItem_activate_cb(widgetptr::Ptr,filespanel)
     if (filespanel.current_iterator!=nothing)
-        current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
-        filespanel.paste_action = ("cut", current_path)
+        filespanel.paste_action = ("cut", filespanel.current_iterator)
     end
     return nothing
 end
-function filespanel_pasteItem_activate_cb(widgetptr::Ptr,filespanel)
+@guarded nothing function filespanel_pasteItem_activate_cb(widgetptr::Ptr,filespanel)
     #TODO check overwrite
     if (filespanel.paste_action != nothing) && (filespanel.current_iterator!=nothing)
-        current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
-        destination = joinpath(current_path,basename(filespanel.paste_action[2]))
+        orig_path    = filespanel.list[filespanel.paste_action[2],3]
+        iterator     = nearest_folder_from_current_iterator(filespanel)
+        current_path = filespanel.list[iterator,3]
+        destination  = joinpath(current_path,basename(orig_path))
+
         if (filespanel.paste_action[1]=="copy")
-            cp(filespanel.paste_action[2],destination)
+            cp(orig_path,destination)
         else
-            mv(filespanel.paste_action[2],destination)
-            delete!(filespanel.list, filespanel.current_iterator)
+            mv(orig_path,destination)
+            delete!(filespanel.list, filespanel.paste_action[2])
         end
-        update!(filespanel.list, destination,filespanel.current_iterator)
-        filespanel.current_iterator  = nothing
-        filespanel.paste_action=nothing
+        update!(filespanel.list, destination,iterator)
+
     end
     return nothing
 end

@@ -27,6 +27,8 @@ grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr
 hide(w::Gtk.GtkWidget) = ccall((:gtk_widget_hide , libgtk),Void,(Ptr{Gtk.GObject},),w)
 
 
+
+
 ## TextIters
 
 typealias MutableGtkTextIter Gtk.GLib.MutableTypes.Mutable{GtkTextIter}
@@ -205,6 +207,7 @@ get_tab(notebook::Gtk.GtkNotebook,page_num::Int) = convert(Gtk.GtkWidget,ccall((
 
 set_tab_label_text(notebook::Gtk.GtkNotebook,child,tab_text) = ccall((:gtk_notebook_set_tab_label_text,Gtk.libgtk),Void,(Ptr{Gtk.GObject},
 Ptr{Gtk.GObject},Ptr{UInt8}),notebook,child,tab_text)
+
 popup_disble(notebook::Gtk.GtkNotebook) = ccall((:gtk_notebook_popup_disable ,Gtk.libgtk),
       Void,
       (Ptr{Gtk.GObject},),
@@ -215,6 +218,7 @@ function insert!(w::Gtk.GtkNotebook, position::Integer, x::Union{Gtk.GtkWidget,G
         (Ptr{GObject}, Ptr{Gtk.GObject}, Ptr{Gtk.GObject},Ptr{Gtk.GObject}, Cint),
         w, x, label, menu,position-1)+1
     w
+
 end
 
 ## entry
@@ -367,7 +371,25 @@ function insert(store::GtkTreeStore, it::GtkTreeIter, parent::GtkTreeIter, pos::
     ccall((:gtk_tree_store_insert, Gtk.libgtk), Void,  (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreeIter},Ptr{Gtk.GtkTreeIter},Cint),
             store,it,parent,pos)
 end
+
+## update iter pointing to nth child n in 1:nchildren)
+## return boolean
+function iter_nth_child(treeModel::Gtk.GtkTreeModel, iter::Gtk.Mutable{Gtk.GtkTreeIter}, piter, n::Int)
+  if (piter==nothing)
+    ret = ccall((:gtk_tree_model_iter_nth_child, Gtk.libgtk), Cint,
+        (Ptr{Gtk.GObject}, Ptr{GtkTreeIter}, Ptr{Gtk.GtkTreeIter}, Cint),
+        treeModel, iter, C_NULL, n - 1) # 0-based
+  else
+      ret = ccall((:gtk_tree_model_iter_nth_child, Gtk.libgtk), Cint,
+          (Ptr{Gtk.GObject}, Ptr{Gtk.GtkTreeIter}, Ptr{Gtk.GtkTreeIter}, Cint),
+          treeModel, iter, Gtk.mutable(piter), n - 1) # 0-based
+  end
+    ret != 0
+end
+
+
 #GtkTereView
+
 function model(tree_view::Gtk.GtkTreeView)
     return convert(Gtk.GtkTreeStore,
                    ccall((:gtk_tree_view_get_model, Gtk.libgtk),
@@ -375,6 +397,7 @@ function model(tree_view::Gtk.GtkTreeView)
                   (Ptr{Gtk.GObject},),
                   tree_view))
 end
+
 function set_cursor_on_cell(tree_view::Gtk.GtkTreeView, path::Gtk.GtkTreePath)
     return  ccall((:gtk_tree_view_set_cursor_on_cell , Gtk.libgtk),
                    Void,
@@ -393,5 +416,13 @@ end
 Gtk.@gtktype GtkEventBox
 GtkEventBoxLeaf() =  GtkEventBoxLeaf(ccall((:gtk_event_box_new ,libgtk), Ptr{GObject},
         ()))
+
+#GtkDialog
+function response(dialog::Gtk.GtkDialog, response::Integer)
+    ccall((:gtk_dialog_response, Gtk.libgtk), Void,
+       (Ptr{Gtk.GObject}, Cint),
+       dialog,response)
+
+end
 
 #end#module
