@@ -159,10 +159,7 @@ end
 signal_connect(newMenuItem_activate_cb, newMenuItem, "activate", Void, (), false)
 
 function openMenuItem_activate_cb(widgetptr::Ptr, user_data)
-    f = open_dialog("Pick a file", win, ("*.jl","*.md"))
-    if isfile(f)
-        open_in_new_tab(f)
-    end
+    openfile_dialog()
     return nothing
 end
 signal_connect(openMenuItem_activate_cb, openMenuItem, "activate", Void, (), false)

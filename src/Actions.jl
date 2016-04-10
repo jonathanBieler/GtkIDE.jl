@@ -54,6 +54,7 @@ baremodule Actions
     using Main.Action, Main.GdkModifierType, Main.keyval, Base.call, Main.Gtk, Base.+, Main.PrimaryModifier, Main.SecondaryModifer
 
     const save     = Action("s", PrimaryModifier, "Save file")
+    const open     = Action("o", PrimaryModifier, "Open file")
     const closetab = Action("w", PrimaryModifier, "Close current tab")
     const newtab   = Action("n", PrimaryModifier, "New tab")
     const datahint = Action("D", PrimaryModifier+GdkModifierType.SHIFT, "Show data hint")

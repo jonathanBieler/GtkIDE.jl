@@ -385,7 +385,7 @@ cfunction(_callback_only_for_return, Cint, (Ptr{Console},Ptr{Gtk.GdkEvent},Conso
 
     if rightclick(event)
         menu = buildmenu([
-            MenuItem("Close Console",ntbook_close_tab_cb),
+            MenuItem("Close Console",remove_console_cb),
             MenuItem("Add Console",add_console_cb)
             ],
             (console_ntkbook, get_current_console())
@@ -569,6 +569,27 @@ end
 
 const console_ntkbook = @GtkNotebook()
 
+@guarded (INTERRUPT) function console_ntkbook_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+
+    ntbook = convert(GtkNotebook, widgetptr)
+    event = convert(Gtk.GdkEvent, eventptr)
+
+    if rightclick(event)
+        menu = buildmenu([
+            MenuItem("Close Console",remove_console_cb),
+            MenuItem("Add Console",add_console_cb)
+            ],
+            (ntbook, get_current_console())
+        )
+        popup(menu,event)
+        return INTERRUPT
+    end
+
+    return PROPAGATE
+end
+signal_connect(console_ntkbook_button_press_cb,console_ntkbook, "button-press-event",
+Cint, (Ptr{Gtk.GdkEvent},),false)
+
 function add_console()
 
     free_w = free_workers()
@@ -585,6 +606,12 @@ function add_console()
 end
 @guarded (nothing) function add_console_cb(btn::Ptr, user_data)
     add_console()
+    return nothing
+end
+@guarded (nothing) function remove_console_cb(btn::Ptr, user_data)
+    ntbook, tab = user_data
+    close_tab(ntbook,index(ntbook,tab))
+    rmprocs(tab.worker_idx)
     return nothing
 end
 

@@ -343,9 +343,9 @@ end
 
 #    println(event.state)
 
-    if doing(Actions.save, event)
-        save(t)
-    end
+    doing(Actions.save, event) && save(t)
+    doing(Actions.open, event) && openfile_dialog()
+        
     if doing(Actions.closetab, event)
         close_tab()
         save(project)

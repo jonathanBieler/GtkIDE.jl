@@ -236,6 +236,13 @@ function add_tab(filename::AbstractString)
 end
 add_tab() = add_tab("Untitled.jl")
 
+function openfile_dialog()
+    f = open_dialog("Pick a file", win, ("*.jl","*.md"))
+    if isfile(f)
+        open_in_new_tab(f)
+    end
+end
+
 function load_tabs(project::Project)
 
     #project get modified later
