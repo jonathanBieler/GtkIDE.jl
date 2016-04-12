@@ -92,7 +92,7 @@ function close_tabs_right_cb(btn::Ptr,tab)
     end
     return nothing
 end
-function close_all_tabs(btn::Ptr,tab)
+function close_all_tabs_cb(btn::Ptr,tab)
     while (Gtk.GAccessor.n_pages(editor) > 0)
         close_tab(1)
     end
@@ -127,15 +127,36 @@ function switch_tab_cb(btn::Ptr, idx)
 end
 function create_tab_menu(container, tab)
 
-    menu =  @GtkMenu() |>
-    (closeTabItem = @GtkMenuItem("Close Tab")) |>
-    (closeOthersTabsItem = @GtkMenuItem("Close Others Tabs")) |>
-    (closeTabsRight = @GtkMenuItem("Close Tabs to the Right ")) |>
-    (closeAllTabs = @GtkMenuItem("Close All Tabs")) |>
-    @GtkSeparatorMenuItem() |>
-    (revealInTreeItem = @GtkMenuItem("Reveal in Tree View")) |>
-    (@GtkSeparatorMenuItem()) 
-    #show all open tabs
+#    menu =  @GtkMenu() |>
+#    (closeTabItem = @GtkMenuItem("Close Tab")) |>
+#    (closeOthersTabsItem = @GtkMenuItem("Close Others Tabs")) |>
+#    (closeTabsRight = @GtkMenuItem("Close Tabs to the Right ")) |>
+#    (closeAllTabs = @GtkMenuItem("Close All Tabs")) |>
+#    @GtkSeparatorMenuItem() |>
+#    (revealInTreeItem = @GtkMenuItem("Reveal in Tree View")) |>
+#    (@GtkSeparatorMenuItem()) 
+    
+
+#
+#    signal_connect(close_tab_cb, closeTabItem, "activate", Void,(),false,tab)
+#    signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Void,(),false,tab)
+#    signal_connect(close_tabs_right_cb, closeTabsRight, "activate", Void,(),false,tab)
+#    signal_connect(close_all_tabs_cb, closeAllTabs, "activate", Void,(),false,tab)
+#    signal_connect(reveal_in_tree_view, revealInTreeItem, "activate", Void,(),false,tab)
+
+    menu = buildmenu([
+            MenuItem("Close Tab",close_tab_cb),
+            MenuItem("Close Others Tabs",close_other_tabs_cb),
+            MenuItem("Close Tabs to the Right",close_tabs_right_cb),
+            MenuItem("Close All Tabs",close_all_tabs_cb),
+            GtkSeparatorMenuItem,
+            MenuItem("Reveal in Tree View",reveal_in_tree_view),
+            GtkSeparatorMenuItem
+            ],
+            tab
+        )
+    
+    #show all open tabs    
     for i=1:length(editor)
         if typeof(editor[i]) == EditorTab
             s = @GtkMenuItem(basename(editor[i].filename))
@@ -143,12 +164,6 @@ function create_tab_menu(container, tab)
             signal_connect(switch_tab_cb, s, "activate", Void,(),false,i)
         end
     end
-
-    signal_connect(close_tab_cb, closeTabItem, "activate", Void,(),false,tab)
-    signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Void,(),false,tab)
-    signal_connect(close_tabs_right_cb, closeTabsRight, "activate", Void,(),false,tab)
-    signal_connect(close_all_tabs, closeAllTabs, "activate", Void,(),false,tab)
-    signal_connect(reveal_in_tree_view, revealInTreeItem, "activate", Void,(),false,tab)
 
     showall(menu)
     return menu

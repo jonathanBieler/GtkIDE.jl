@@ -388,7 +388,7 @@ function iter_nth_child(treeModel::Gtk.GtkTreeModel, iter::Gtk.Mutable{Gtk.GtkTr
 end
 
 
-#GtkTereView
+#GtkTreeView
 
 function model(tree_view::Gtk.GtkTreeView)
     return convert(Gtk.GtkTreeStore,
@@ -404,6 +404,21 @@ function set_cursor_on_cell(tree_view::Gtk.GtkTreeView, path::Gtk.GtkTreePath)
                   (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreePath},Ptr{Gtk.GObject},Ptr{Gtk.GObject},Cint),
                   tree_view,path,C_NULL,C_NULL,false)
 end
+
+import Base.expand
+function expand(tree_view::GtkTreeView,path::GtkTreePath)
+    return  ccall((:gtk_tree_view_expand_to_path,libgtk),Void,
+                  (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreePath}),
+                  tree_view,path)
+end
+
+function treepath(path::AbstractString)
+    ptr = ccall((:gtk_tree_path_new_from_string,libgtk),Ptr{GtkTreePath},
+                  (Ptr{UInt8},),
+                  bytestring(path))
+    convert(GtkTreePath,ptr)
+end
+expand_root(tree_view::GtkTreeView) = expand(tree_view,treepath("0")) 
 
 #GtkTreeModel
 function foreach(model::Gtk.GtkTreeModel, f::Function, data)

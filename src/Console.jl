@@ -1,6 +1,4 @@
 include("CommandHistory.jl")
-include("ConsoleCommands.jl")
-
 "
     Console <: GtkScrolledWindow
 
@@ -63,6 +61,8 @@ type Console <: GtkScrolledWindow
     end
 end
 
+include("ConsoleCommands.jl")
+
 import Base.write
 function write(c::Console,str::AbstractString,set_prompt=false)
 
@@ -109,7 +109,7 @@ function on_return(c::Console,cmd::AbstractString)
     push!(c.history,cmd)
     seek_end(c.history)
 
-    (found,t) = check_console_commands(cmd)
+    (found,t) = check_console_commands(cmd,c)
 
     if !found
         ref = remotecall(c.worker_idx,eval_command_remotely,cmd)
@@ -142,7 +142,6 @@ function eval_command_remotely(cmd::AbstractString)
     finalOutput = evalout == "" ? "" : "$evalout\n"
     return finalOutput, v
 end
-
 
 function eval_command_locally(cmd::AbstractString)
 
@@ -610,8 +609,11 @@ end
 end
 @guarded (nothing) function remove_console_cb(btn::Ptr, user_data)
     ntbook, tab = user_data
-    close_tab(ntbook,index(ntbook,tab))
-    rmprocs(tab.worker_idx)
+    idx = index(ntbook,tab)
+    if idx != 1#can't close the main console
+        close_tab(ntbook,idx)
+        rmprocs(tab.worker_idx)
+    end
     return nothing
 end
 
@@ -701,7 +703,3 @@ function stop_console_redirect(t::Task,out,err)
     redirect_stderr(err)
 end
 #
-
-
-
-##

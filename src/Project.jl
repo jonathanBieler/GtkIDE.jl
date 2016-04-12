@@ -44,7 +44,7 @@ function load(w::Project)
         w.path = pwd()
         return
     end    
-	println( joinpath(HOMEDIR,"config","project"))
+#	println( joinpath(HOMEDIR,"config","project"))
     j = JSON.parsefile( joinpath(HOMEDIR,"config","project") )
 
     w.path = j["path"]

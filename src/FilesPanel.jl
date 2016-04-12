@@ -91,6 +91,15 @@ function filespanel_context_menu_create(t::FilesPanel)
     (pasteItem = @GtkMenuItem("Paste")) |>
     @GtkSeparatorMenuItem() |>
     (copyFullPathItem = @GtkMenuItem("Copy Full Path"))
+    
+    #FIXME disable until the dialog bugs are fixed
+    setproperty!(newFileItem,:sensitive,false)
+    setproperty!(newFolderItem,:sensitive,false)
+    setproperty!(deleteItem,:sensitive,false)
+    setproperty!(renameItem,:sensitive,false)
+    setproperty!(copyItem,:sensitive,false)
+    setproperty!(pasteItem,:sensitive,false)
+    setproperty!(cutItem,:sensitive,false)
 
     signal_connect(filespanel_changeDirectoryItem_activate_cb,
     changeDirectoryItem, "activate",Void, (),false,t)
@@ -225,6 +234,7 @@ end
 function update!(w::FilesPanel)
     empty!(w.list)
     update!(w.list,pwd())
+    expand_root(w.tree_view)
 end
 #### FILES PANEL
 function get_selected_path(treeview::GtkTreeView,list::GtkTreeStore)

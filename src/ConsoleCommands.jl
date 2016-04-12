@@ -16,35 +16,35 @@ type ConsoleCommand
 	completion_context::Symbol
 end
 
-global console_commands = Array(ConsoleCommand,0)
+const console_commands = Array(ConsoleCommand,0)
 add_console_command(r::Regex,f::Function) = push!(console_commands,ConsoleCommand(r,f,:normal))
 add_console_command(r::Regex,f::Function,c::Symbol) = push!(console_commands,ConsoleCommand(r,f,c))
 
-add_console_command(r"^edit (.*)",(m) -> begin
+add_console_command(r"^edit (.*)",(m,c) -> begin
     open_in_new_tab(m.captures[1])
     nothing
 end,:file)
-add_console_command(r"^clc$",(m) -> begin
+add_console_command(r"^clc$",(m,c) -> begin
     clear(get_current_console())
     nothing
 end)
-add_console_command(r"^pwd",(m) -> begin
+add_console_command(r"^pwd",(m,c) -> begin
     return pwd() * "\n"
 end)
-add_console_command(r"^ls\s*(.*)",(m) -> begin
+add_console_command(r"^ls\s*(.*)",(m,c) -> begin
 	try
         files = m.captures[1] == "" ? readdir() : readdir(m.captures[1])
         s = ""
         for f in files
-            s = string(s,"\n",f)
+            s = string(s,f,"\n")
         end
-        println(s)
+        return s
 	catch err
-		println(sprint(show,err))
+		return sprint(show,err) * "\n"
 	end
 end,:file)
 
-add_console_command(r"^cd (.*)",(m) -> begin
+add_console_command(r"^cd (.*)",(m,c) -> begin
 	try
         v = m.captures[1]
 	    if !isdir(v)
@@ -52,25 +52,25 @@ add_console_command(r"^cd (.*)",(m) -> begin
 	            v = eval(Symbol("HOMEDIR"))
 	        end
 	    end
-	    cd(v)
-		println(pwd())
+	    cd(v) 
+		return pwd() * "\n"
 	catch err
-		println(sprint(show,err))
+		return sprint(show,err) * "\n"
 	end
 end,:file)
-add_console_command(r"^\?\s*(.*)",(m) -> begin
+add_console_command(r"^\?\s*(.*)",(m,c) -> begin
     try
         h = Symbol(m.captures[1])
         h = Base.doc(Base.Docs.Binding(
             Base.Docs.current_module(),h)
         )
         h = Base.Markdown.plain(h)
-        print(h)
+        return h
     catch err
-        println(err)
+        return sprint(show,err) * "\n"
     end
 end)
-add_console_command(r"^open (.*)",(m) -> begin
+add_console_command(r"^open (.*)",(m,c) -> begin
 	try
         v = m.captures[1]
         @windows_only begin
@@ -80,15 +80,15 @@ add_console_command(r"^open (.*)",(m) -> begin
             run(`open $v`)
         end
 	catch err
-		println(sprint(show,err))
+		return sprint(show,err) * "\n"
 	end
 end,:file)
-add_console_command(r"^mkdir (.*)",(m) -> begin
+add_console_command(r"^mkdir (.*)",(m,c) -> begin
 	try
         v = m.captures[1]
         mkdir(v)
 	catch err
-		println(sprint(show,err))
+		return sprint(show,err) * "\n"
 	end
 end,:file)
 
@@ -102,11 +102,11 @@ function console_commands_context(cmd::AbstractString)
     end
     return (:normal,nothing)
 end
-function check_console_commands(cmd::AbstractString)
-    for c in console_commands
-        m = match(c.r,cmd)
+function check_console_commands(cmd::AbstractString,c::Console)
+    for co in console_commands
+        m = match(co.r,cmd)
         if m != nothing
-            return (true, @schedule begin c.f(m) end)
+            return (true, @schedule begin co.f(m,c) end)
         end
     end
     return (false, nothing)
