@@ -1,5 +1,5 @@
 # GtkIDE.jl
-GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](https://github.com/JuliaLang/julia) written in Julia. It includes a terminal, a plotting window and an editor.
+GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](https://github.com/JuliaLang/julia) 0.4 written in Julia. It includes a terminal, a plotting window and an editor.
 
 ![screenshot](data/GtkIDE.png)
 
@@ -9,9 +9,10 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 1. Install [GtkSourceWidget.jl](https://github.com/jonathanBieler/GtkSourceWidget.jl)
 
     `Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")`
-2. Get the latest version of Immerse.jl 
+2. Get the latest version of Immerse and Gtk:
 
     `Pkg.checkout("Immerse")`
+    `Pkg.checkout("Gtk")`
     
 3. Install the package
 
