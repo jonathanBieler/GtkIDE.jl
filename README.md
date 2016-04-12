@@ -12,6 +12,7 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 2. Get the latest version of Immerse and Gtk:
 
     `Pkg.checkout("Immerse")`
+    
     `Pkg.checkout("Gtk")`
     
 3. Install the package
