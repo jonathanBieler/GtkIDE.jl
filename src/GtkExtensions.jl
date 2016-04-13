@@ -416,7 +416,11 @@ function treepath(path::AbstractString)
     ptr = ccall((:gtk_tree_path_new_from_string,libgtk),Ptr{GtkTreePath},
                   (Ptr{UInt8},),
                   bytestring(path))
-    convert(GtkTreePath,ptr)
+    if ptr != C_NULL
+        return convert(GtkTreePath,ptr)
+    else
+        return GtkTreePath()
+    end
 end
 expand_root(tree_view::GtkTreeView) = expand(tree_view,treepath("0")) 
 
