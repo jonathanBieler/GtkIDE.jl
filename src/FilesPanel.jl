@@ -127,14 +127,18 @@ end
 function get_sorted_files(path)
     sort_paths = (x,y)->
     begin
-        if isdir(x) && isdir(y)
-            return x < y
-        elseif isdir(x)
+        try
+            if isdir(x) && isdir(y)
+                return x < y
+            elseif isdir(x)
+                return true
+            elseif isdir(y)
+                return false
+            else
+                return x < y
+            end
+        catch err
             return true
-        elseif isdir(y)
-            return false
-        else
-            return x < y
         end
     end
     sort(readdir(path),lt=sort_paths, by=(x)->return joinpath(path,x))
@@ -172,14 +176,16 @@ function populate_folder(w::GtkTreeStore,folder::GtkTreeIter)
     path        = w[folder,3]
     n           = get_sorted_files(path)
     for el in n
-        full_path = joinpath(path,string(el))
-        if isdir(full_path)
-            child = add_folder(w,full_path,folder)
-            add_placeholder(w,child)
-        else
-            file_parts = splitext(el)
-            if  (file_parts[2]==".jl")
-                add_file(w,path,el,folder)
+        try #some operations are not allowed 
+            full_path = joinpath(path,string(el))
+            if isdir(full_path)
+                child = add_folder(w,full_path,folder)
+                add_placeholder(w,child)
+            else
+                file_parts = splitext(el)
+                if  (file_parts[2]==".jl")
+                    add_file(w,path,el,folder)
+                end
             end
         end
     end

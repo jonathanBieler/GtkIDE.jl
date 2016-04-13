@@ -28,7 +28,7 @@ function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         catch err
             println(string(err))
         end
-        on_path_change()
+        on_path_change(true)
     end
 
     return convert(Cint,false)

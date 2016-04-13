@@ -237,14 +237,16 @@ function editorButtonclicked_cb(widgetptr::Ptr, user_data)
 end
 signal_connect(editorButtonclicked_cb, editorButton, "clicked", Void, (), false)
 
-function on_path_change()
+# Not ideal, it always refresh when using the pathdisplay
+function on_path_change(doUpdate=false)
     c_path = bytestring(Gtk.G_.active_text(pathCBox))
     update_pathEntry()
-    if pwd() != c_path
+    if pwd() != c_path || doUpdate
         push!(pathCBox,pwd())
         update!(filespanel)
     end
 end
+
 
 init(pathCBox)#need on_path_change to be defined
 
@@ -263,7 +265,6 @@ function restart(new_workspace=false)
         win_ = win
 
         new_workspace && workspace()
-
         include( joinpath(HOMEDIR,"GtkIDE.jl") )
         destroy(win_)
 

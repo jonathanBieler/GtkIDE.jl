@@ -60,6 +60,12 @@ function ntbook_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
 end
 signal_connect(ntbook_motion_notify_event_cb,editor,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
 
+function set_dir_to_file_path_cb(btn::Ptr,tab)
+    cd(dirname(tab.filename))
+    on_path_change()
+    return nothing
+end
+
 function close_tab(idx::Int)
     if editor[idx].modified 
         ok = ask_dialog("Unsaved changed, close anyway?",win)
@@ -151,6 +157,7 @@ function create_tab_menu(container, tab)
             MenuItem("Close All Tabs",close_all_tabs_cb),
             GtkSeparatorMenuItem,
             MenuItem("Reveal in Tree View",reveal_in_tree_view),
+            MenuItem("Set Directory to File Path",set_dir_to_file_path_cb),
             GtkSeparatorMenuItem
             ],
             tab
