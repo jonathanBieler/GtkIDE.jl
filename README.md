@@ -6,14 +6,16 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 ## Installation
 
 
-1. Install [GtkSourceWidget.jl](https://github.com/jonathanBieler/GtkSourceWidget.jl)
+1. Get the latest version of Immerse and Gtk:
 
-    `Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")`
-2. Get the latest version of Immerse and Gtk:
+    `Pkg.checkout("Gtk")`
 
     `Pkg.checkout("Immerse")`
     
-    `Pkg.checkout("Gtk")`
+1. Install [GtkSourceWidget.jl](https://github.com/jonathanBieler/GtkSourceWidget.jl)
+
+    `Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")`
+
     
 3. Install the package
 
@@ -31,7 +33,7 @@ still somewhat experimental.
 ### Opening files
 
 Use cd, ls, pwd to navigate in the console, and type `edit filename` to open a file. 
-If `filename` does not exists it will be created instead. 
+If `filename` does not exists it will be created instead. You can also use the files panel on the left.
 
 See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
 
