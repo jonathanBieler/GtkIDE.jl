@@ -13,7 +13,9 @@ using GtkSourceWidget
 using GtkUtilities
 using JSON
 using Compat
+using ConfParser
 include("GtkExtensions.jl"); #using GtkExtenstions
+include("Options.jl")
 
 # Compatitbily with 0.5
 if !isdefined(Base,:(showlimited))
@@ -46,7 +48,7 @@ languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"mar
 
 @windows_only begin
     const style = style_scheme(sourceStyleManager,"autumn")
-    global fontsize = 13
+    global fontsize = opt("fontsize")
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Consolas, Courier, monospace;
         font-size: $(fontsize)
@@ -54,7 +56,7 @@ languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"mar
 end
 @osx_only begin
     const style = style_scheme(sourceStyleManager,"autumn")
-    global fontsize = 13
+    global fontsize = opt("fontsize")
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Monaco, Consolas, Courier, monospace;
         font-size: $(fontsize);
@@ -62,7 +64,7 @@ end
 end
 @linux_only begin
     const style = style_scheme(sourceStyleManager,"tango")
-    global fontsize = 12
+    global fontsize = opt("fontsize")-1
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Consolas, Courier, monospace;
         font-size: $(fontsize)
@@ -187,6 +189,7 @@ signal_connect(quit_cb, win, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 showall(win)
 visible(search_window,false)
 visible(sidepanel_ntbook,false)
+GtkSourceWidget.SOURCE_MAP && visible(editor.sourcemap,opt("Editor","show_source_map"))
 
 function toggle_sidepanel()
     visible(sidepanel_ntbook,!visible(sidepanel_ntbook))
@@ -274,5 +277,7 @@ end
 function run_tests()
     include( joinpath(Pkg.dir(),"GtkIDE","test","runtests.jl") )
 end
+
+
 
 #end#module
