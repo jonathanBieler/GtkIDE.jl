@@ -183,7 +183,7 @@ function populate_folder(w::GtkTreeStore,folder::GtkTreeIter)
                 add_placeholder(w,child)
             else
                 file_parts = splitext(el)
-                if  (file_parts[2]==".jl")
+                if  (file_parts[2]==".jl" || file_parts[2]==".md")#FIXME need something more general
                     add_file(w,path,el,folder)
                 end
             end

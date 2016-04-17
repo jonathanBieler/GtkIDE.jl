@@ -81,18 +81,11 @@ include("Project.jl")
 include("Console.jl")
 include("Editor.jl")
 include("PathDisplay.jl")
+include("MainMenu.jl")
 
 GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(HOMEDIR,"../icons/"))
 
 ##
-menubar = @GtkMenuBar() |>
-    (file = @GtkMenuItem("_File"))
-
-filemenu = @GtkMenu(file) |>
-    (newMenuItem = @GtkMenuItem("New")) |>
-    (openMenuItem = @GtkMenuItem("Open")) |>
-    @GtkSeparatorMenuItem() |>
-    (quitMenuItem = @GtkMenuItem("Quit"))
 
 win = @GtkWindow("GtkIDE.jl",1800,1200) |>
     ((mainVbox = @GtkBox(:v)) |>
@@ -142,29 +135,6 @@ Gtk.G_.position(rightPan,450)
 
 setproperty!(topBarBox,:hexpand,true)
 
-################
-## MENU THINGS
-
-function quitMenuItem_activate_cb(widgetptr::Ptr, user_data)
-    #widget = convert(GtkMenuItem, widgetptr)
-
-    destroy(win)
-    return nothing
-end
-signal_connect(quitMenuItem_activate_cb, quitMenuItem, "activate", Void, (), false)
-
-function newMenuItem_activate_cb(widgetptr::Ptr, user_data)
-    add_tab()
-    save(project)##FIXME this souldn't be here
-    return nothing
-end
-signal_connect(newMenuItem_activate_cb, newMenuItem, "activate", Void, (), false)
-
-function openMenuItem_activate_cb(widgetptr::Ptr, user_data)
-    openfile_dialog()
-    return nothing
-end
-signal_connect(openMenuItem_activate_cb, openMenuItem, "activate", Void, (), false)
 
 
 ################
