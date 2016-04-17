@@ -214,3 +214,11 @@ function move_cursor_to_sentence_end(buffer::GtkTextBuffer)
     text_iter_forward_sentence_end(it)
     text_buffer_place_cursor(buffer,it)
 end
+
+function toggle_wrap_mode(v::GtkTextView)
+    wm = getproperty(v,:wrap_mode,Int)
+    wm = convert(Bool,wm)
+    setproperty!(v,:wrap_mode,!wm)
+    nothing
+end
+

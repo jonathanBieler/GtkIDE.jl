@@ -385,7 +385,9 @@ cfunction(_callback_only_for_return, Cint, (Ptr{Console},Ptr{Gtk.GdkEvent},Conso
     if rightclick(event)
         menu = buildmenu([
             MenuItem("Close Console",remove_console_cb),
-            MenuItem("Add Console",add_console_cb)
+            MenuItem("Add Console",add_console_cb),
+            MenuItem("Clear Console",clear_console_cb),
+            MenuItem("Toggle Wrap Mode",toggle_wrap_mode_cb)
             ],
             (console_ntkbook, get_current_console())
         )
@@ -602,6 +604,17 @@ function add_console()
 
     g_timeout_add(100,print_to_console,c)
     c
+end
+@guarded (nothing) function toggle_wrap_mode_cb(btn::Ptr, user_data)
+    ntbook, tab = user_data
+    toggle_wrap_mode(tab.view)
+    return nothing
+end
+@guarded (nothing) function clear_console_cb(btn::Ptr, user_data)
+    ntbook, tab = user_data
+    clear(tab)
+    new_prompt(tab)
+    return nothing
 end
 @guarded (nothing) function add_console_cb(btn::Ptr, user_data)
     add_console()
