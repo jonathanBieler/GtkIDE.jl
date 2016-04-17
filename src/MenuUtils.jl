@@ -7,8 +7,7 @@ type MenuItem
     end
 end
 
-function buildmenu(items::Array,user_data)
-    menu =  @GtkMenu() 
+function buildmenu(items::Array,menu::GtkMenu,user_data)
     for i in items
         if typeof(i) == MenuItem
             mi = @GtkMenuItem(i.txt)
@@ -20,4 +19,6 @@ function buildmenu(items::Array,user_data)
     end
     showall(menu)
 end
+buildmenu(items::Array,menuItem::GtkMenuItem,user_data) = buildmenu(items,@GtkMenu(menuItem),user_data)
+buildmenu(items::Array,user_data) = buildmenu(items,@GtkMenu(),user_data)
 buildmenu(items::MenuItem,user_data) = buildmenu([items],user_data)

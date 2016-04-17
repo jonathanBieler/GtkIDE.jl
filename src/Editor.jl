@@ -10,11 +10,9 @@ type Editor <: GtkNotebook
     sourcemap::Gtk.GtkWidget
 
     function Editor()
-
         ntbook = @GtkNotebook()
         setproperty!(ntbook,:scrollable, true)
         setproperty!(ntbook,:enable_popup, false)
-
 
         if GtkSourceWidget.SOURCE_MAP #old linux libraries don't have GtkSourceMap
             sourcemap = @GtkSourceMap()
@@ -40,6 +38,7 @@ function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, use
     page = convert(Gtk.GtkWidget, pageptr)
     if typeof(page) == EditorTab && GtkSourceWidget.SOURCE_MAP
         set_view(editor.sourcemap, page.view)
+        visible(editor.sourcemap,opt("Editor","show_source_map"))
     end
     nothing
 end
@@ -67,9 +66,9 @@ function set_dir_to_file_path_cb(btn::Ptr,tab)
 end
 
 function close_tab(idx::Int)
-    if editor[idx].modified 
+    if editor[idx].modified
         ok = ask_dialog("Unsaved changed, close anyway?",win)
-        !ok && return 
+        !ok && return
     end
     splice!(editor,idx)
     index(editor,max(idx-1,0))
@@ -140,8 +139,8 @@ function create_tab_menu(container, tab)
 #    (closeAllTabs = @GtkMenuItem("Close All Tabs")) |>
 #    @GtkSeparatorMenuItem() |>
 #    (revealInTreeItem = @GtkMenuItem("Reveal in Tree View")) |>
-#    (@GtkSeparatorMenuItem()) 
-    
+#    (@GtkSeparatorMenuItem())
+
 
 #
 #    signal_connect(close_tab_cb, closeTabItem, "activate", Void,(),false,tab)
@@ -162,8 +161,8 @@ function create_tab_menu(container, tab)
             ],
             tab
         )
-    
-    #show all open tabs    
+
+    #show all open tabs
     for i=1:length(editor)
         if typeof(editor[i]) == EditorTab
             s = @GtkMenuItem(basename(editor[i].filename))
@@ -179,7 +178,7 @@ end
 @guarded (PROPAGATE) function tab_button_press_event_cb(event_box_ptr::Ptr,eventptr::Ptr, tab)
     event_box = convert(GtkEventBox, event_box_ptr)
     event     = convert(Gtk.GdkEvent,eventptr)
-    
+
     if rightclick(event)
         popup(create_tab_menu(event_box, tab),event)
         return INTERRUPT
@@ -287,3 +286,4 @@ function load_tabs(project::Project)
 end
 
 load_tabs(project)
+

@@ -32,12 +32,11 @@ type EditorTab <: GtkScrolledWindow
 
         highlight_matching_brackets(b,true)
 
-        show_line_numbers!(v,true)
+        show_line_numbers!(v,opt("Editor","show_line_numbers"))
 	    auto_indent!(v,true)
         highlight_current_line!(v, true)
-        setproperty!(v,:wrap_mode,0)
-
-        setproperty!(v,:tab_width,4)
+        setproperty!(v,:wrap_mode,opt("Editor","wrap_mode"))
+        setproperty!(v,:tab_width,opt("Editor","tab_width"))
         setproperty!(v,:insert_spaces_instead_of_tabs,true)
 
         sc = @GtkScrolledWindow()

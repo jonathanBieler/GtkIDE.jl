@@ -13,7 +13,9 @@ using GtkSourceWidget
 using GtkUtilities
 using JSON
 using Compat
+using ConfParser
 include("GtkExtensions.jl"); #using GtkExtenstions
+include("Options.jl")
 
 # Compatitbily with 0.5
 if !isdefined(Base,:(showlimited))
@@ -46,7 +48,7 @@ languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"mar
 
 @windows_only begin
     const style = style_scheme(sourceStyleManager,"autumn")
-    global fontsize = 13
+    global fontsize = opt("fontsize")
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Consolas, Courier, monospace;
         font-size: $(fontsize)
@@ -54,7 +56,7 @@ languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"mar
 end
 @osx_only begin
     const style = style_scheme(sourceStyleManager,"autumn")
-    global fontsize = 13
+    global fontsize = opt("fontsize")
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Monaco, Consolas, Courier, monospace;
         font-size: $(fontsize);
@@ -62,7 +64,7 @@ end
 end
 @linux_only begin
     const style = style_scheme(sourceStyleManager,"tango")
-    global fontsize = 12
+    global fontsize = opt("fontsize")-1
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Consolas, Courier, monospace;
         font-size: $(fontsize)
@@ -79,18 +81,11 @@ include("Project.jl")
 include("Console.jl")
 include("Editor.jl")
 include("PathDisplay.jl")
+include("MainMenu.jl")
 
 GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(HOMEDIR,"../icons/"))
 
 ##
-menubar = @GtkMenuBar() |>
-    (file = @GtkMenuItem("_File"))
-
-filemenu = @GtkMenu(file) |>
-    (newMenuItem = @GtkMenuItem("New")) |>
-    (openMenuItem = @GtkMenuItem("Open")) |>
-    @GtkSeparatorMenuItem() |>
-    (quitMenuItem = @GtkMenuItem("Quit"))
 
 win = @GtkWindow("GtkIDE.jl",1800,1200) |>
     ((mainVbox = @GtkBox(:v)) |>
@@ -140,29 +135,6 @@ Gtk.G_.position(rightPan,450)
 
 setproperty!(topBarBox,:hexpand,true)
 
-################
-## MENU THINGS
-
-function quitMenuItem_activate_cb(widgetptr::Ptr, user_data)
-    #widget = convert(GtkMenuItem, widgetptr)
-
-    destroy(win)
-    return nothing
-end
-signal_connect(quitMenuItem_activate_cb, quitMenuItem, "activate", Void, (), false)
-
-function newMenuItem_activate_cb(widgetptr::Ptr, user_data)
-    add_tab()
-    save(project)##FIXME this souldn't be here
-    return nothing
-end
-signal_connect(newMenuItem_activate_cb, newMenuItem, "activate", Void, (), false)
-
-function openMenuItem_activate_cb(widgetptr::Ptr, user_data)
-    openfile_dialog()
-    return nothing
-end
-signal_connect(openMenuItem_activate_cb, openMenuItem, "activate", Void, (), false)
 
 
 ################
@@ -187,6 +159,7 @@ signal_connect(quit_cb, win, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 showall(win)
 visible(search_window,false)
 visible(sidepanel_ntbook,false)
+GtkSourceWidget.SOURCE_MAP && visible(editor.sourcemap,opt("Editor","show_source_map"))
 
 function toggle_sidepanel()
     visible(sidepanel_ntbook,!visible(sidepanel_ntbook))
@@ -274,5 +247,7 @@ end
 function run_tests()
     include( joinpath(Pkg.dir(),"GtkIDE","test","runtests.jl") )
 end
+
+
 
 #end#module
