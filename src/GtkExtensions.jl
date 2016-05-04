@@ -27,8 +27,6 @@ grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr
 hide(w::Gtk.GtkWidget) = ccall((:gtk_widget_hide , libgtk),Void,(Ptr{Gtk.GObject},),w)
 
 
-
-
 ## TextIters
 
 typealias MutableGtkTextIter Gtk.GLib.MutableTypes.Mutable{GtkTextIter}
@@ -442,6 +440,13 @@ function response(dialog::Gtk.GtkDialog, response::Integer)
        (Ptr{Gtk.GObject}, Cint),
        dialog,response)
 
+end
+
+## GtkStatusbar
+
+function text(s::GtkStatusbar,txt::AbstractString)
+    sbidx = Gtk.context_id(s, "context")
+    push!(s,sbidx,txt)
 end
 
 #end#module

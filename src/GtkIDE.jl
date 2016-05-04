@@ -30,6 +30,7 @@ if !GtkSourceWidget.SOURCE_MAP
 end
 
 import Base.REPLCompletions.completions
+import Cairo.text
 
 ## globals
 const is_running = true #should probably use g_main_loop_is_running or something of the sort
@@ -78,6 +79,7 @@ include("NtbookUtils.jl")
 include("MenuUtils.jl")
 include("PlotWindow.jl")
 include("Project.jl")
+include("CommandHistory.jl")
 include("Console.jl")
 include("Editor.jl")
 include("PathDisplay.jl")
@@ -121,8 +123,7 @@ include("SidePanels.jl")
 
 setproperty!(statusBar,:margin,2)
 
-sbidx = Gtk.context_id(statusBar, "context")
-push!(statusBar,sbidx,"Julia $VERSION")
+text(statusBar,"Julia $VERSION")
 
 Gtk.G_.position(sidePan,160)
 
