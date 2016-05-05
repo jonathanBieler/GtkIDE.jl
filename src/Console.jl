@@ -15,6 +15,7 @@ type Console <: GtkScrolledWindow
     worker_idx::Int
     run_worker::Channel
     history::HistoryProvider
+    run_task_start_time::AbstractFloat
 
     function Console(w_idx::Int)
 
@@ -47,16 +48,17 @@ type Console <: GtkScrolledWindow
         push!(Gtk.G_.style_context(v), provider, 600)
         t = @schedule begin end
 
-        remotecall_wait(w_idx,
-            ()->begin
-                const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
-                include(joinpath(HOMEDIR,"remote_utils.jl"))
-            end
-        )
+        if w_idx > 1
+            remotecall_wait(w_idx,
+                (HOMEDIR)->begin
+                    include(joinpath(HOMEDIR,"remote_utils.jl"))
+                end
+            ,HOMEDIR)
+        end
 
         history = setup_history(w_idx)
 
-        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel(),history)
+        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel(),history,time())
         Gtk.gobject_move_ref(n, sc)
     end
 end
@@ -117,6 +119,8 @@ function on_return(c::Console,cmd::AbstractString)
 #        t = eval_command_locally(cmd)
     end
     c.run_task = t
+    c.run_task_start_time = time()
+    text(statusBar,"Busy")
 
     g_idle_add(write_output_to_console,c)
     nothing
@@ -199,6 +203,10 @@ function write_output_to_console(user_data)
         new_prompt(c)
     end
     on_path_change()
+    
+    t = @sprintf("%4.6f\n",time()-c.run_task_start_time)
+    text(statusBar,"Run time $(t)s")
+    
     return Cint(false)
 end
 
