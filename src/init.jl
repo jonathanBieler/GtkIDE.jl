@@ -84,7 +84,7 @@ load_tabs(project)
 
 ## Main layout
 
-win = @GtkWindow("GtkIDE.jl",1800,1200) |>
+global const win = MainWindow() |>
     ((mainVbox = @GtkBox(:v)) |>
         menubar |>
         (topBarBox = @GtkBox(:h) |>
@@ -156,3 +156,11 @@ drawnow() = sleep(0.001)
 
 
 init(pathCBox)#need on_path_change to be defined
+
+signal_connect(sidePanelButton_clicked_cb, sidePanelButton, "clicked", Void, (), false)
+signal_connect(editorButtonclicked_cb, editorButton, "clicked", Void, (), false)
+
+showall(win)
+visible(search_window,false)
+visible(sidepanel_ntbook,false)
+GtkSourceWidget.SOURCE_MAP && visible(editor.sourcemap,opt("Editor","show_source_map"))
