@@ -15,6 +15,7 @@ type Console <: GtkScrolledWindow
     worker_idx::Int
     run_worker::Channel
     history::HistoryProvider
+    run_task_start_time::AbstractFloat
 
     function Console(w_idx::Int)
 
@@ -47,16 +48,17 @@ type Console <: GtkScrolledWindow
         push!(Gtk.G_.style_context(v), provider, 600)
         t = @schedule begin end
 
-        remotecall_wait(w_idx,
-            ()->begin
-                const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
-                include(joinpath(HOMEDIR,"remote_utils.jl"))
-            end
-        )
+        if w_idx > 1
+            remotecall_wait(w_idx,
+                (HOMEDIR)->begin
+                    include(joinpath(HOMEDIR,"remote_utils.jl"))
+                end
+            ,HOMEDIR)
+        end
 
         history = setup_history(w_idx)
 
-        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel(),history)
+        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel(),history,time())
         Gtk.gobject_move_ref(n, sc)
     end
 end
@@ -117,6 +119,8 @@ function on_return(c::Console,cmd::AbstractString)
 #        t = eval_command_locally(cmd)
     end
     c.run_task = t
+    c.run_task_start_time = time()
+    text(statusBar,"Busy")
 
     g_idle_add(write_output_to_console,c)
     nothing
@@ -199,6 +203,10 @@ function write_output_to_console(user_data)
         new_prompt(c)
     end
     on_path_change()
+    
+    t = @sprintf("%4.6f\n",time()-c.run_task_start_time)
+    text(statusBar,"Run time $(t)s")
+    
     return Cint(false)
 end
 
@@ -430,7 +438,6 @@ function console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
     nothing
 end
 
-
 ## Auto-complete
 #FIXME call completions on the right worker
 function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
@@ -554,7 +561,6 @@ function translate_colors(s::AbstractString)
     s
 end
 
-
 "    free_workers()
 Returns the list of workers not linked to a `Console`"
 function free_workers()
@@ -567,8 +573,6 @@ function free_workers()
     end
     setdiff(w,used_w)
 end
-
-const console_ntkbook = @GtkNotebook()
 
 @guarded (INTERRUPT) function console_ntkbook_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
@@ -588,8 +592,7 @@ const console_ntkbook = @GtkNotebook()
 
     return PROPAGATE
 end
-signal_connect(console_ntkbook_button_press_cb,console_ntkbook, "button-press-event",
-Cint, (Ptr{Gtk.GdkEvent},),false)
+
 
 function add_console()
 
@@ -636,11 +639,7 @@ function first_console()
     c
 end
 
-const console = first_console()
-add_console()
-for i=1:length(free_workers())
-    add_console()
-end
+
 
 get_current_console() = console_ntkbook[index(console_ntkbook)]
 
@@ -652,7 +651,6 @@ function console_ntkbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::I
 #    end
     nothing
 end
-signal_connect(console_ntkbook_switch_page_cb,console_ntkbook,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
 
 #this is called by remote workers
 function print_to_console_remote(s,idx::Integer)
@@ -684,27 +682,6 @@ function watch_stream(rd::IO, c::Console)
         send_stream(rd,c.stdout_buffer)
         sleep(0.01) # a little delay to accumulate output
     end
-end
-
-if REDIRECT_STDOUT
-
-    stdout = STDOUT
-    stderr = STDERR
-
-    read_stdout, wr = redirect_stdout()
-    read_stderr, wre = redirect_stderr()
-
-    function watch_stdout()
-        @schedule watch_stream(read_stdout,console)
-    end
-    function watch_stderr()
-        @schedule watch_stream(read_stderr,console)
-    end
-
-    watch_stdout_tastk = watch_stdout()
-    watch_stderr_tastk = watch_stderr()
-
-    g_timeout_add(100,print_to_console,console)
 end
 
 function stop_console_redirect(t::Task,out,err)

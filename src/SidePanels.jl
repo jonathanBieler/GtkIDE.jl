@@ -1,4 +1,5 @@
 include("FilesPanel.jl")
+
 function add_side_panel(w::Gtk.GtkWidget,title::AbstractString)
     push!(sidepanel_ntbook,w)
     set_tab_label_text(sidepanel_ntbook,w,title)
@@ -45,20 +46,6 @@ function select_value(tree_view::GtkTreeView,list::GtkTreeStore,v)
 end
 
 
-
-form_builder = Gtk.GtkBuilderLeaf(filename=joinpath(dirname(@__FILE__),"forms/forms.glade"))
-filespanel = FilesPanel()
-update!(filespanel)
-add_side_panel(filespanel,"Files")
-
-#=#FIXME I should stop all tasks when exiting
-#this can make it crash if it runs while sorting
-@schedule begin
-    while(false)
-        sleep(1.0)
-        update!(filespanel)
-    end
-end=#
 
 #### WORKSPACE PANEL
 
@@ -110,6 +97,4 @@ function update!(w::WorkspacePanel)
     sel_val != nothing && select_value(w.tree_view,w.list,sel_val)
 end
 
-workspacepanel = WorkspacePanel()
-update!(workspacepanel)
-add_side_panel(workspacepanel,"W")
+

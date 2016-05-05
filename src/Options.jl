@@ -1,11 +1,4 @@
 
-const default_settings = ConfParse(ascii(joinpath(HOMEDIR,"config","default_settings.ini")))
-parse_conf!(default_settings)
-
-if !isfile(joinpath(HOMEDIR,"config","user_settings.ini"))
-    cp(joinpath(HOMEDIR,"config","default_settings.ini"),joinpath(HOMEDIR,"config","user_settings.ini"))
-end
-
 function opt(block::AbstractString,key::AbstractString)
     conf = ConfParse(ascii(joinpath(HOMEDIR,"config","user_settings.ini")))
     parse_conf!(conf)
@@ -19,3 +12,12 @@ function opt(block::AbstractString,key::AbstractString)
     parse(r)
 end
 opt(key::AbstractString) = opt("default",key)
+
+# runtime
+
+const default_settings = ConfParse(ascii(joinpath(HOMEDIR,"config","default_settings.ini")))
+parse_conf!(default_settings)
+
+if !isfile(joinpath(HOMEDIR,"config","user_settings.ini"))
+    cp(joinpath(HOMEDIR,"config","default_settings.ini"),joinpath(HOMEDIR,"config","user_settings.ini"))
+end

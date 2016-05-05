@@ -421,10 +421,7 @@ function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
     return Cint(0)
 end
 
-
-
-
- function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
+function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
 
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
@@ -458,7 +455,7 @@ function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, filespan
     return PROPAGATE
 end
 
- function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
+function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
 
     if (filespanel.current_iterator != nothing)
         current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
