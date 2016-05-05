@@ -29,8 +29,6 @@ if !GtkSourceWidget.SOURCE_MAP
     set_view() = nothing
 end
 
-const editor = Editor()
-
 get_current_tab() = get_tab(editor,index(editor))# remove this ?
 
 function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
@@ -42,7 +40,6 @@ function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, use
     end
     nothing
 end
-signal_connect(ntbook_switch_page_cb,editor,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
 
 global mousepos = zeros(Int,2)
 global mousepos_root = zeros(Int,2)
@@ -57,7 +54,12 @@ function ntbook_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
     mousepos_root[2] = round(Int,event.y_root)
     return PROPAGATE
 end
-signal_connect(ntbook_motion_notify_event_cb,editor,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
+
+#this could be in the constructor but it doesn't work for some reason
+function init(editor::Editor)
+    signal_connect(ntbook_switch_page_cb,editor,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
+    signal_connect(ntbook_motion_notify_event_cb,editor,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
+end
 
 function set_dir_to_file_path_cb(btn::Ptr,tab)
     cd(dirname(tab.filename))
@@ -284,6 +286,3 @@ function load_tabs(project::Project)
     t = get_current_tab()
     GtkSourceWidget.SOURCE_MAP && set_view(editor.sourcemap,t.view)
 end
-
-load_tabs(project)
-
