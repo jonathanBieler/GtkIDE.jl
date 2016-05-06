@@ -194,6 +194,11 @@ function write_output_to_console(user_data)
             str, v = (t.result, nothing)
         end
         finalOutput = str == nothing ? "" : str
+        
+        if str == InterruptException()
+            finalOutput = string(str) * "\n"
+        end
+
         write(c,finalOutput,true)
 
         if typeof(v) <: Gadfly.Plot
@@ -363,7 +368,7 @@ function _callback_only_for_return(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     if event.keyval == Gtk.GdkKeySyms.Return
 
-        if console.run_task.state == :done
+        if console.run_task.state == :done || console.run_task.state == :failed
             on_return(console,cmd)
         end
         return Cint(true)
@@ -396,6 +401,8 @@ cfunction(_callback_only_for_return, Cint, (Ptr{Console},Ptr{Gtk.GdkEvent},Conso
             MenuItem("Add Console",add_console_cb),
             MenuItem("Clear Console",clear_console_cb),
             MenuItem("Toggle Wrap Mode",toggle_wrap_mode_cb)
+            #GtkSeparatorMenuItem,
+            #MenuItem("Toggle Wrap Mode",kill_current_task_cb),
             ],
             (console_ntkbook, get_current_console())
         )
@@ -617,6 +624,11 @@ end
     ntbook, tab = user_data
     clear(tab)
     new_prompt(tab)
+    return nothing
+end
+@guarded (nothing) function kill_current_task_cb(btn::Ptr, user_data)
+    ntbook, tab = user_data
+    kill_current_task(tab)
     return nothing
 end
 @guarded (nothing) function add_console_cb(btn::Ptr, user_data)
