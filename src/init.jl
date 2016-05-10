@@ -50,9 +50,9 @@ Cint, (Ptr{Gtk.GdkEvent},),false)
 signal_connect(console_ntkbook_switch_page_cb,console_ntkbook,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
 
 global const console = first_console()
-add_console()
+#add_console()
 for i=1:length(free_workers())
-    add_console()
+    #add_console()
 end
 
 if REDIRECT_STDOUT

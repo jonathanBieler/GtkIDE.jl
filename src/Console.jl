@@ -194,7 +194,7 @@ function write_output_to_console(user_data)
             str, v = (t.result, nothing)
         end
         finalOutput = str == nothing ? "" : str
-        
+
         if str == InterruptException()
             finalOutput = string(str) * "\n"
         end
@@ -208,10 +208,10 @@ function write_output_to_console(user_data)
         new_prompt(c)
     end
     on_path_change()
-    
+
     t = @sprintf("%4.6f\n",time()-c.run_task_start_time)
     text(statusBar,"Run time $(t)s")
-    
+
     return Cint(false)
 end
 
@@ -336,21 +336,21 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
         autocomplete(console,cmd,pos)
         return INTERRUPT
     end
-    if doing(Actions.select_all,event)#select only prompt
+    if doing(Actions["select_all"],event)#select only prompt
         its = GtkTextIter(buffer,console.prompt_position)
         ite = end_iter(buffer)
         selection_bounds(buffer,mutable(its),ite)
         return INTERRUPT
     end
-    if doing(Actions.interrupt_run,event)
+    if doing(Actions["interrupt_run"],event)
         kill_current_task(console)
         return INTERRUPT
     end
-    if doing(Actions.copy,event)
+    if doing(Actions["copy"],event)
         signal_emit(textview, "copy-clipboard", Void)
         return INTERRUPT
     end
-    if doing(Actions.paste,event)
+    if doing(Actions["paste"],event)
         signal_emit(textview, "paste-clipboard", Void)
         return INTERRUPT
     end
@@ -650,8 +650,6 @@ function first_console()
     init(c)
     c
 end
-
-
 
 get_current_console() = console_ntkbook[index(console_ntkbook)]
 

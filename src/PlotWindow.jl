@@ -91,10 +91,10 @@ end
     ntbook = convert(GtkNotebook, widgetptr)
     event = convert(Gtk.GdkEvent,eventptr)
     
-    if doing(Actions.newtab,event)
+    if doing(Actions["newtab"],event)
         Immerse.figure()
     end
-    if doing(Actions.closetab,event)
+    if doing(Actions["closetab"],event)
         t = get_current_tab(ntbook)
         if typeof(t) == Figure
             Immerse.closefig(t.figno)

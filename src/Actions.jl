@@ -1,3 +1,5 @@
+import Gtk.GConstants.GdkModifierType, Gtk.GConstants.GdkModifierType.SHIFT
+
 @osx_only begin
     const PrimaryModifier = GdkModifierType.MOD2
     const SecondaryModifer = GdkModifierType.CONTROL
@@ -11,7 +13,6 @@ end
     const SecondaryModifer = GdkModifierType.MOD1
 end
 const NoModifier  = zero(typeof(PrimaryModifier))
-import GdkModifierType.SHIFT
 
 type Action
     keyval::Integer
@@ -47,35 +48,32 @@ end
 
 function rightclick(event)
     mod = get_default_mod_mask()
-    return event.button == 3 || (event.button == 1 && event.state & mod == SecondaryModifer)    
+    return event.button == 3 || (event.button == 1 && event.state & mod == SecondaryModifer)
 end
 
-baremodule Actions
-    using Main.Action, Main.GdkModifierType, Main.keyval, Base.call, Main.Gtk, Base.+, Main.PrimaryModifier, Main.SecondaryModifer
+global const Actions = Dict{AbstractString}{Action}()
 
-    const save     = Action("s", PrimaryModifier, "Save file")
-    const open     = Action("o", PrimaryModifier, "Open file")
-    const closetab = Action("w", PrimaryModifier, "Close current tab")
-    const newtab   = Action("n", PrimaryModifier, "New tab")
-    const datahint = Action("D", PrimaryModifier+GdkModifierType.SHIFT, "Show data hint")
-    const search   = Action(keyval("f"), PrimaryModifier, "Search")
-    const runline  = Action(Gtk.GdkKeySyms.Return, PrimaryModifier + GdkModifierType.SHIFT, "Execute current line")
-    const runcode  = Action(Gtk.GdkKeySyms.Return, PrimaryModifier, "Execute code")
-    const runfile  = Action(Gtk.GdkKeySyms.F5,"Run current file")
-    const copy     = Action("c", PrimaryModifier,"Copy")
-    const paste    = Action("v", PrimaryModifier,"Paste")
-    const cut      = Action("x", PrimaryModifier,"Cut")
-    const move_to_line_start = Action("a", SecondaryModifer, "Move cursor to line start")
-    const move_to_line_end   = Action("e", SecondaryModifer, "Move cursor to line end")
-    const delete_line = Action("k", PrimaryModifier, "Delete line")
-    const duplicate_line = Action("d", PrimaryModifier, "Duplicate line")
-    const toggle_comment = Action("t", PrimaryModifier, "Toggle comment")
-    const undo = Action("z", PrimaryModifier, "Undo")
-    const redo = Action("z", PrimaryModifier + GdkModifierType.SHIFT, "Redo")
+Actions["save"]     = Action("s", PrimaryModifier, "Save file")
+Actions["open"]     = Action("o", PrimaryModifier, "Open file")
+Actions["closetab"] = Action("w", PrimaryModifier, "Close current tab")
+Actions["newtab"]   = Action("n", PrimaryModifier, "New tab")
+Actions["datahint"] = Action("D", PrimaryModifier+GdkModifierType.SHIFT, "Show data hint")
+Actions["search"]   = Action(keyval("f"), PrimaryModifier, "Search")
+Actions["runline"]  = Action(Gtk.GdkKeySyms.Return, PrimaryModifier + GdkModifierType.SHIFT, "Execute current line")
+Actions["runcode"]  = Action(Gtk.GdkKeySyms.Return, PrimaryModifier, "Execute code")
+Actions["runfile"]  = Action(Gtk.GdkKeySyms.F5,"Run current file")
+Actions["copy"]     = Action("c", PrimaryModifier,"Copy")
+Actions["paste"]    = Action("v", PrimaryModifier,"Paste")
+Actions["cut"]      = Action("x", PrimaryModifier,"Cut")
+Actions["move_to_line_start"] = Action("a", SecondaryModifer, "Move cursor to line start")
+Actions["move_to_line_end"]   = Action("e", SecondaryModifer, "Move cursor to line end")
+Actions["delete_line"] = Action("k", PrimaryModifier, "Delete line")
+Actions["duplicate_line"] = Action("d", PrimaryModifier, "Duplicate line")
+Actions["toggle_comment"] = Action("t", PrimaryModifier, "Toggle comment")
+Actions["undo"] = Action("z", PrimaryModifier, "Undo")
+Actions["redo"] = Action("z", PrimaryModifier + GdkModifierType.SHIFT, "Redo")
 
-    const select_all = Action("a", PrimaryModifier, "Select all")
+Actions["select_all"] = Action("a", PrimaryModifier, "Select all")
 
-    #console
-    const interrupt_run = Action("x", PrimaryModifier, "Interrupt current task")
-
-end
+#console
+Actions["interrupt_run"] = Action("x", PrimaryModifier, "Interrupt current task")

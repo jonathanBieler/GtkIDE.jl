@@ -342,21 +342,21 @@ end
 
 #    println(event.state)
 
-    doing(Actions.save, event) && save(t)
-    doing(Actions.open, event) && openfile_dialog()
+    doing(Actions["save"], event) && save(t)
+    doing(Actions["open"], event) && openfile_dialog()
         
-    if doing(Actions.closetab, event)
+    if doing(Actions["closetab"], event)
         close_tab()
         save(project)
     end
-    if doing(Actions.newtab, event)
+    if doing(Actions["newtab"], event)
         add_tab()
         save(project)
     end
-    if doing(Actions.datahint, event)
+    if doing(Actions["datahint"], event)
         show_data_hint(textview)
     end
-    if doing(Actions.search, event)
+    if doing(Actions["search"], event)
         open(search_window)
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
@@ -364,15 +364,15 @@ end
             return editor_autocomplete(textview,t)
         end
     end
-    if doing(Actions.runline, event)
+    if doing(Actions["runline"], event)
         run_line(console,buffer)
         return convert(Cint,true)
     end
-    if doing(Actions.runcode, event)
+    if doing(Actions["runcode"], event)
         run_code(console,buffer)
         return INTERRUPT
     end
-    if doing(Actions.runfile, event)
+    if doing(Actions["runfile"], event)
         cmd = "include(\"$(t.filename)\")"
         cmd = replace(cmd,"\\", "/")
         run_command(console,cmd)
@@ -381,7 +381,7 @@ end
         set_search_text("")
         visible(search_window,false)
     end
-    if doing(Actions.copy,event)
+    if doing(Actions["copy"],event)
         (found,it_start,it_end) = selection_bounds(buffer)
         if !found
             (txt, its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer))
@@ -390,11 +390,11 @@ end
         signal_emit(textview, "copy-clipboard", Void)
         return INTERRUPT
     end
-    if doing(Actions.paste,event)
+    if doing(Actions["paste"],event)
         signal_emit(textview, "paste-clipboard", Void)
         return INTERRUPT
     end
-    if doing(Actions.cut,event)
+    if doing(Actions["cut"],event)
         (found,it_start,it_end) = selection_bounds(buffer)
         if !found
             (txt, its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer))
@@ -404,12 +404,12 @@ end
 
         return INTERRUPT
     end
-    if doing(Actions.move_to_line_start,event) ||
+    if doing(Actions["move_to_line_start"],event) ||
        doing(Action(GdkKeySyms.Left, PrimaryModifier),event)
         move_cursor_to_sentence_start(buffer)
         return INTERRUPT
     end
-    if doing(Actions.move_to_line_end,event) ||
+    if doing(Actions["move_to_line_end"],event) ||
        doing(Action(GdkKeySyms.Right, PrimaryModifier),event)
         move_cursor_to_sentence_end(buffer)
         return INTERRUPT
@@ -448,18 +448,18 @@ end
         return INTERRUPT
     end
 
-    if doing(Actions.toggle_comment,event)
+    if doing(Actions["toggle_comment"],event)
         user_action(toggle_comment, buffer)#make sure undo works
     end
-    if doing(Actions.undo,event)
+    if doing(Actions["undo"],event)
         canundo(buffer) && undo!(buffer)
         return INTERRUPT
     end
-    if doing(Actions.redo,event)
+    if doing(Actions["redo"],event)
         canredo(buffer) && redo!(buffer)
         return INTERRUPT
     end
-    if doing(Actions.delete_line,event)
+    if doing(Actions["delete_line"],event)
         (found,itstart,itend) = selection_bounds(buffer)
         if found
             itstart = text_iter_line_start(nonmutable(buffer,itstart))#FIXME need a mutable version
@@ -470,7 +470,7 @@ end
             splice!(buffer,itstart-1:itend)
         end
     end
-    if doing(Actions.duplicate_line,event)
+    if doing(Actions["duplicate_line"],event)
         (cmd, itstart, itend) = get_current_line_text(buffer)
         insert!(buffer,itend,"\n" * cmd)
     end

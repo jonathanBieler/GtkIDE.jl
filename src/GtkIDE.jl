@@ -32,6 +32,7 @@ end
 import Base.REPLCompletions.completions
 import Cairo.text
 
+#export add_console, figure
 
 #Order matters
 include("NtbookUtils.jl")
