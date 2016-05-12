@@ -72,6 +72,7 @@ Actions["duplicate_line"] = Action("d", PrimaryModifier, "Duplicate line")
 Actions["toggle_comment"] = Action("t", PrimaryModifier, "Toggle comment")
 Actions["undo"] = Action("z", PrimaryModifier, "Undo")
 Actions["redo"] = Action("z", PrimaryModifier + GdkModifierType.SHIFT, "Redo")
+Actions["goto_line"] = Action("g", PrimaryModifier, "Go to line")
 
 Actions["select_all"] = Action("a", PrimaryModifier, "Select all")
 

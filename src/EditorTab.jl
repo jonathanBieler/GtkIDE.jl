@@ -181,8 +181,8 @@ end
 
 function line_to_adj_value(buffer::GtkTextBuffer,adj::GtkAdjustment,l::Integer)
     tot = line_count(buffer)
-    scaling = getproperty(adj,:upper,AbstractFloat) -
-              getproperty(adj,:page_size,AbstractFloat)
+    scaling = getproperty(adj,:upper,AbstractFloat) #-
+              #getproperty(adj,:page_size,AbstractFloat)
 
     return l/tot * scaling
 end
@@ -474,6 +474,17 @@ end
         (cmd, itstart, itend) = get_current_line_text(buffer)
         insert!(buffer,itend,"\n" * cmd)
     end
+    if doing(Actions["goto_line"],event)
+        ok,v = input_dialog("Line number","1",(("Cancel",0),("Ok",1)),win)
+        if ok == 1
+            v = parse(v)
+            if typeof(v) <: Integer
+                scroll_to_line(t,v)
+            else
+                println("Invalid line number: $v")
+            end
+        end
+    end  
 
     !update_completion_window(event,buffer) && return INTERRUPT
 
@@ -583,6 +594,14 @@ function tab_adj_changed_cb(adjptr::Ptr, user_data)
     end
 
     return nothing
+end
+
+function scroll_to_line(t::EditorTab,l::Integer)
+
+    adj = getproperty(t,:vadjustment,GtkAdjustment)
+    v = line_to_adj_value(get_buffer(t.view),adj,l)
+    v = max(0,v - getproperty(adj,:step_increment,AbstractFloat))
+    value(adj,v)
 end
 
 function tab_extend_selection_cb(widgetptr::Ptr,granularityptr::Ptr,locationptr::Ptr,it_startptr::Ptr,it_endptr::Ptr,user_data)
