@@ -1,17 +1,20 @@
 # Documentation
 
-    {contents}
+```@contents
+```
 
 ## Functions
 
-    {docs}
-    clear(c)
-    Console
-    ConsoleCommand
-    SearchWindow
-    Editor
-    EditorTab
+```@docs
+clear(c)
+Console
+ConsoleCommand
+SearchWindow
+Editor
+EditorTab
+```
 
 ## Index
 
-    {index}
+```@index
+```
