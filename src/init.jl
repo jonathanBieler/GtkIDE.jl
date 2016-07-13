@@ -18,23 +18,23 @@ languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"mar
     global const fontsize = opt("fontsize")
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Consolas, Courier, monospace;
-        font-size: $(fontsize)
+        font-size: $(fontsize)pt;
     }"""
 end
 @osx_only begin
     global const style = style_scheme(sourceStyleManager,"autumn")
     global const fontsize = opt("fontsize")
-    fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
+    fontCss =  "button, entry, window, sourceview, textview {
         font-family: Monaco, Consolas, Courier, monospace;
-        font-size: $(fontsize);
-    }"""
+        font-size: $(fontsize)pt;
+    }"
 end
 @linux_only begin
     global const style = style_scheme(sourceStyleManager,"tango")
     global const fontsize = opt("fontsize")-1
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Consolas, Courier, monospace;
-        font-size: $(fontsize)
+        font-size: $(fontsize)pt;
     }"""
 end
 
@@ -130,7 +130,7 @@ setproperty!(topBarBox,:hexpand,true)
 ################
 # Side Panels
 
-form_builder = Gtk.GtkBuilderLeaf(filename=joinpath(dirname(@__FILE__),"forms/forms.glade"))
+form_builder = Gtk.GtkBuilderLeaf(filename=joinpath(HOMEDIR,"forms/forms.glade"))
 filespanel = FilesPanel()
 update!(filespanel)
 add_side_panel(filespanel,"Files")
@@ -151,6 +151,7 @@ add_side_panel(workspacepanel,"W")
 ################
 ## Plots
 
+sleep(0.5)
 figure()
 drawnow() = sleep(0.001)
 

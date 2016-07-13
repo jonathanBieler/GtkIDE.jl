@@ -51,11 +51,6 @@ function watch_stream(rd::IO, stdout_buffer::IO)
     end
 end
 
-stdout = STDOUT
-stderr = STDERR
-
-read_stdout, wr = redirect_stdout()
-stdout_buffer = IOBuffer()
 
 function send_to_main_worker(stdout_buffer::IO)
 
@@ -78,5 +73,15 @@ function print_to_console_remote(s,idx::Integer)
     end
 end
 
-watch_stdio_task = @schedule watch_stream(read_stdout,stdout_buffer)
-send_to_main_worker_task = @schedule send_to_main_worker(stdout_buffer)
+if !isdefined(:watch_stdio_task)
+
+    stdout = STDOUT
+    stderr = STDERR
+
+    read_stdout, wr = redirect_stdout()
+    stdout_buffer = IOBuffer()
+
+    watch_stdio_task = @schedule watch_stream(read_stdout,stdout_buffer)
+    send_to_main_worker_task = @schedule send_to_main_worker(stdout_buffer)
+
+end

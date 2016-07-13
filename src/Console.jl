@@ -114,6 +114,16 @@ function on_return(c::Console,cmd::AbstractString)
     (found,t) = check_console_commands(cmd,c)
 
     if !found
+    
+        #after workspace calls
+        if !remotecall_fetch(c.worker_idx,isdefined,:eval_command_remotely)
+            remotecall_wait(c.worker_idx,
+                (HOMEDIR)->begin
+                    include(joinpath(HOMEDIR,"remote_utils.jl"))
+                end
+            ,HOMEDIR)
+        end
+    
         ref = remotecall(c.worker_idx,eval_command_remotely,cmd)
         t = @schedule fetch(ref) #I need a task here to be able to check if it's done
 #        t = eval_command_locally(cmd)

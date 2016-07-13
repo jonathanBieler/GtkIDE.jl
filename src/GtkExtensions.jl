@@ -268,7 +268,11 @@ function GtkCssProviderFromData(;data=nothing,filename=nothing)
     source_count = (data!==nothing) + (filename!==nothing)
     @assert(source_count <= 1,
         "GtkCssProvider must have at most one data or filename argument")
-    provider = GtkCssProviderLeaf(ccall((:gtk_css_provider_get_default,libgtk),Ptr{Gtk.GObject},()))
+        
+#    getting the default changes style on all widgets
+#    provider = GtkCssProviderLeaf(ccall((:gtk_css_provider_get_default,libgtk),Ptr{Gtk.GObject},()))
+    provider = GtkCssProviderLeaf(ccall((:gtk_css_provider_new,libgtk),Ptr{Gtk.GObject},()))
+    
     if data !== nothing
         Gtk.GError() do error_check
           ccall((:gtk_css_provider_load_from_data,libgtk), Bool,
@@ -284,6 +288,11 @@ function GtkCssProviderFromData(;data=nothing,filename=nothing)
     end
     return provider
 end
+
+function style_css(w::Gtk.GtkWidget,css::AbstractString)
+  sc = Gtk.G_.style_context(w) 
+  push!(sc, GtkStyleProvider(@GtkCssProvider(data=css)), 600)
+end 
 
 ## Gdk
 
