@@ -291,7 +291,7 @@ end
 
 function style_css(w::Gtk.GtkWidget,css::AbstractString)
   sc = Gtk.G_.style_context(w) 
-  push!(sc, GtkStyleProvider(@GtkCssProvider(data=css)), 600)
+  push!(sc, GtkStyleProvider(GtkCssProviderFromData(data=css)), 600)
 end 
 
 ## Gdk
