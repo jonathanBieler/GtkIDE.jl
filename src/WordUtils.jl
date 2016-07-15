@@ -39,7 +39,7 @@ end
 
 function loadwordlist()
     #http://wordlist.aspell.net/12dicts/
-    w = open("../data/2of12.txt") do f
+    w = open(joinpath(HOMEDIR,"..","data","2of12.txt")) do f
         w = Array(ASCIIString,0)
         for l in eachline(f)
             push!(w,l[1:end-2])
@@ -49,7 +49,7 @@ function loadwordlist()
     WordList(w)
 end
 function load_dict(name::AbstractString)
-    j = JSON.parsefile( joinpath(HOMEDIR,"../data",string(name,".json")) )
+    j = JSON.parsefile( joinpath(HOMEDIR,"..","data",string(name,".json")) )
     syns = Dict{ASCIIString}{Array{ASCIIString,1}}()
     for k in keys(j)
         syns[k] = j[k]
