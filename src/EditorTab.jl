@@ -241,7 +241,12 @@ function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
         t.autocomplete_words = [""]
     end
 
-    (comp,dotpos) = extcompletions(cmd,t.autocomplete_words)
+    if extension(t.filename) == ".md"
+        comp = startswith(WordsUtils.wordlist,ascii(cmd))
+        dotpos = -1:0
+    else
+        (comp,dotpos) = extcompletions(cmd,t.autocomplete_words)
+    end
 
     if isempty(comp)
         visible(completion_window,false)
@@ -546,23 +551,35 @@ function show_data_hint(textview::GtkTextView)
     word = get_word_under_mouse_cursor(textview)
 
     try
-      ex = parse(word)
-      value = eval(Main,ex)
-      value = typeof(value) == Function ? methods(value) : value
-      value = sprint(Base.showlimited,value)
+        t = get_current_tab()
+        if extension(t.filename) == ".md"
+            
+            defs = definition(lowercase(word))
+            value = ""
+            for d in defs
+                value = string(value,d,"\n\n")
+            end
+            
+        else
+            ex = parse(word)
+            value = eval(Main,ex)
+            value = typeof(value) == Function ? methods(value) : value
+            value = sprint(Base.showlimited,value)
+        end
 
-      label = @GtkLabel(value)
-      popup = @GtkWindow("", 2, 2, true, false) |> label
-      setproperty!(label,:margin,5)
+        label = @GtkLabel(value)
+        popup = @GtkWindow("", 2, 2, true, false) |> label
+        setproperty!(label,:margin,5)
 
-      Gtk.G_.position(popup,mousepos_root[1]+10,mousepos_root[2])
-      showall(popup)
+        Gtk.G_.position(popup,mousepos_root[1]+10,mousepos_root[2])
+        showall(popup)
 
-      @schedule begin
-          sleep(2)
-          destroy(popup)
-      end
-
+        @schedule begin
+            sleep(2)
+            destroy(popup)
+        end
+    catch err
+#        @show err
     end
 end
 

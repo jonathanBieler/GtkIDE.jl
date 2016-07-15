@@ -5,7 +5,6 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 
 ## Installation
 
-
 1. Get the latest version of Immerse and Gtk:
 
     `Pkg.add("Gtk")`
@@ -92,6 +91,11 @@ In the editor :
 
 
 See [Actions.jl](src/Actions.jl) for all actions.
+
+### Editing text
+
+When editing markdown files (.md) autocompletion will display a list of English words
+from the [12Dicts Package](http://wordlist.aspell.net/12dicts/), instead of the standard Julia vocabulary.
 
 ### Issues
 

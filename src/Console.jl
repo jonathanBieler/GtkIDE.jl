@@ -136,6 +136,13 @@ function on_return(c::Console,cmd::AbstractString)
     nothing
 end
 
+function trim(s::AbstractString,L::Int)
+    if length(s) > L
+        return string(s[1:L],"...")    
+    end
+    s 
+end
+
 function eval_command_remotely(cmd::AbstractString)
 
     ex = Base.parse_input_line(cmd)
@@ -153,6 +160,7 @@ function eval_command_remotely(cmd::AbstractString)
         evalout = sprint(showerror,err,bt)
     end
 
+    evalout = trim(evalout,4000)
     finalOutput = evalout == "" ? "" : "$evalout\n"
     return finalOutput, v
 end
@@ -179,6 +187,7 @@ function eval_command_locally(cmd::AbstractString)
             evalout = sprint(showerror,err,bt)
         end
 
+        evalout = trim(evalout,4000)
         finalOutput = evalout == "" ? "" : "$evalout\n"
 
         return finalOutput, v

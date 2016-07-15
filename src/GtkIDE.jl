@@ -37,6 +37,7 @@ import Cairo.text
 #Order matters
 include("NtbookUtils.jl")
 include("MenuUtils.jl")
+include("WordUtils.jl")
 include("PlotWindow.jl")
 include("Project.jl")
 include("CommandHistory.jl")
