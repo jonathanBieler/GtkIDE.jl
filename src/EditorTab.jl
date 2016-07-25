@@ -103,6 +103,14 @@ function set_font(t::EditorTab)
     push!(sc, provider, 600)
 end
 
+function istextfile(t::EditorTab)
+    fext = extension(t.filename)
+    for ext in [".md",".txt"]
+        fext == ext && return true
+    end
+    false
+end
+
 function get_cell(buffer::GtkTextBuffer)
 
     (foundb,itb_start,itb_end) = text_iter_backward_search(buffer, "##")
@@ -219,32 +227,59 @@ end
     return PROPAGATE
 end
 
+function completion_mode(buffer,it,t)
+
+    (cmd,its,ite) = select_word_backward(it,buffer,false)
+    cmd = strip(cmd)
+    
+    if istextfile(t)
+        (found,its,ite) = selection_bounds(t.buffer)
+        if found 
+            return (:text_selection,text_iter_get_text(its,ite),its,ite)
+        end
+        if cmd == ""
+            return (:none,cmd,nothing,nothing)
+        else
+            return (:text,cmd,its,ite)
+        end
+    else
+        if cmd == ""
+            if get_text_left_of_cursor(buffer) == ")"
+                (found,tu,its) = select_tuple(it, buffer)
+                found && return (:tuple,cmd,its,its)
+            else
+                return (:none,cmd,nothing,nothing)
+            end
+        end
+        return (:normal,cmd,its,ite)
+    end
+    (:none,cmd,nothing,nothing)
+end
+
+
 #FIXME: this should be reworked a bit with CompletionWindow code
 function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
 
     buffer = getbuffer(view)
     it = get_text_iter_at_cursor(buffer)
 
-    (cmd,itstart,itend) = select_word_backward(it,buffer,false)
-    cmd = strip(cmd)
-
-    if cmd == ""
-        if get_text_left_of_cursor(buffer) == ")"
-            return tuple_autocomplete(it,buffer,completion_window,view)
-        else
-            visible(completion_window,false)
-            return PROPAGATE #we go back to normal behavior if there's nothing to do
-        end
+    mode,cmd,itstart,itend = completion_mode(buffer,it,t)
+    
+    if mode == :none
+        visible(completion_window,false)
+        return PROPAGATE #we go back to normal behavior if there's nothing to do
+    end
+    if mode == :tuple
+        return tuple_autocomplete(it,buffer,completion_window,view)
     end
 
-    if !isdefined(t,:autocomplete_words)
-        t.autocomplete_words = [""]
-    end
-
-    if extension(t.filename) == ".md"
+    if mode == :text
         comp = startswith(WordsUtils.wordlist,ascii(cmd))
         dotpos = -1:0
     else
+        if !isdefined(t,:autocomplete_words)
+            t.autocomplete_words = [""]
+        end
         (comp,dotpos) = extcompletions(cmd,t.autocomplete_words)
     end
 
@@ -365,8 +400,9 @@ end
         open(search_window)
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
-        if !visible(completion_window) && !hasselection(t)
-            return editor_autocomplete(textview,t)
+        if !visible(completion_window) 
+#            return editor_autocomplete(textview,t)
+            return init_autocomplete(textview,t)
         end
     end
     if doing(Actions["runline"], event)
@@ -491,7 +527,7 @@ end
         end
     end  
 
-    !update_completion_window(event,buffer) && return INTERRUPT
+    !update_completion_window(event,buffer,t) && return INTERRUPT
 
     return PROPAGATE
 end
@@ -575,8 +611,8 @@ function show_data_hint(textview::GtkTextView)
         showall(popup)
 
         @schedule begin
-            sleep(2)
-            destroy(popup)
+            sleep(3)
+            destroy(popup)#FIXME close on click or something
         end
     catch err
 #        @show err

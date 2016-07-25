@@ -5,6 +5,10 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 
 ## Installation
 
+
+
+##
+
 1. Get the latest version of Immerse and Gtk:
 
     `Pkg.add("Gtk")`
@@ -31,7 +35,7 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 ## Usage
 
 **Warning:** make sure to backup or commit your work before editing files, as this editor is
-still somewhat experimental.
+still somewhat experimental. 
 
 ### Opening files
 
