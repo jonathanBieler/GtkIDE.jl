@@ -66,7 +66,7 @@ function select_word(it::GtkTextIter,buffer::GtkTextBuffer,include_dot::Bool)#in
 
     pos = offset(it) - offset(line_start) +1#not sure about the +1 but it feels better
     if pos <= 0
-        warn("negative position $pos ($(offset(it)) - $(offset(line_start)) )")
+#        warn("negative position $pos ($(offset(it)) - $(offset(line_start)) )")
         return ("",GtkTextIter(buffer,offset(it)),
         GtkTextIter(buffer,offset(it)))
     end
@@ -92,7 +92,7 @@ function select_word_backward(it::GtkTextIter,buffer::GtkTextBuffer,include_dot:
     pos = offset(it) - offset(line_start) #position of cursor in txt
 
     if pos <= 0 || length(txt) == 0
-        warn("negative positon $pos ($(offset(it)) - $(offset(line_start)))")
+#        warn("negative positon $pos ($(offset(it)) - $(offset(line_start)))")
         return ("",GtkTextIter(buffer,offset(it)),
         GtkTextIter(buffer,offset(it)))
     end

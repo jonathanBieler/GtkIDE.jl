@@ -30,7 +30,7 @@ type CompletionWindow <: GtkWindow #FIXME not the right container?
         push!(completion_window,textview)
         showall(completion_window)
 
-        t = new(completion_window.handle,textview,buffer)
+        t = new(completion_window.handle,textview,buffer,AbstractString[],1)
         Gtk.gobject_move_ref(t, completion_window)
     end
 end
@@ -177,20 +177,20 @@ end
 
 function on_return(c::CompletionWindow,buffer,t)
     p = c.provider
-    
+
     #check if we are still in the right mode, and update iterators
     if !select_text(p,buffer,get_text_iter_at_cursor(buffer),t)
         visible(completion_window,false)
         return
     end
-    
+
     if p.state <= length(p.steps)
         p.comp = p.steps[p.state]()
         p.state += 1
     else
         #this was multisteps
         if !isempty(p.steps) && p.state == length(p.steps)+1
-            completions(p,t)
+            completions(p,t,completion_window.idx)
             completion_window.content = p.comp
             display(completion_window)
             p.state = p.state+1
@@ -199,7 +199,7 @@ function on_return(c::CompletionWindow,buffer,t)
             visible(completion_window,false)
         end
     end
-                       
+
 end
 
 ##
@@ -237,7 +237,7 @@ function build_completion_window(comp,view,prefix,mode::Symbol)
 end
 build_completion_window(comp,view,prefix) =
 build_completion_window(comp,view,prefix,:normal)
- 
+
 function build_completion_window(comp,view,prefix,func_names)
     completion_window.func_names = func_names
     build_completion_window(comp,view,prefix,:tuple)
@@ -469,5 +469,6 @@ end
 
 ##
 global completion_window = CompletionWindow()
+completion_window.idx = 1
 visible(completion_window,false)
 #Gtk.G_.keep_above(completion_window,true)
