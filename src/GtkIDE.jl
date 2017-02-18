@@ -29,6 +29,19 @@ if !GtkSourceWidget.SOURCE_MAP
     type GtkSourceMap end
 end
 
+#dirty hack ?
+if !isdefined(Base,:MethodList)#0.4
+    function method_filename(m)
+        tv, decls, file, line = Base.arg_decl_parts(m.defs)
+        return file,line
+    end
+else
+    function method_filename(m)
+        tv, decls, file, line = Base.arg_decl_parts(m.ms[1])
+        return file,line
+    end
+end
+
 import Base.REPLCompletions.completions
 import Cairo.text
 

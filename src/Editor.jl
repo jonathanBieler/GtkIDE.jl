@@ -199,14 +199,14 @@ function get_tab_widget(tab, filename)
     lbl = @GtkLabel(basename(filename))
     setproperty!(lbl,:name, "filename_label")
     btn = @GtkButton("X")
-    
+
     style_css(btn,"button {
           padding: 0px;
           margin: 0px;
           margin-left:1px;
-          }") 
+          }")
     setproperty!(btn,:relief,2)
-          
+
     signal_connect(close_tab_cb, btn, "clicked", Void,(),false,tab)
 
     push!(layout,lbl)
@@ -220,7 +220,7 @@ function open(t::EditorTab, filename::AbstractString)
     try
         if isfile(filename)
             f = Base.open(filename)
-            set_text!(t,readall(f))
+            set_text!(t,readstring(f))
             t.modified = false
             modified(t,t.modified)
         else

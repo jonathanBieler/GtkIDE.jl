@@ -90,7 +90,7 @@ end
 @guarded (INTERRUPT) function fig_ntbook_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     ntbook = convert(GtkNotebook, widgetptr)
     event = convert(Gtk.GdkEvent,eventptr)
-    
+
     if doing(Actions["newtab"],event)
         Immerse.figure()
     end
@@ -125,7 +125,8 @@ function Immerse.figure(;name::AbstractString="Figure $(Immerse.nextfig(Immerse.
 
     i = Immerse.nextfig(Immerse._display)
     f = Immerse.Figure()
-    Gtk.on_signal_destroy((x...)->Immerse.dropfig(Immerse._display,i), f)
+    #Gtk.on_signal_destroy((x...)->Immerse.dropfig(Immerse._display,i), f)
+    signal_connect(Immerse.on_figure_destroy, f, "destroy", Void, (), false, (i, Immerse._display))
 
     idx = length(fig_ntbook)+1
     insert!(fig_ntbook,idx,f,name)

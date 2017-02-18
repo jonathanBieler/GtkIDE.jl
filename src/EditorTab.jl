@@ -27,7 +27,8 @@ type EditorTab <: GtkScrolledWindow
         filename = normpath(filename)
 
         b = @GtkSourceBuffer(lang)
-        setproperty!(b,:style_scheme,style)
+
+        setproperty!(b,:style_scheme,main_style)
         v = @GtkSourceView(b)
 
         highlight_matching_brackets(b,true)
@@ -154,9 +155,9 @@ function open_method(view::GtkTextView)
         ex = parse(word)
 
         v = eval(Main,ex)
-        v = typeof(v) == Function ? methods(v) : v
+        v = typeof(v) <: Function ? methods(v) : v
 
-        tv, decls, file, line = Base.arg_decl_parts(v.defs)
+        file, line = method_filename(v)
         file = string(file)
         file = ispath(file) ? file : joinpath( joinpath(splitdir(JULIA_HOME)[1],"share/julia/base"), file)
         file = normpath(file)
@@ -231,10 +232,10 @@ function completion_mode(buffer,it,t)
 
     (cmd,its,ite) = select_word_backward(it,buffer,false)
     cmd = strip(cmd)
-    
+
     if istextfile(t)
         (found,its,ite) = selection_bounds(t.buffer)
-        if found 
+        if found
             return (:text_selection,text_iter_get_text(its,ite),its,ite)
         end
         if cmd == ""
@@ -264,7 +265,7 @@ function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
     it = get_text_iter_at_cursor(buffer)
 
     mode,cmd,itstart,itend = completion_mode(buffer,it,t)
-    
+
     if mode == :none
         visible(completion_window,false)
         return PROPAGATE #we go back to normal behavior if there's nothing to do
@@ -384,7 +385,7 @@ end
 
     doing(Actions["save"], event) && save(t)
     doing(Actions["open"], event) && openfile_dialog()
-        
+
     if doing(Actions["closetab"], event)
         close_tab()
         save(project)
@@ -400,7 +401,7 @@ end
         open(search_window)
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
-        if !visible(completion_window) 
+        if !visible(completion_window)
 #            return editor_autocomplete(textview,t)
             return init_autocomplete(textview,t)
         end
@@ -525,7 +526,7 @@ end
                 println("Invalid line number: $v")
             end
         end
-    end  
+    end
 
     !update_completion_window(event,buffer,t) && return INTERRUPT
 
@@ -589,21 +590,21 @@ function show_data_hint(textview::GtkTextView)
     try
         t = get_current_tab()
         if extension(t.filename) == ".md"
-            
+
             defs = definition(lowercase(word))
             value = ""
             for d in defs
                 value = string(value,d,"\n\n")
             end
-            
+
         else
             ex = parse(word)
-            value = eval(Main,ex)
-            value = typeof(value) == Function ? methods(value) : value
-            value = sprint(Base.showlimited,value)
+            v = eval(Main,ex)
+            v = typeof(v) <: Function ? methods(v) : v
+            v = sprint(showlimited,v)
         end
 
-        label = @GtkLabel(value)
+        label = @GtkLabel(v)
         popup = @GtkWindow("", 2, 2, true, false) |> label
         setproperty!(label,:margin,5)
 

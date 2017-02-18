@@ -11,7 +11,7 @@ type WordList{T<:AbstractString}
     words::Array{T,1}
     WordList(w::Array{T,1}) = new(w)
 end
-WordList() = WordList{ASCIIString}(Array(ASCIIString,0))
+WordList() = WordList{String}(Array(String,0))
 WordList{T<:AbstractString}(w::Array{T,1}) = WordList{T}(w)
 
 function startswith{T<:AbstractString}(l::WordList{T},prefix::T)
@@ -40,7 +40,7 @@ end
 function loadwordlist()
     #http://wordlist.aspell.net/12dicts/
     w = open(joinpath(HOMEDIR,"..","data","2of12.txt")) do f
-        w = Array(ASCIIString,0)
+        w = Array(String,0)
         for l in eachline(f)
             push!(w,l[1:end-2])
         end
@@ -50,7 +50,7 @@ function loadwordlist()
 end
 function load_dict(name::AbstractString)
     j = JSON.parsefile( joinpath(HOMEDIR,"..","data",string(name,".json")) )
-    syns = Dict{ASCIIString}{Array{ASCIIString,1}}()
+    syns = Dict{String}{Array{String,1}}()
     for k in keys(j)
         syns[k] = j[k]
     end
@@ -66,14 +66,14 @@ function synonyms(k::AbstractString)
     if haskey(synonyms_dict,k)
         return synonyms_dict[k]
     end
-    ASCIIString[]
+    String[]
 end
 function definition(k::AbstractString) 
     k = ascii(k)
     if haskey(definition_dict,k)
         return definition_dict[k]
     end
-    ASCIIString[]
+    String[]
 end
 
 end
@@ -87,7 +87,7 @@ using WordsUtils
 #
 #function synonyms(k)
 #
-#    out = ASCIIString[]
+#    out = String[]
 #    for pos in ['n', 'v', 'a', 'r']
 #        try
 #            lemma = db[pos, k]
@@ -108,7 +108,7 @@ using WordsUtils
 #
 #function def(k)
 #
-#    out = ASCIIString[]
+#    out = String[]
 #    for pos in ['n', 'v', 'a', 'r']
 #        try
 #            lemma = db[pos, k]
@@ -139,7 +139,7 @@ using WordsUtils
 # get all synonyms
 #
 #function build_synonyms_dict(n)
-#    syns = Dict{ASCIIString}{Array{ASCIIString,1}}()
+#    syns = Dict{String}{Array{String,1}}()
 #
 #    for i=1:n
 #        k = w.words[i]
@@ -185,7 +185,7 @@ using WordsUtils
 # convert to proper type
 #
 #    j = JSON.parsefile( joinpath(HOMEDIR,"../data","syndict.json") )
-#    syns = Dict{ASCIIString}{Array{ASCIIString,1}}()
+#    syns = Dict{String}{Array{String,1}}()
 #
 #    for k in keys(j)
 #        syns[k] = j[k]
@@ -194,7 +194,7 @@ using WordsUtils
 # get all gloss
 #
 #function build_def_dict(n)
-#    syns = Dict{ASCIIString}{Array{ASCIIString,1}}()
+#    syns = Dict{String}{Array{String,1}}()
 #
 #    for i=1:n
 #        k = w.words[i]

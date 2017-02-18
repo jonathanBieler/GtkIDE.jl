@@ -1,5 +1,5 @@
 # GtkIDE.jl
-GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](https://github.com/JuliaLang/julia) 0.4 written in Julia. It includes a terminal, a plotting window and an editor.
+GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](https://github.com/JuliaLang/julia) 0.5 written in Julia. It includes a terminal, a plotting window and an editor.
 
 ![screenshot](data/GtkIDE.png)
 
@@ -29,7 +29,7 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
     `using GtkIDE`
     
 ## Usage
-
+ 
 **Warning:** make sure to backup or commit your work before editing files, as this editor is
 still somewhat experimental. 
 

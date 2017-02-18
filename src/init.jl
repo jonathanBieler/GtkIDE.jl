@@ -13,24 +13,25 @@ GtkSourceWidget.set_search_path(sourceLanguageManager,
 languageDefinitions[".jl"] = GtkSourceWidget.language(sourceLanguageManager,"julia")
 languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"markdown")
 
-@windows_only begin
-    global const style = style_scheme(sourceStyleManager,"autumn")
+@static if is_windows()
+    global const main_style = style_scheme(sourceStyleManager,"autumn")
     global const fontsize = opt("fontsize")
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Consolas, Courier, monospace;
         font-size: $(fontsize)pt;
     }"""
 end
-@osx_only begin
-    global const style = style_scheme(sourceStyleManager,"autumn")
+@static if is_apple()
+    global const main_style = style_scheme(sourceStyleManager,"autumn")
     global const fontsize = opt("fontsize")
     fontCss =  "button, entry, window, sourceview, textview {
         font-family: Monaco, Consolas, Courier, monospace;
         font-size: $(fontsize)pt;
     }"
 end
-@linux_only begin
-    global const style = style_scheme(sourceStyleManager,"tango")
+
+@static if is_linux()
+    global const main_style = style_scheme(sourceStyleManager,"tango")
     global const fontsize = opt("fontsize")-1
     fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
         font-family: Consolas, Courier, monospace;
@@ -53,27 +54,6 @@ global const console = first_console()
 #add_console()
 for i=1:length(free_workers())
     #add_console()
-end
-
-if REDIRECT_STDOUT
-
-    stdout = STDOUT
-    stderr = STDERR
-
-    read_stdout, wr = redirect_stdout()
-    read_stderr, wre = redirect_stderr()
-
-    function watch_stdout()
-        @schedule watch_stream(read_stdout,console)
-    end
-    function watch_stderr()
-        @schedule watch_stream(read_stderr,console)
-    end
-
-    watch_stdout_tastk = watch_stdout()
-    watch_stderr_tastk = watch_stderr()
-
-    g_timeout_add(100,print_to_console,console)
 end
 
 ## Editor
@@ -152,9 +132,8 @@ add_side_panel(workspacepanel,"W")
 ## Plots
 
 sleep(0.5)
-figure()
+#figure()
 drawnow() = sleep(0.001)
-
 
 init(pathCBox)#need on_path_change to be defined
 
@@ -165,3 +144,28 @@ showall(win)
 visible(search_window,false)
 visible(sidepanel_ntbook,false)
 GtkSourceWidget.SOURCE_MAP && visible(editor.sourcemap,opt("Editor","show_source_map"))
+
+#
+
+sleep(0.5)
+
+if REDIRECT_STDOUT
+
+    stdout = STDOUT
+    stderr = STDERR
+
+    read_stdout, wr = redirect_stdout()
+    read_stderr, wre = redirect_stderr()
+
+    function watch_stdout()
+        @schedule watch_stream(read_stdout,console)
+    end
+    function watch_stderr()
+        @schedule watch_stream(read_stderr,console)
+    end
+
+    watch_stdout_tastk = watch_stdout()
+    watch_stderr_tastk = watch_stderr()
+
+    g_timeout_add(100,print_to_console,console)
+end

@@ -74,7 +74,7 @@ end
 
 # Not ideal, it always refresh when using the pathdisplay
 function on_path_change(doUpdate=false)
-    c_path = bytestring(Gtk.G_.active_text(pathCBox))
+    c_path = unsafe_string(Gtk.G_.active_text(pathCBox))
     update_pathEntry()
     if pwd() != c_path || doUpdate
         push!(pathCBox,pwd())

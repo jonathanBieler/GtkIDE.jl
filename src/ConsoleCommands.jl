@@ -73,10 +73,10 @@ end)
 add_console_command(r"^open (.*)",(m,c) -> begin
 	try
         v = m.captures[1]
-        @windows_only begin
+        @static if is_windows()
             run(`cmd /c start "$v" `)
         end
-        @osx_only begin
+        @static if is_apple()
             run(`open $v`)
         end
 	catch err

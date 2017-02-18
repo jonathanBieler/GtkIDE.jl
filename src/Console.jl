@@ -22,7 +22,7 @@ type Console <: GtkScrolledWindow
         lang = languageDefinitions[".jl"]
 
         b = @GtkSourceBuffer(lang)
-        setproperty!(b,:style_scheme,style)
+        setproperty!(b,:style_scheme,main_style)
         v = @GtkSourceView(b)
 
         highlight_matching_brackets(b,true)
@@ -49,10 +49,11 @@ type Console <: GtkScrolledWindow
         t = @schedule begin end
 
         if w_idx > 1
-            remotecall_wait(w_idx,
+            remotecall_wait(
                 (HOMEDIR)->begin
                     include(joinpath(HOMEDIR,"remote_utils.jl"))
                 end
+            ,w_idx
             ,HOMEDIR)
         end
 
@@ -114,17 +115,18 @@ function on_return(c::Console,cmd::AbstractString)
     (found,t) = check_console_commands(cmd,c)
 
     if !found
-    
+
         #after workspace calls
-        if !remotecall_fetch(c.worker_idx,isdefined,:eval_command_remotely)
-            remotecall_wait(c.worker_idx,
+        if !remotecall_fetch(isdefined,c.worker_idx,:eval_command_remotely)
+            remotecall_wait(
                 (HOMEDIR)->begin
                     include(joinpath(HOMEDIR,"remote_utils.jl"))
                 end
+            ,c.worker_idx
             ,HOMEDIR)
         end
-    
-        ref = remotecall(c.worker_idx,eval_command_remotely,cmd)
+
+        ref = remotecall(eval_command_remotely,c.worker_idx,cmd)
         t = @schedule fetch(ref) #I need a task here to be able to check if it's done
 #        t = eval_command_locally(cmd)
     end
@@ -138,9 +140,9 @@ end
 
 function trim(s::AbstractString,L::Int)
     if length(s) > L
-        return string(s[1:L],"...")    
+        return string(s[1:L],"...")
     end
-    s 
+    s
 end
 
 function eval_command_remotely(cmd::AbstractString)
@@ -697,8 +699,8 @@ end
 function send_stream(rd::IO, stdout_buffer::IO)
     nb = nb_available(rd)
     if nb > 0
-        d = readbytes(rd, nb)
-        s = bytestring(d)
+        d = read(rd, nb)
+        s = String(copy(d))
 
         if !isempty(s)
             write(stdout_buffer,s)

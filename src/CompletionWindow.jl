@@ -257,7 +257,7 @@ end
 function collect_symbols(t::EditorTab)
 
     ##
-    str = utf8(getproperty(t.buffer,:text,AbstractString))
+    str = String(getproperty(t.buffer,:text,AbstractString))
     S = Array(Symbol,0)
 
     #no searchall :'(

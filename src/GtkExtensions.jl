@@ -49,11 +49,11 @@ show(io::IO, it::GtkTextIter) = println("GtkTextIter($(offset(it)))")
 
 function text_iter_get_text(it_start::MutableGtkTextIter,it_end::MutableGtkTextIter)
 	s = ccall((:gtk_text_iter_get_text,libgtk),Ptr{UInt8},(Ptr{GtkTextIter},Ptr{GtkTextIter}),it_start,it_end)
-    return s == C_NULL ? "" : bytestring(s)
+    return s == C_NULL ? "" : unsafe_string(s)
 end
 function text_iter_get_text(it_start::GtkTextIter,it_end::GtkTextIter)
 	s = ccall((:gtk_text_iter_get_text,libgtk),Ptr{UInt8},(Ref{GtkTextIter},Ref{GtkTextIter}),it_start,it_end)
-    return s == C_NULL ? "" : bytestring(s)
+    return s == C_NULL ? "" : unsafe_string(s)
 end
 
 text_iter_forward_line(it::MutableGtkTextIter)  = ccall((:gtk_text_iter_forward_line,  libgtk),Cint,(Ptr{GtkTextIter},),it)
@@ -70,7 +70,7 @@ text_iter_forward_sentence_end(it::MutableGtkTextIter) = ccall((:gtk_text_iter_f
 text_iter_forward_search(it::MutableGtkTextIter, txt::AbstractString, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_search, libgtk),
   Cint,
   (Ptr{GtkTextIter},Ptr{UInt8},Cint,Ptr{GtkTextIter},Ptr{GtkTextIter},Ptr{GtkTextIter}),
-  it,bytestring(txt),Int32(2),start,stop,limit
+  it,string(txt),Int32(2),start,stop,limit
 )
 function text_iter_forward_search(buffer::GtkTextBuffer, txt::AbstractString)
   its = mutable(GtkTextIter(buffer))
@@ -83,7 +83,7 @@ end
 text_iter_backward_search(it::MutableGtkTextIter, txt::AbstractString, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_search, libgtk),
   Cint,
   (Ptr{GtkTextIter},Ptr{UInt8},Cint,Ptr{GtkTextIter},Ptr{GtkTextIter},Ptr{GtkTextIter}),
-  it,bytestring(txt),Int32(2),start,stop,limit
+  it,string(txt),Int32(2),start,stop,limit
 )
 function text_iter_backward_search(buffer::GtkTextBuffer, txt::AbstractString)
   its = mutable(GtkTextIter(buffer))
@@ -195,7 +195,7 @@ get_current_page_idx(notebook::Gtk.GtkNotebook) = ccall((:gtk_notebook_get_curre
     (Ptr{Gtk.GObject},),notebook)+1
 set_current_page_idx(notebook::Gtk.GtkNotebook,page_num::Int) = ccall((:gtk_notebook_set_current_page,libgtk),Void,
     (Ptr{Gtk.GObject},Cint),notebook,page_num-1)
-    
+
 index(notebook::GtkNotebook) = get_current_page_idx(notebook)
 index(notebook::GtkNotebook,i::Integer) = set_current_page_idx(notebook,i)
 index(notebook::GtkNotebook, child::Gtk.GtkWidget) = pagenumber(notebook, child)+1
@@ -256,7 +256,7 @@ clipboard_store(clip::GtkClipboard) = ccall((:gtk_clipboard_store,libgtk), Void,
 function clipboard_wait_for_text(clip::GtkClipboard)
     ptr = ccall((:gtk_clipboard_wait_for_text,libgtk), Ptr{UInt8},
         (Ptr{GObject},), clip)
-    return ptr == C_NULL ? "" : bytestring(ptr)
+    return ptr == C_NULL ? "" : unsafe_string(ptr)
 end
 
 text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:gtk_text_buffer_copy_clipboard, libgtk),Void,
@@ -268,31 +268,34 @@ function GtkCssProviderFromData(;data=nothing,filename=nothing)
     source_count = (data!==nothing) + (filename!==nothing)
     @assert(source_count <= 1,
         "GtkCssProvider must have at most one data or filename argument")
-        
+
 #    getting the default changes style on all widgets
 #    provider = GtkCssProviderLeaf(ccall((:gtk_css_provider_get_default,libgtk),Ptr{Gtk.GObject},()))
     provider = GtkCssProviderLeaf(ccall((:gtk_css_provider_new,libgtk),Ptr{Gtk.GObject},()))
-    
+
     if data !== nothing
         Gtk.GError() do error_check
+          #@show provider
+          #@show data
+          #@show error_check
           ccall((:gtk_css_provider_load_from_data,libgtk), Bool,
             (Ptr{Gtk.GObject}, Ptr{UInt8}, Clong, Ptr{Ptr{Gtk.GError}}),
-            provider, bytestring(data), sizeof(data), error_check)
+            provider, string(data), sizeof(data), error_check)
         end
     elseif filename !== nothing
         Gtk.GError() do error_check
           ccall((:gtk_css_provider_load_from_path,libgtk), Bool,
-            (Ptr{Gtk.GObject}, Ptr{UInt8}, Clong, Ptr{Ptr{Gtk.GError}}),
-            provider, bytestring(filename), error_check)
+            (Ptr{Gtk.GObject}, Ptr{UInt8}, Ptr{Ptr{Gtk.GError}}),
+            provider, string(filename), error_check)
         end
     end
     return provider
 end
 
 function style_css(w::Gtk.GtkWidget,css::AbstractString)
-  sc = Gtk.G_.style_context(w) 
+  sc = Gtk.G_.style_context(w)
   push!(sc, GtkStyleProvider(GtkCssProviderFromData(data=css)), 600)
-end 
+end
 
 ## Gdk
 
@@ -307,7 +310,7 @@ function gdk_window_get_origin(window)
 	return (window_x[],window_y[])
 end
 
-gdk_keyval_name(val) = bytestring(
+gdk_keyval_name(val) = unsafe_string(
     ccall((:gdk_keyval_name,libgtk),Ptr{UInt8},(Cuint,),val),
 true)
 
@@ -351,7 +354,7 @@ function GtkIconThemeLoadIconForScale(iconTheme,icon_name::AbstractString, size:
         pixbuf = ccall((:gtk_icon_theme_load_icon_for_scale,Gtk.libgtk),
                    Ptr{GObject},
                    (Ptr{GObject},Ptr{UInt8},Cint,Cint,Cint,Ptr{Ptr{Gtk.GError}}),
-                   iconTheme,bytestring(icon_name),size,scale,flags,error_check)
+                   iconTheme,string(icon_name),size,scale,flags,error_check)
 
         return pixbuf !== C_NULL
     end
@@ -422,14 +425,14 @@ end
 function treepath(path::AbstractString)
     ptr = ccall((:gtk_tree_path_new_from_string,libgtk),Ptr{GtkTreePath},
                   (Ptr{UInt8},),
-                  bytestring(path))
+                  string(path))
     if ptr != C_NULL
         return convert(GtkTreePath,ptr)
     else
         return GtkTreePath()
     end
 end
-expand_root(tree_view::GtkTreeView) = expand(tree_view,treepath("0")) 
+expand_root(tree_view::GtkTreeView) = expand(tree_view,treepath("0"))
 
 #GtkTreeModel
 function foreach(model::Gtk.GtkTreeModel, f::Function, data)

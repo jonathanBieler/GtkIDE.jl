@@ -46,7 +46,7 @@ Cint, (Ptr{Gtk.GdkEvent},), false, pathCBox)
         return nothing
     end
 
-    pth = bytestring(Gtk.G_.active_text(pathCBox))
+    pth = unsafe_string(Gtk.G_.active_text(pathCBox))
     try
         cd(pth)
     catch err

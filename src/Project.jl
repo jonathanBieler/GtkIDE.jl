@@ -43,7 +43,7 @@ function load(w::Project)
     if !isfile( joinpath(HOMEDIR,"config","project") )
         w.path = pwd()
         return
-    end    
+    end
 #	println( joinpath(HOMEDIR,"config","project"))
     j = JSON.parsefile( joinpath(HOMEDIR,"config","project") )
 
