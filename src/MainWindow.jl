@@ -1,6 +1,9 @@
 type MainWindow <: GtkWindow
 
     handle::Ptr{Gtk.GObject}
+    style_and_language_manager::StyleAndLanguageManager
+    editor#TODO type this ?
+    console_manager
 
     function MainWindow()
 
@@ -8,10 +11,18 @@ type MainWindow <: GtkWindow
         signal_connect(main_window_key_press_cb,w, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
         signal_connect(main_window_quit_cb, w, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
-        n = new(w.handle)
+        sl_mng = StyleAndLanguageManager()
+        n = new(w.handle,sl_mng)
         Gtk.gobject_move_ref(n, w)
     end
 end
+
+function init!(main_window::MainWindow,editor,c_mng)#TODO type this ?
+    main_window.editor = editor
+    main_window.console_manager = c_mng
+end
+
+style_provider(main_window::MainWindow) = main_window.style_and_language_manager.style_provider
 
 ## exiting
 function main_window_quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
@@ -93,7 +104,7 @@ function restart(new_workspace=false)
 
         update!(project)
         save(project)
-        win_ = win
+        win_ = main_window
 
         new_workspace && workspace()
         destroy(win_)

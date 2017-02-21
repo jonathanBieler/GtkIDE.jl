@@ -21,11 +21,11 @@ add_console_command(r::Regex,f::Function) = push!(console_commands,ConsoleComman
 add_console_command(r::Regex,f::Function,c::Symbol) = push!(console_commands,ConsoleCommand(r,f,c))
 
 add_console_command(r"^edit (.*)",(m,c) -> begin
-    open_in_new_tab(m.captures[1])
+    open_in_new_tab(m.captures[1],_editor(c))
     nothing
 end,:file)
 add_console_command(r"^clc$",(m,c) -> begin
-    clear(get_current_console())
+    clear(c)
     nothing
 end)
 add_console_command(r"^pwd",(m,c) -> begin
@@ -52,7 +52,7 @@ add_console_command(r"^cd (.*)",(m,c) -> begin
 	            v = eval(Symbol("HOMEDIR"))
 	        end
 	    end
-	    cd(v) 
+	    cd(v)
 		return pwd() * "\n"
 	catch err
 		return sprint(show,err) * "\n"

@@ -1,12 +1,12 @@
 type StyleAndLanguageManager
     languageDefinitions::Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}
-    main_style::GtkSourceWidget.GtkSourceStyleScheme    
+    main_style::GtkSourceWidget.GtkSourceStyleScheme
     fontsize
     fontCss
     style_provider::GtkStyleProvider
-    
+
     function StyleAndLanguageManager()
-    
+
         sourceStyleManager = @GtkSourceStyleSchemeManager()
         GtkSourceWidget.set_search_path(sourceStyleManager,
           Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
@@ -56,4 +56,3 @@ type StyleAndLanguageManager
         )
     end
 end
-

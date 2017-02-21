@@ -9,6 +9,7 @@
 
 import ..Gtk: suffix
 import Gtk.GtkTextIter, Gtk.libgtk
+import Base: foreach
 
 const PROPAGATE = convert(Cint,false)
 const INTERRUPT = convert(Cint,true)

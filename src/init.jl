@@ -1,70 +1,67 @@
-
 ## globals
 global const is_running = true #should probably use g_main_loop_is_running or something of the sort
 
 sourceStyleManager = @GtkSourceStyleSchemeManager()
 GtkSourceWidget.set_search_path(sourceStyleManager,
-  Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
+ Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
 
 global const languageDefinitions = Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}()
 sourceLanguageManager = @GtkSourceLanguageManager()
 GtkSourceWidget.set_search_path(sourceLanguageManager,
-  Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/language-specs/",C_NULL])
+ Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/language-specs/",C_NULL])
 languageDefinitions[".jl"] = GtkSourceWidget.language(sourceLanguageManager,"julia")
 languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"markdown")
 
 @static if is_windows()
-    global const main_style = style_scheme(sourceStyleManager,"autumn")
-    global const fontsize = opt("fontsize")
-    fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
-        font-family: Consolas, Courier, monospace;
-        font-size: $(fontsize)pt;
-    }"""
+   global const main_style = style_scheme(sourceStyleManager,"autumn")
+   global const fontsize = opt("fontsize")
+   fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
+       font-family: Consolas, Courier, monospace;
+       font-size: $(fontsize)pt;
+   }"""
 end
 @static if is_apple()
-    global const main_style = style_scheme(sourceStyleManager,"autumn")
-    global const fontsize = opt("fontsize")
-    fontCss =  "button, entry, window, sourceview, textview {
-        font-family: Monaco, Consolas, Courier, monospace;
-        font-size: $(fontsize)pt;
-    }"
+   global const main_style = style_scheme(sourceStyleManager,"autumn")
+   global const fontsize = opt("fontsize")
+   fontCss =  "button, entry, window, sourceview, textview {
+       font-family: Monaco, Consolas, Courier, monospace;
+       font-size: $(fontsize)pt;
+   }"
 end
 
 @static if is_linux()
-    global const main_style = style_scheme(sourceStyleManager,"tango")
-    global const fontsize = opt("fontsize")-1
-    fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
-        font-family: Consolas, Courier, monospace;
-        font-size: $(fontsize)pt;
-    }"""
+   global const main_style = style_scheme(sourceStyleManager,"tango")
+   global const fontsize = opt("fontsize")-1
+   fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
+       font-family: Consolas, Courier, monospace;
+       font-size: $(fontsize)pt;
+   }"""
 end
 
 global const provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
 GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(HOMEDIR,"../icons/"))
 
+
+global const main_window = MainWindow()
+
 ## Console
 
-global const console_ntkbook = @GtkNotebook()
+global const console_ntkbook = ConsoleManager(main_window)
 
-signal_connect(console_ntkbook_button_press_cb,console_ntkbook, "button-press-event",
-Cint, (Ptr{Gtk.GdkEvent},),false)
-signal_connect(console_ntkbook_switch_page_cb,console_ntkbook,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
-
-global const console = first_console()
-#add_console()
-for i=1:length(free_workers())
-    #add_console()
-end
 
 ## Editor
 
-global const editor = Editor()
+global const editor = Editor(main_window)
 init(editor)
-load_tabs(project)
+load_tabs(editor,project)
+
+init!(main_window,editor,console_ntkbook)
+
+menubar = MainMenu(main_window)
 
 ## Main layout
 
-global const win = MainWindow() |>
+main_window |>
     ((mainVbox = @GtkBox(:v)) |>
         menubar |>
         (topBarBox = @GtkBox(:h) |>
@@ -93,6 +90,18 @@ global const win = MainWindow() |>
 sidePan |>
     (sidepanel_ntbook = @GtkNotebook()) |>
     mainPan
+
+# Console
+
+global const console = first_console(main_window)
+#add_console()
+for i=1:length(free_workers())
+    #add_console(main_window)
+end
+
+signal_connect(console_ntkbook_button_press_cb,console_ntkbook, "button-press-event",
+Cint, (Ptr{Gtk.GdkEvent},),false,main_window)
+signal_connect(console_ntkbook_switch_page_cb,console_ntkbook,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
 
 setproperty!(statusBar,:margin,2)
 text(statusBar,"Julia $VERSION")
@@ -140,7 +149,7 @@ init(pathCBox)#need on_path_change to be defined
 signal_connect(sidePanelButton_clicked_cb, sidePanelButton, "clicked", Void, (), false)
 signal_connect(editorButtonclicked_cb, editorButton, "clicked", Void, (), false)
 
-showall(win)
+showall(main_window)
 visible(search_window,false)
 visible(sidepanel_ntbook,false)
 GtkSourceWidget.SOURCE_MAP && visible(editor.sourcemap,opt("Editor","show_source_map"))

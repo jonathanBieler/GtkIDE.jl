@@ -91,15 +91,13 @@ function save_as(t::EditorTab)
     save(t)
 end
 
-save_current_tab() = save(get_current_tab())
-
-function open_in_new_tab(filename::AbstractString)
-    t = add_tab(filename)
+function open_in_new_tab(filename::AbstractString,editor)#FIXME type this, but Editor not defined at this point
+    t = add_tab(filename,editor)
     open(t,t.filename)
     return t
 end
 
-function set_font(t::EditorTab)
+function set_font(t::EditorTab,provider::GtkStyleProvider)
     sc = Gtk.G_.style_context(t.view)
     push!(sc, provider, 600)
 end
@@ -144,10 +142,8 @@ hasselection(t::EditorTab) = hasselection(t.buffer)
 function selected_text(t::EditorTab)
     (found,it_start,it_end) = selection_bounds(t.buffer)
     return found ? text_iter_get_text(it_start,it_end) : ""
-end
-selected_text() = selected_text(get_current_tab())
-
-function open_method(view::GtkTextView)
+end
+function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not defined at this point
 
     word = get_word_under_mouse_cursor(view)
 
@@ -177,7 +173,7 @@ function open_method(view::GtkTextView)
                 end
             end
 #            otherwise open it
-            t = open_in_new_tab(file)
+            t = open_in_new_tab(file,editor)
             t.scroll_target_line = line
 
             return true
@@ -213,6 +209,7 @@ end
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getproperty(textview,:buffer,GtkTextBuffer)
+    editor = user_data
 
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
         select_word_double_click(textview,buffer,round(Integer,event.x),round(Integer,event.y))
@@ -222,7 +219,7 @@ end
     mod = get_default_mod_mask()
 
     if Int(event.button) == 1 && event.state & mod == PrimaryModifier
-        open_method(textview) && return INTERRUPT
+        open_method(textview,editor) && return INTERRUPT
     end
 
     return PROPAGATE
@@ -347,11 +344,11 @@ function get_cursor_absolute_position(view::GtkTextView)
     return (x+ox, y+oy+r1.height,r1.height)
 end
 
-function run_line(console::Console,buffer::GtkTextBuffer)
+function run_line(console::Console,t::EditorTab)
 
-    cmd = selected_text()
+    cmd = selected_text(t)
     if cmd == ""
-        (cmd, itstart, itend) = get_current_line_text(buffer)
+        (cmd, itstart, itend) = get_current_line_text(t.buffer)
         cmd = strip(cmd)
     end
     run_command(console,cmd)
@@ -379,7 +376,8 @@ end
     event = convert(Gtk.GdkEvent,eventptr)
     buffer = getbuffer(textview)
     t = user_data
-    console = get_current_console()
+    editor = parent(t)::Editor
+    console = current_console(editor)
 
 #    println(event.state)
 
@@ -391,11 +389,11 @@ end
         save(project)
     end
     if doing(Actions["newtab"], event)
-        add_tab()
+        add_tab(editor)
         save(project)
     end
     if doing(Actions["datahint"], event)
-        show_data_hint(textview)
+        show_data_hint(textview,t)
     end
     if doing(Actions["search"], event)
         open(search_window)
@@ -407,11 +405,11 @@ end
         end
     end
     if doing(Actions["runline"], event)
-        run_line(console,buffer)
+        run_line(console,t)
         return convert(Cint,true)
     end
     if doing(Actions["runcode"], event)
-        run_code(console,buffer)
+        run_code(console,t)
         return INTERRUPT
     end
     if doing(Actions["runfile"], event)
@@ -561,14 +559,14 @@ function toggle_comment(buffer::GtkTextBuffer,it::GtkTextIter)
     end
 end
 
-function run_code(console::Console, buffer::GtkTextBuffer)
-    cmd = selected_text()
+function run_code(console::Console,t::EditorTab)
+    cmd = selected_text(t)
     if cmd == ""
-        (found,it_start,it_end) = get_cell(buffer)
+        (found,it_start,it_end) = get_cell(t.buffer)
         if found
             cmd = text_iter_get_text(it_start,it_end)
         else
-            cmd = getproperty(buffer,:text,AbstractString)
+            cmd = getproperty(t.buffer,:text,AbstractString)
         end
     end
     run_command(console,cmd)
@@ -583,12 +581,11 @@ function get_word_under_mouse_cursor(textview::GtkTextView)
     return word
 end
 
-function show_data_hint(textview::GtkTextView)
+function show_data_hint(textview::GtkTextView,t::EditorTab)
 
     word = get_word_under_mouse_cursor(textview)
 
     try
-        t = get_current_tab()
         if extension(t.filename) == ".md"
 
             defs = definition(lowercase(word))

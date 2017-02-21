@@ -16,8 +16,9 @@ type Console <: GtkScrolledWindow
     run_worker::Channel
     history::HistoryProvider
     run_task_start_time::AbstractFloat
+    main_window::MainWindow
 
-    function Console(w_idx::Int)
+    function Console(w_idx::Int,main_window::MainWindow)
 
         lang = languageDefinitions[".jl"]
 
@@ -45,7 +46,7 @@ type Console <: GtkScrolledWindow
         push!(sc,v)
         showall(sc)
 
-        push!(Gtk.G_.style_context(v), provider, 600)
+        push!(Gtk.G_.style_context(v), main_window.style_and_language_manager.style_provider, 600)
         t = @schedule begin end
 
         if w_idx > 1
@@ -59,7 +60,7 @@ type Console <: GtkScrolledWindow
 
         history = setup_history(w_idx)
 
-        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel(),history,time())
+        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel(),history,time(),main_window)
         Gtk.gobject_move_ref(n, sc)
     end
 end
@@ -405,6 +406,8 @@ cfunction(_callback_only_for_return, Cint, (Ptr{Console},Ptr{Gtk.GdkEvent},Conso
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getproperty(textview,:buffer,GtkTextBuffer)
+    console = user_data
+    main_window = console.main_window
 
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
         select_word_double_click(textview,buffer,Int(event.x),Int(event.y))
@@ -425,7 +428,7 @@ cfunction(_callback_only_for_return, Cint, (Ptr{Console},Ptr{Gtk.GdkEvent},Conso
             #GtkSeparatorMenuItem,
             #MenuItem("Toggle Wrap Mode",kill_current_task_cb),
             ],
-            (console_ntkbook, get_current_console())
+            (console_ntkbook, console, main_window)
         )
         popup(menu,event)
         return INTERRUPT
@@ -606,13 +609,14 @@ end
 
     ntbook = convert(GtkNotebook, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
+    main_window = user_data #TODO ntbook should be a console manager with a MainWindow field?
 
     if rightclick(event)
         menu = buildmenu([
             MenuItem("Close Console",remove_console_cb),
             MenuItem("Add Console",add_console_cb)
             ],
-            (ntbook, get_current_console())
+            (ntbook, get_current_console(ntbook), main_window)
         )
         popup(menu,event)
         return INTERRUPT
@@ -622,7 +626,7 @@ end
 end
 
 
-function add_console()
+function add_console(main_window::MainWindow)
 
     free_w = free_workers()
     if isempty(free_w)
@@ -630,34 +634,35 @@ function add_console()
     else
         i = free_w[1]
     end
-    c = Console(i)
+    c = Console(i,main_window)
     init(c)
 
     g_timeout_add(100,print_to_console,c)
     c
 end
 @guarded (nothing) function toggle_wrap_mode_cb(btn::Ptr, user_data)
-    ntbook, tab = user_data
+    ntbook, tab, main_window = user_data
     toggle_wrap_mode(tab.view)
     return nothing
 end
 @guarded (nothing) function clear_console_cb(btn::Ptr, user_data)
-    ntbook, tab = user_data
+    ntbook, tab, main_window = user_data
     clear(tab)
     new_prompt(tab)
     return nothing
 end
 @guarded (nothing) function kill_current_task_cb(btn::Ptr, user_data)
-    ntbook, tab = user_data
+    ntbook, tab, main_window = user_data
     kill_current_task(tab)
     return nothing
 end
 @guarded (nothing) function add_console_cb(btn::Ptr, user_data)
-    add_console()
+    ntbook, tab, main_window = user_data
+    add_console(main_window)
     return nothing
 end
 @guarded (nothing) function remove_console_cb(btn::Ptr, user_data)
-    ntbook, tab = user_data
+    ntbook, tab, main_window = user_data
     idx = index(ntbook,tab)
     if idx != 1#can't close the main console
         close_tab(ntbook,idx)
@@ -666,13 +671,14 @@ end
     return nothing
 end
 
-function first_console()
-    c = Console(1)
+function first_console(main_window::MainWindow)
+    c = Console(1,main_window)
     init(c)
     c
 end
 
 get_current_console() = console_ntkbook[index(console_ntkbook)]
+get_current_console(console_ntkbook::GtkNotebook) = console_ntkbook[index(console_ntkbook)]
 
 function console_ntkbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 

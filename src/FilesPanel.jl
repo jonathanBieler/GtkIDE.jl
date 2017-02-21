@@ -30,7 +30,7 @@ end
 
 function FilePathDialog()
     w = GAccessor.object(form_builder,"DialogCreateFile")
-    Gtk.GAccessor.transient_for(w,win)
+    Gtk.GAccessor.transient_for(w,main_window)#TODO global
     Gtk.GAccessor.modal(w,true)
     btn_create_file = GAccessor.object(form_builder,"btnCreateFile")
     signal_connect(close_file_path_dialog,btn_create_file, "clicked", Void, (), false,w)
@@ -91,7 +91,7 @@ function filespanel_context_menu_create(t::FilesPanel)
     (pasteItem = @GtkMenuItem("Paste")) |>
     @GtkSeparatorMenuItem() |>
     (copyFullPathItem = @GtkMenuItem("Copy Full Path"))
-    
+
     #FIXME disable until the dialog bugs are fixed
     setproperty!(newFileItem,:sensitive,false)
     setproperty!(newFolderItem,:sensitive,false)
@@ -176,7 +176,7 @@ function populate_folder(w::GtkTreeStore,folder::GtkTreeIter)
     path        = w[folder,3]
     n           = get_sorted_files(path)
     for el in n
-        try #some operations are not allowed 
+        try #some operations are not allowed
             full_path = joinpath(path,string(el))
             if isdir(full_path)
                 child = add_folder(w,full_path,folder)
@@ -391,7 +391,7 @@ function configure(dialog::FilePathDialog,
     end
 
     if (!isdirpath(path))
-	    path = joinpath(path,"")        
+	    path = joinpath(path,"")
     end
     (dialog.signal_insert_id, dialog.signal_delete_id) = configure_text_entry_fixed_content(te_filename,path,filename)
 

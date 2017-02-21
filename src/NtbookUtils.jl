@@ -1,3 +1,14 @@
+# methods linking MainWindow, Editor and ConsoleManager
+
+current_console(main_window::MainWindow) = current_console(main_window.console_manager)
+current_console(editor::Editor) = current_console(editor.main_window)
+
+current_tab(editor::Editor) = editor[index(editor)]
+
+_editor(c::Console) = c.main_window.editor #TODO rename 
+
+# Methods for GtkNotebook
+
 function close_tab(n::GtkNotebook,idx::Integer)
     splice!(n,idx)
     set_current_page_idx(n,max(idx-1,0))

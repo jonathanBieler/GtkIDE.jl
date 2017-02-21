@@ -48,18 +48,20 @@ import Cairo.text
 #export add_console, figure
 
 #Order matters
-include("NtbookUtils.jl")
 include("MenuUtils.jl")
 include("WordUtils.jl")
 include("PlotWindow.jl")
 include("Project.jl")
 include("CommandHistory.jl")
+include("StyleAndLanguageManager.jl")
+include("MainWindow.jl")
+include("ConsoleManager.jl")
 include("Console.jl")
 include("Editor.jl")
+include("NtbookUtils.jl")
 include("PathDisplay.jl")
 include("MainMenu.jl")
 include("SidePanels.jl")
-include("MainWindow.jl")
 
 include("init.jl")
 

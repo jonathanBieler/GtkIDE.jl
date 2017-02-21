@@ -20,8 +20,9 @@ update_pathEntry()
 
 sleep_time = 0.2
 sleep(0.5)#time for loading
-open_in_new_tab(joinpath("test","testfile.jl"))
+open_in_new_tab(joinpath("test","testfile.jl"),main_window.editor)
 sleep(0.5)#time for loading
+
 
 t = get_current_tab()
 b = t.buffer
@@ -41,7 +42,7 @@ end
 
 goto_line(b,1)
     sleep(sleep_time)
-run_line(console, b)
+run_line(console, t)
     sleep(sleep_time)
 
 @assert x == 2

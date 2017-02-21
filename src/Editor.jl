@@ -8,18 +8,19 @@ type Editor <: GtkNotebook
 
     handle::Ptr{Gtk.GObject}
     sourcemap::Gtk.GtkWidget
+    main_window::MainWindow
 
-    function Editor()
+    function Editor(main_window::MainWindow)
         ntbook = @GtkNotebook()
         setproperty!(ntbook,:scrollable, true)
         setproperty!(ntbook,:enable_popup, false)
 
         if GtkSourceWidget.SOURCE_MAP #old linux libraries don't have GtkSourceMap
             sourcemap = @GtkSourceMap()
-            t = new(ntbook.handle,sourcemap)
+            t = new(ntbook.handle,sourcemap,main_window)
         else
             sourcemap = @GtkBox(:v)#put a dummy box instead
-            t = new(ntbook.handle,sourcemap)
+            t = new(ntbook.handle,sourcemap,main_window)
         end
         Gtk.gobject_move_ref(t, ntbook)
     end
@@ -69,7 +70,7 @@ end
 
 function close_tab(idx::Int)
     if editor[idx].modified
-        ok = ask_dialog("Unsaved changed, close anyway?",win)
+        ok = ask_dialog("Unsaved changed, close anyway?",main_window)
         !ok && return
     end
     splice!(editor,idx)
@@ -236,7 +237,7 @@ function open(t::EditorTab, filename::AbstractString)
     update!(project)
 end
 
-function add_tab(filename::AbstractString)
+function add_tab(filename::AbstractString,editor::Editor)
 
     t = EditorTab(filename);
     t.scroll_target = 0.
@@ -250,12 +251,12 @@ function add_tab(filename::AbstractString)
 
     Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
     Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
-    set_font(t)
+    set_font(t,style_provider(editor.main_window))
 
     #we need to use the view here to capture all the keystrokes
     signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t)
     signal_connect(tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-    signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+    signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,editor)
     signal_connect(tab_buffer_changed_cb,t.buffer,"changed", Void, (), false,t)
 
 #    signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint,
@@ -265,16 +266,16 @@ function add_tab(filename::AbstractString)
 
     return t
 end
-add_tab() = add_tab("Untitled.jl")
+add_tab(editor::Editor) = add_tab("Untitled.jl",editor)
 
-function openfile_dialog()
-    f = open_dialog("Pick a file", win, ("*.jl","*.md"))
+function openfile_dialog(editor::Editor)
+    f = open_dialog("Pick a file", main_window, ("*.jl","*.md")) #TODO global
     if isfile(f)
-        open_in_new_tab(f)
+        open_in_new_tab(f,editor)
     end
 end
 
-function load_tabs(project::Project)
+function load_tabs(editor::Editor,project::Project)
 
     #project get modified later
     files = project.files
@@ -282,12 +283,12 @@ function load_tabs(project::Project)
     ntbook_idx = project.ntbook_idx
 
     for i = 1:length(files)
-        t = open_in_new_tab(files[i])
+        t = open_in_new_tab(files[i],editor)
         t.scroll_target = scroll_position[i]
     end
 
     if length(editor)==0
-        open_in_new_tab(joinpath(Pkg.dir(),"GtkIDE","README.md"))
+        open_in_new_tab(joinpath(Pkg.dir(),"GtkIDE","README.md"),editor)
     elseif ntbook_idx <= length(editor)
         index(editor,ntbook_idx)
     end
