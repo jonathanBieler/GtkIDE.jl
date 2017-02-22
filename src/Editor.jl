@@ -239,7 +239,7 @@ end
 
 function add_tab(filename::AbstractString,editor::Editor)
 
-    t = EditorTab(filename);
+    t = EditorTab(filename,editor.main_window);
     t.scroll_target = 0.
     t.scroll_target_line = 0
 
@@ -249,8 +249,8 @@ function add_tab(filename::AbstractString,editor::Editor)
     showall(editor)
     index(editor,idx)
 
-    Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
-    Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
+#    Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
+#    Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
     set_font(t,style_provider(editor.main_window))
 
     #we need to use the view here to capture all the keystrokes

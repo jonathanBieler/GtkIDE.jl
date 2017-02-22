@@ -2,17 +2,16 @@ type PathComboBox <: GtkComboBoxText
     handle::Ptr{Gtk.GObject}
     entry::GtkEntry
     time_last_keypress::AbstractFloat
+    main_window::MainWindow
 
-    function PathComboBox()
+    function PathComboBox(main_window::MainWindow)
         cbox = @GtkComboBoxText(true)
         entry = cbox[1]
 
-        p = new(cbox.handle, entry, time())
+        p = new(cbox.handle, entry, time(), main_window)
         Gtk.gobject_move_ref(p, cbox)
     end
 end
-
-pathCBox = PathComboBox()
 
 function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     widget = convert(GtkEntry, widgetptr)
@@ -33,8 +32,6 @@ function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     return convert(Cint,false)
 end
-signal_connect(pathEntry_key_press_cb, pathCBox.entry, "key-press-event",
-Cint, (Ptr{Gtk.GdkEvent},), false, pathCBox)
 
 @guarded (nothing) function pathDbox_changed_cb(ptr::Ptr, user_data)
 
@@ -56,18 +53,20 @@ Cint, (Ptr{Gtk.GdkEvent},), false, pathCBox)
     on_path_change()
     nothing
 end
-signal_connect(pathDbox_changed_cb,pathCBox,"changed", Void, (), false)
 
-update_pathEntry() = setproperty!(pathCBox.entry, :text, pwd())
+function init!(pathCBox::PathComboBox)
 
-function init(pathCBox::PathComboBox)
+    signal_connect(pathEntry_key_press_cb, pathCBox.entry, "key-press-event",
+    Cint, (Ptr{Gtk.GdkEvent},), false, pathCBox)
+
+    signal_connect(pathDbox_changed_cb,pathCBox,"changed", Void, (), false)
 
     setproperty!(pathCBox.entry, :width_request, 400)
-    
     update_pathEntry()
-
     setproperty!(pathCBox.entry,:hexpand,true)
 
     sc = Gtk.G_.style_context(pathCBox.entry)
-    push!(sc, provider, 600)
+    push!(sc, style_provider(pathCBox.main_window), 600)
 end
+
+

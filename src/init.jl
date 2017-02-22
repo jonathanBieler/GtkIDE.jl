@@ -1,47 +1,6 @@
 ## globals
 global const is_running = true #should probably use g_main_loop_is_running or something of the sort
 
-sourceStyleManager = @GtkSourceStyleSchemeManager()
-GtkSourceWidget.set_search_path(sourceStyleManager,
- Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
-
-global const languageDefinitions = Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}()
-sourceLanguageManager = @GtkSourceLanguageManager()
-GtkSourceWidget.set_search_path(sourceLanguageManager,
- Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/language-specs/",C_NULL])
-languageDefinitions[".jl"] = GtkSourceWidget.language(sourceLanguageManager,"julia")
-languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"markdown")
-
-@static if is_windows()
-   global const main_style = style_scheme(sourceStyleManager,"autumn")
-   global const fontsize = opt("fontsize")
-   fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
-       font-family: Consolas, Courier, monospace;
-       font-size: $(fontsize)pt;
-   }"""
-end
-@static if is_apple()
-   global const main_style = style_scheme(sourceStyleManager,"autumn")
-   global const fontsize = opt("fontsize")
-   fontCss =  "button, entry, window, sourceview, textview {
-       font-family: Monaco, Consolas, Courier, monospace;
-       font-size: $(fontsize)pt;
-   }"
-end
-
-@static if is_linux()
-   global const main_style = style_scheme(sourceStyleManager,"tango")
-   global const fontsize = opt("fontsize")-1
-   fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
-       font-family: Consolas, Courier, monospace;
-       font-size: $(fontsize)pt;
-   }"""
-end
-
-global const provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
-GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(HOMEDIR,"../icons/"))
-
-
 global const main_window = MainWindow()
 
 ## Console
@@ -58,6 +17,12 @@ load_tabs(editor,project)
 init!(main_window,editor,console_ntkbook)
 
 menubar = MainMenu(main_window)
+
+## Path display
+
+pathCBox = PathComboBox(main_window)
+
+update_pathEntry() = setproperty!(pathCBox.entry, :text, pwd())#TODO remove this
 
 ## Main layout
 
@@ -104,7 +69,7 @@ Cint, (Ptr{Gtk.GdkEvent},),false,main_window)
 signal_connect(console_ntkbook_switch_page_cb,console_ntkbook,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
 
 setproperty!(statusBar,:margin,2)
-text(statusBar,"Julia $VERSION")
+GtkExtensions.text(statusBar,"Julia $VERSION")
 Gtk.G_.position(sidePan,160)
 
 setproperty!(editor,:vexpand,true)
@@ -119,10 +84,10 @@ setproperty!(topBarBox,:hexpand,true)
 ################
 # Side Panels
 
-form_builder = Gtk.GtkBuilderLeaf(filename=joinpath(HOMEDIR,"forms/forms.glade"))
-filespanel = FilesPanel()
-update!(filespanel)
-add_side_panel(filespanel,"Files")
+#form_builder = Gtk.GtkBuilderLeaf(filename=joinpath(HOMEDIR,"forms/forms.glade"))
+#filespanel = FilesPanel()
+#update!(filespanel)
+#add_side_panel(filespanel,"Files")
 
 #=#FIXME I should stop all tasks when exiting
 #this can make it crash if it runs while sorting
@@ -144,7 +109,7 @@ sleep(0.5)
 #figure()
 drawnow() = sleep(0.001)
 
-init(pathCBox)#need on_path_change to be defined
+init!(pathCBox)#need on_path_change to be defined
 
 signal_connect(sidePanelButton_clicked_cb, sidePanelButton, "clicked", Void, (), false)
 signal_connect(editorButtonclicked_cb, editorButton, "clicked", Void, (), false)

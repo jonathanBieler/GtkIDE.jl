@@ -18,8 +18,9 @@ type EditorTab <: GtkScrolledWindow
     autocomplete_words::Array{AbstractString,1}
     label::GtkLabel
 
-    function EditorTab(filename::AbstractString)
+    function EditorTab(filename::AbstractString,main_window::MainWindow)
 
+        languageDefinitions = main_window.style_and_language_manager.languageDefinitions
         lang = haskey(languageDefinitions,extension(filename)) ?
         languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
 
@@ -28,7 +29,7 @@ type EditorTab <: GtkScrolledWindow
 
         b = @GtkSourceBuffer(lang)
 
-        setproperty!(b,:style_scheme,main_style)
+        setproperty!(b,:style_scheme,main_window.style_and_language_manager.main_style)
         v = @GtkSourceView(b)
 
         highlight_matching_brackets(b,true)
@@ -49,7 +50,7 @@ type EditorTab <: GtkScrolledWindow
         t = new(sc.handle,v,b,filename,false,search_con,nothing,nothing)
         Gtk.gobject_move_ref(t, sc)
     end
-    EditorTab() = EditorTab("")
+    EditorTab(main_window::MainWindow) = EditorTab("",main_window)
 end
 
 function set_text!(t::EditorTab,text::AbstractString)

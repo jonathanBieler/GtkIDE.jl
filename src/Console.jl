@@ -20,10 +20,10 @@ type Console <: GtkScrolledWindow
 
     function Console(w_idx::Int,main_window::MainWindow)
 
-        lang = languageDefinitions[".jl"]
+        lang = main_window.style_and_language_manager.languageDefinitions[".jl"]
 
         b = @GtkSourceBuffer(lang)
-        setproperty!(b,:style_scheme,main_style)
+        setproperty!(b,:style_scheme,main_window.style_and_language_manager.main_style)
         v = @GtkSourceView(b)
 
         highlight_matching_brackets(b,true)
@@ -133,7 +133,7 @@ function on_return(c::Console,cmd::AbstractString)
     end
     c.run_task = t
     c.run_task_start_time = time()
-    text(statusBar,"Busy")
+    GtkExtensions.text(statusBar,"Busy")
 
     g_idle_add(write_output_to_console,c)
     nothing
@@ -232,7 +232,7 @@ function write_output_to_console(user_data)
     on_path_change()
 
     t = @sprintf("%4.6f\n",time()-c.run_task_start_time)
-    text(statusBar,"Run time $(t)s")
+    GtkExtensions.text(statusBar,"Run time $(t)s")
 
     return Cint(false)
 end
@@ -513,6 +513,8 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart,lastpart)
     prefix = dotpos > 1 ? cmd[1:dotpos-1] : ""
 
     if(length(comp)>1)
+
+        fontsize = c.main_window.style_and_language_manager.fontsize
 
         maxLength = maximum(map(length,comp))
         w = width(c.view)

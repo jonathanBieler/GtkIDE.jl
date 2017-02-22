@@ -2,7 +2,7 @@ type MainWindow <: GtkWindow
 
     handle::Ptr{Gtk.GObject}
     style_and_language_manager::StyleAndLanguageManager
-    editor#TODO type this ?
+    editor#TODO type this ? (circular def)
     console_manager
 
     function MainWindow()
@@ -21,8 +21,6 @@ function init!(main_window::MainWindow,editor,c_mng)#TODO type this ?
     main_window.editor = editor
     main_window.console_manager = c_mng
 end
-
-style_provider(main_window::MainWindow) = main_window.style_and_language_manager.style_provider
 
 ## exiting
 function main_window_quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
@@ -89,7 +87,7 @@ function on_path_change(doUpdate=false)
     update_pathEntry()
     if pwd() != c_path || doUpdate
         push!(pathCBox,pwd())
-        update!(filespanel)
+        isdefined(:filespanel) && update!(filespanel)#FIXME global
     end
 end
 

@@ -7,14 +7,14 @@ type StyleAndLanguageManager
 
     function StyleAndLanguageManager()
 
+        #FIXME this should be in GtkSourceWidget
         sourceStyleManager = @GtkSourceStyleSchemeManager()
         GtkSourceWidget.set_search_path(sourceStyleManager,
           Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
 
         languageDefinitions = Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}()
-        sourceLanguageManager = @GtkSourceLanguageManager()
-        GtkSourceWidget.set_search_path(sourceLanguageManager,
-          Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/language-specs/",C_NULL])
+        sourceLanguageManager = GtkSourceWidget.sourceLanguageManager
+
         languageDefinitions[".jl"] = GtkSourceWidget.language(sourceLanguageManager,"julia")
         languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"markdown")
 

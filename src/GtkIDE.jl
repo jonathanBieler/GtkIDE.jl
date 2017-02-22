@@ -5,17 +5,19 @@ end
 #module GtkIDE
 
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
-const REDIRECT_STDOUT = true
+const REDIRECT_STDOUT = false
 
 using Immerse
 using Gtk
 using GtkSourceWidget
+using GtkExtensions
 using GtkUtilities
 using JSON
 using Compat
 using ConfParser
-include("GtkExtensions.jl"); #using GtkExtenstions
 include("Options.jl")
+
+import Gtk.GtkTextIter
 
 # Compatitbily with 0.5
 if !isdefined(Base,:(showlimited))
