@@ -4,6 +4,8 @@ type MainWindow <: GtkWindow
     style_and_language_manager::StyleAndLanguageManager
     editor#TODO type this ? (circular def)
     console_manager
+    pathCBox
+    statusBar
 
     function MainWindow()
 
@@ -17,9 +19,11 @@ type MainWindow <: GtkWindow
     end
 end
 
-function init!(main_window::MainWindow,editor,c_mng)#TODO type this ?
+function init!(main_window::MainWindow,editor,c_mng,pathCBox,statusBar)#TODO type this ?
     main_window.editor = editor
     main_window.console_manager = c_mng
+    main_window.pathCBox = pathCBox
+    main_window.statusBar = statusBar
 end
 
 ## exiting
@@ -82,11 +86,11 @@ function toggle_sidepanel()
 end
 
 # Not ideal, it always refresh when using the pathdisplay
-function on_path_change(doUpdate=false)
-    c_path = unsafe_string(Gtk.G_.active_text(pathCBox))
-    update_pathEntry()
+function on_path_change(main_window::MainWindow,doUpdate=false)
+    c_path = unsafe_string(Gtk.G_.active_text(main_window.pathCBox))
+    update_pathEntry(main_window)
     if pwd() != c_path || doUpdate
-        push!(pathCBox,pwd())
+        push!(main_window.pathCBox,pwd())
         isdefined(:filespanel) && update!(filespanel)#FIXME global
     end
 end
@@ -108,7 +112,26 @@ function restart(new_workspace=false)
         destroy(win_)
 #        gtkide()
 
-        include( joinpath(HOMEDIR,"GtkIDE.jl") )
+        #include( joinpath(HOMEDIR,"GtkIDE.jl") )
+
+        #Order matters
+         include("MenuUtils.jl")
+         include("PlotWindow.jl")
+         include("StyleAndLanguageManager.jl")
+         include("MainWindow.jl")
+         include("Project.jl")
+         include("ConsoleManager.jl")
+         include("CommandHistory.jl")
+         include("Console.jl")
+         include("Editor.jl")
+         include("NtbookUtils.jl")
+         include("PathDisplay.jl")
+         include("MainMenu.jl")
+         include("SidePanels.jl")
+
+        include("init.jl")
+        __init__()
+
 end
 
 function run_tests()

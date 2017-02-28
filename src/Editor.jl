@@ -9,6 +9,7 @@ type Editor <: GtkNotebook
     handle::Ptr{Gtk.GObject}
     sourcemap::Gtk.GtkWidget
     main_window::MainWindow
+    search_window::SearchWindow
 
     function Editor(main_window::MainWindow)
         ntbook = @GtkNotebook()
@@ -34,6 +35,7 @@ get_current_tab() = get_tab(editor,index(editor))# remove this ?
 
 function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
+    editor = convert(GtkNotebook,widgetptr)
     page = convert(Gtk.GtkWidget, pageptr)
     if typeof(page) == EditorTab && GtkSourceWidget.SOURCE_MAP
         set_view(editor.sourcemap, page.view)
@@ -57,33 +59,37 @@ function ntbook_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
 end
 
 #this could be in the constructor but it doesn't work for some reason
-function init(editor::Editor)
+function init!(editor::Editor,search_window::SearchWindow)
     signal_connect(ntbook_switch_page_cb,editor,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
     signal_connect(ntbook_motion_notify_event_cb,editor,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
+    editor.search_window = search_window
 end
 
 function set_dir_to_file_path_cb(btn::Ptr,tab)
+    editor = parent(tab)::Editor
     cd(dirname(tab.filename))
-    on_path_change()
+    on_path_change(editor.main_window)
     return nothing
 end
 
-function close_tab(idx::Int)
+function close_tab(editor::Editor,idx::Int)
     if editor[idx].modified
-        ok = ask_dialog("Unsaved changed, close anyway?",main_window)
+        ok = ask_dialog("Unsaved changed, close anyway?",editor.main_window)
         !ok && return
     end
     splice!(editor,idx)
     index(editor,max(idx-1,0))
 end
-close_tab() = close_tab(index(editor))
+close_tab(editor::Editor) = close_tab(editor,index(editor))
 
 function close_tab_cb(btn::Ptr, tab)
-    close_tab(Gtk.pagenumber(editor,tab)+1)
+    editor = parent(tab)::Editor
+    close_tab(editor,Gtk.pagenumber(editor,tab)+1)
     return nothing
 end
 
 function close_other_tabs_cb(btn::Ptr,tab)
+    editor = parent(tab)::Editor
     while Gtk.GAccessor.n_pages(editor) > 1
         if get_tab(editor,1) == tab
             splice!(editor,2)
@@ -94,15 +100,17 @@ function close_other_tabs_cb(btn::Ptr,tab)
     return nothing
 end
 function close_tabs_right_cb(btn::Ptr,tab)
+    editor = parent(tab)::Editor
     idx = Gtk.pagenumber(editor,tab) +1
     while (Gtk.GAccessor.n_pages(editor) > idx)
-        close_tab(idx+1)
+        close_tab(editor,idx+1)
     end
     return nothing
 end
 function close_all_tabs_cb(btn::Ptr,tab)
+    editor = parent(tab)::Editor
     while (Gtk.GAccessor.n_pages(editor) > 0)
-        close_tab(1)
+        close_tab(editor,1)
     end
     return nothing
 end
@@ -134,6 +142,8 @@ function switch_tab_cb(btn::Ptr, idx)
     return nothing
 end
 function create_tab_menu(container, tab)
+
+    editor = parent(tab)::Editor
 
 #    menu =  @GtkMenu() |>
 #    (closeTabItem = @GtkMenuItem("Close Tab")) |>
@@ -251,11 +261,11 @@ function add_tab(filename::AbstractString,editor::Editor)
 
 #    Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
 #    Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
-    set_font(t,style_provider(editor.main_window))
+    style_css(t.view,style_provider(editor.main_window))
 
     #we need to use the view here to capture all the keystrokes
-    signal_connect(tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t)
-    signal_connect(tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+    signal_connect(editor_tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t)
+    signal_connect(editor_tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false,editor)
     signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,editor)
     signal_connect(tab_buffer_changed_cb,t.buffer,"changed", Void, (), false,t)
 
@@ -292,6 +302,6 @@ function load_tabs(editor::Editor,project::Project)
     elseif ntbook_idx <= length(editor)
         index(editor,ntbook_idx)
     end
-    t = get_current_tab()
+    t = current_tab(editor)
     GtkSourceWidget.SOURCE_MAP && set_view(editor.sourcemap,t.view)
 end

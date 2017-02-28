@@ -1,10 +1,10 @@
 ## Types
-
-module CompletionProviders
-
-    using Gtk
-    export NoCompletion, NormalCompletion, MethodCompletion, TupleCompletion, CompletionProvider,
-    WordCompletion, WordMenuCompletion,WordMenuCompletion_step1
+#
+# module CompletionProviders
+#
+#     using Gtk
+#     export NoCompletion, NormalCompletion, MethodCompletion, TupleCompletion, CompletionProvider,
+#     WordCompletion, WordMenuCompletion,WordMenuCompletion_step1
 
     abstract CompletionProvider
 
@@ -52,11 +52,11 @@ module CompletionProviders
         comp
         WordCompletion() = new(Function[],1,"",nothing,nothing,[""])
     end
-    
+
     function WordMenuCompletion_step1()
         return ["search","endswith","synonyms"]
     end
-    
+
     type WordMenuCompletion <: CompletionProvider
         steps::Array{Function,1}
         state::Int
@@ -67,11 +67,9 @@ module CompletionProviders
         comp
         WordMenuCompletion() = new([WordMenuCompletion_step1],1,"",1,nothing,nothing,[""])
     end
-    
-end
 
-
-using CompletionProviders
+#end
+#using CompletionProviders
 ##
 
 function init_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
@@ -193,7 +191,7 @@ end
 
 function formatcompletion(p::NormalCompletion,idx::Int)
     dotpos = p.dotpos.start
-    prefix = dotpos > 1 ? p.cmd[1:dotpos-1] : "" 
+    prefix = dotpos > 1 ? p.cmd[1:dotpos-1] : ""
     prefix * p.comp[idx]
 end
 
@@ -210,7 +208,7 @@ function select_text(p::MethodCompletion,buffer,it,t)
     (cmd,its,ite) = select_word_backward(it,buffer,false)
     cmd = strip(cmd)
     cmd == "" && return false
-    cmd[end] != '(' && return false 
+    cmd[end] != '(' && return false
     p.cmd = cmd
     p.itstart = its
     p.itend = ite
@@ -227,7 +225,7 @@ end
 function formatcompletion(p::MethodCompletion,idx::Int)
     s = remove_filename_from_methods_def( p.comp[idx] )
     dotpos = p.dotpos.start
-    prefix = dotpos > 1 ? p.cmd[1:dotpos-1] : "" 
+    prefix = dotpos > 1 ? p.cmd[1:dotpos-1] : ""
     prefix * s
 end
 
@@ -311,7 +309,7 @@ end
 function completions(p::WordMenuCompletion,t,idx)
     #["search","endswith","synonyms"]
     if idx == 1
-        comp = search(WordsUtils.wordlist,ascii(p.cmd))    
+        comp = search(WordsUtils.wordlist,ascii(p.cmd))
     elseif idx == 2
         comp = endswith(WordsUtils.wordlist,ascii(p.cmd))
     else

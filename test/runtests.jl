@@ -15,8 +15,10 @@ end
 ###############
 ## EDITOR
 
+editor = main_window.editor
+
 cd(joinpath(Pkg.dir(),"GtkIDE"))
-update_pathEntry()
+update_pathEntry(main_window.pathCBox)
 
 sleep_time = 0.2
 sleep(0.5)#time for loading
@@ -24,7 +26,7 @@ open_in_new_tab(joinpath("test","testfile.jl"),main_window.editor)
 sleep(0.5)#time for loading
 
 
-t = get_current_tab()
+t = current_tab(editor)::EditorTab
 b = t.buffer
 #some helper functions
 function goto_line(buffer::GtkTextBuffer,line::Integer)
@@ -57,12 +59,14 @@ sleep(0.1)
 @assert txt == "_test_completion_232_"
 
 sleep(sleep_time)
-t = get_current_tab()
+t = current_tab(editor)
 t.modified = false
-close_tab()
+close_tab(editor)
 
 ###############
 ## CONSOLE
+
+console = current_console(main_window)
 
 #stress test printing
 
@@ -89,7 +93,7 @@ function emit_keypress(w)
     keyevent = Gtk.GdkEventKey(Gtk.GdkEventType.KEY_PRESS, Gtk.gdk_window(w),
                Int8(0), UInt32(0), UInt32(0), Gtk.GdkKeySyms.Return, UInt32(0),
                convert(Ptr{UInt8},C_NULL), UInt16(13), UInt8(0), UInt32(0) )
-   
+
     signal_emit(w, "key-press-event", Bool, keyevent)
 end
 
@@ -120,5 +124,5 @@ prompt(console,"clc")
     sleep(sleep_time)
 emit_keypress(console.view)
     sleep(sleep_time)
-    
+
 ##

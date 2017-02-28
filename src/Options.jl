@@ -15,9 +15,13 @@ opt(key::AbstractString) = opt("default",key)
 
 # runtime
 
-const default_settings = ConfParse(ascii(joinpath(HOMEDIR,"config","default_settings.ini")))
-parse_conf!(default_settings)
+function init_opt()
 
-if !isfile(joinpath(HOMEDIR,"config","user_settings.ini"))
-    cp(joinpath(HOMEDIR,"config","default_settings.ini"),joinpath(HOMEDIR,"config","user_settings.ini"))
+    default_settings = ConfParse(ascii(joinpath(HOMEDIR,"config","default_settings.ini")))
+    parse_conf!(default_settings)
+
+    if !isfile(joinpath(HOMEDIR,"config","user_settings.ini"))
+        cp(joinpath(HOMEDIR,"config","default_settings.ini"),joinpath(HOMEDIR,"config","user_settings.ini"))
+    end
+
 end

@@ -5,9 +5,13 @@ current_console(editor::Editor) = current_console(editor.main_window)
 
 current_tab(editor::Editor) = editor[index(editor)]
 
-_editor(c::Console) = c.main_window.editor #TODO rename
+_editor(c::Console) = _editor(c.main_window) #TODO rename
+_editor(mw::MainWindow) = mw.editor::Editor
 
 style_provider(main_window::MainWindow) = main_window.style_and_language_manager.style_provider
+
+console_manager(main_window::MainWindow) = main_window.console_manager
+console_manager(c::Console) = console_manager(c.main_window)#parent(c)::ConsoleManager
 
 # Methods for GtkNotebook
 

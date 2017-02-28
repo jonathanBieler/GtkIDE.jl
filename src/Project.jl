@@ -6,11 +6,21 @@ type Project
     files::Array{AbstractString,1}
     scroll_position::Array{AbstractFloat,1}
     ntbook_idx::Integer
+    main_window::MainWindow
 
-    Project() = new("",Array(AbstractString,0),Array(AbstractFloat,0),1)
+    Project(main_window::MainWindow) = new("",Array(AbstractString,0),Array(AbstractFloat,0),1,main_window)
 end
 
+#let's not serialize main_window
+JSON.lower(w::Project) = Dict(
+    "path" => w.path,
+    "files" => w.files,
+    "scroll_position" => w.scroll_position,
+     "ntbook_idx" => w.ntbook_idx
+ )
+
 function update!(w::Project)
+    editor = _editor(w.main_window)
     w.path = pwd()
     w.files = Array(AbstractString,0)
     w.scroll_position = Array(AbstractFloat,0)
@@ -29,8 +39,7 @@ function update!(w::Project)
 end
 
 function save(w::Project)
-    update!(w::Project)
-
+    update!(w)
     !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
     open( joinpath(HOMEDIR,"config","project") ,"w") do io
         JSON.print(io,w)
@@ -52,7 +61,3 @@ function load(w::Project)
     w.scroll_position = j["scroll_position"]
     w.ntbook_idx = j["ntbook_idx"]
 end
-
-project = Project()
-load(project)
-cd(project.path)

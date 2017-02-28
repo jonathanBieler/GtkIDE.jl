@@ -3,7 +3,7 @@ type StyleAndLanguageManager
     main_style::GtkSourceWidget.GtkSourceStyleScheme
     fontsize
     fontCss
-    style_provider::GtkStyleProvider
+    style_provider
 
     function StyleAndLanguageManager()
 
@@ -44,7 +44,8 @@ type StyleAndLanguageManager
             }"""
         end
 
-        provider = GtkStyleProvider( GtkCssProviderFromData(data=fontCss) )
+        provider = GtkExtensions.default_css_provider
+        provider = GtkCssProviderFromData!(provider,data=fontCss)
         GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(HOMEDIR,"../icons/"))
 
         new(

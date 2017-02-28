@@ -203,7 +203,7 @@ function on_return(c::CompletionWindow,buffer,t)
 end
 
 ##
-function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
+function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuffer,editor)#FIXME? Editor not defined 
 
     #if event.keyval >= keyval("0") && event.keyval <= keyval("z")
 
@@ -213,7 +213,7 @@ function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuf
     event.keyval == Gtk.GdkKeySyms.Return && return false
     event.keyval == Gtk.GdkKeySyms.Tab && return false
 
-    t = get_current_tab()
+    t = current_tab(editor)
 #    visible(completion_window) && editor_autocomplete(t.view,t,false)
     visible(completion_window) && init_autocomplete(t.view, t,false)
     return true

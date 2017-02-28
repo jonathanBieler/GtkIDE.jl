@@ -44,7 +44,7 @@ type EditorTab <: GtkScrolledWindow
         sc = @GtkScrolledWindow()
         push!(sc,v)
 
-        search_con = @GtkSourceSearchContext(b,search_settings)
+        search_con = @GtkSourceSearchContext(b,_editor(main_window).search_window.search_settings)
         highlight(search_con,true)
 
         t = new(sc.handle,v,b,filename,false,search_con,nothing,nothing)
@@ -57,6 +57,8 @@ function set_text!(t::EditorTab,text::AbstractString)
     setproperty!(t.buffer,:text,text)
 end
 get_text(t::EditorTab) = getproperty(t.buffer,:text,AbstractString)
+
+import GtkExtensions.getbuffer
 getbuffer(textview::GtkTextView) = getproperty(textview,:buffer,GtkSourceBuffer)
 
 include("CompletionWindow.jl")
@@ -360,18 +362,19 @@ function run_command(c::Console,cmd::AbstractString)
     on_return(c,cmd)
 end
 
-function tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+function editor_tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getbuffer(textview)
+    editor = user_data
 
-    !update_completion_window_release(event,buffer) && return convert(Cint,true)
+    !update_completion_window_release(event,buffer,editor) && return convert(Cint,true)
 
     return PROPAGATE
 end
 
-@guarded (INTERRUPT) function tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+@guarded (INTERRUPT) function editor_tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent,eventptr)
@@ -386,7 +389,7 @@ end
     doing(Actions["open"], event) && openfile_dialog()
 
     if doing(Actions["closetab"], event)
-        close_tab()
+        close_tab(editor)
         save(project)
     end
     if doing(Actions["newtab"], event)
@@ -397,7 +400,7 @@ end
         show_data_hint(textview,t)
     end
     if doing(Actions["search"], event)
-        open(search_window)
+        open(editor.search_window)
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
         if !visible(completion_window)
@@ -419,8 +422,8 @@ end
         run_command(console,cmd)
     end
     if event.keyval == Gtk.GdkKeySyms.Escape
-        set_search_text("")
-        visible(search_window,false)
+        set_search_text(editor.search_window.search_settings,"")
+        visible(editor.search_window,false)
     end
     if doing(Actions["copy"],event)
         (found,it_start,it_end) = selection_bounds(buffer)
@@ -516,7 +519,7 @@ end
         insert!(buffer,itend,"\n" * cmd)
     end
     if doing(Actions["goto_line"],event)
-        ok,v = input_dialog("Line number","1",(("Cancel",0),("Ok",1)),win)
+        ok,v = input_dialog("Line number","1",(("Cancel",0),("Ok",1)),editor.main_window)
         if ok == 1
             v = parse(v)
             if typeof(v) <: Integer

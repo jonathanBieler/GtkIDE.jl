@@ -12,7 +12,10 @@ type SearchWindow <: GtkFrame
     search_button::GtkButton
     replace_button::GtkButton
     replace_all_button::GtkButton
-    function SearchWindow()
+    search_settings::GtkSourceSearchSettings
+    editor#not defined at this point
+
+    function SearchWindow(editor)
 
         search_window = @GtkFrame("") |>
             (@GtkBox(:v) |>
@@ -33,14 +36,20 @@ type SearchWindow <: GtkFrame
         setproperty!(search_entry,:hexpand,true)
         setproperty!(replace_entry,:hexpand,true)
 
-        signal_connect(case_button_toggled_cb, case_button, "toggled", Void, (), false)
-        signal_connect(word_button_toggled_cb, word_button, "toggled", Void, (), false)
+        search_settings = @GtkSourceSearchSettings()
+        setproperty!(search_settings,:wrap_around,true)
 
         w = new(search_window.handle,
         search_entry, replace_entry,
-        search_button,replace_button,replace_all_button)
+        search_button,replace_button,replace_all_button,
+        search_settings,editor)
 
         Gtk.gobject_move_ref(w, search_window)
+
+        signal_connect(case_button_toggled_cb, case_button, "toggled", Void, (), false, w)
+        signal_connect(word_button_toggled_cb, word_button, "toggled", Void, (), false, w)
+
+        w
     end
 end
 
@@ -54,39 +63,34 @@ end
 #first define the callbacks that are used in the constructor
 function case_button_toggled_cb(widgetptr::Ptr, user_data)
 #    tb = convert(GtkToggleButton, widgetptr)
-    iscase = getproperty(search_settings,:case_sensitive,Bool)
-    setproperty!(search_settings,:case_sensitive,!iscase)
+    search_window = user_data
+    iscase = getproperty(search_window.search_settings,:case_sensitive,Bool)
+    setproperty!(search_window.search_settings,:case_sensitive,!iscase)
     return nothing
 end
 function word_button_toggled_cb(widgetptr::Ptr, user_data)
 #    tb = convert(GtkToggleButton, widgetptr)
-    isword = getproperty(search_settings,:at_word_boundaries,Bool)
-    setproperty!(search_settings,:at_word_boundaries,!isword)
+    search_window = user_data
+    isword = getproperty(search_window.search_settings,:at_word_boundaries,Bool)
+    setproperty!(search_window.search_settings,:at_word_boundaries,!isword)
     return nothing
 end
 
 get_search_text(s::GtkSourceSearchSettings) = getproperty(s,:search_text,AbstractString)
 
-const search_window = SearchWindow()
-const search_settings = @GtkSourceSearchSettings()
-setproperty!(search_settings,:wrap_around,true)
-
-import GtkSourceWidget.set_search_text
-set_search_text(s::AbstractString) = set_search_text(search_settings,s)
-set_search_text("")
-
 function search_entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     widget = convert(GtkEntry, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
+    search_window = user_data
 
     if event.keyval == Gtk.GdkKeySyms.Escape
-        set_search_text("")
+        set_search_text(search_window.search_settings, "")
         visible(search_window,false)
     end
 
     if event.keyval == Gtk.GdkKeySyms.Return
-        t = get_current_tab()
+        t = current_tab(search_window.editor)
         search_forward(t)
     end
 
@@ -113,37 +117,35 @@ end
 
 function search_entry_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     widget = convert(GtkEntry, widgetptr)
+    search_window = user_data
 
     s = getproperty(widget,:text,AbstractString)
-    set_search_text(s)
+    set_search_text(search_window.search_settings,s)
 
     return convert(Cint,false)
 end
 
-signal_connect(search_entry_key_press_cb, search_window.search_entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-signal_connect(search_entry_key_release_cb, search_window.search_entry, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-
 @guarded (INTERRUPT)  function replace_entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     entry = convert(GtkEntry, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
+    search_window = user_data
 
     if event.keyval == Gtk.GdkKeySyms.Escape
-        set_search_text("")
+        set_search_text(search_window.search_settings,"")
         visible(search_window,false)
     end
 
     if event.keyval == Gtk.GdkKeySyms.Return
-        t = get_current_tab()
-        replace_forward(t,entry)
+        t = current_tab(search_window.editor)
+        replace_forward(t,entry,search_window)
     end
 
     return PROPAGATE
 end
-signal_connect(replace_entry_key_press_cb, search_window.replace_entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
-function replace_forward(t::EditorTab,entry::GtkEntry)
+function replace_forward(t::EditorTab,entry::GtkEntry,search_window::SearchWindow)
 
-    search_text = get_search_text(search_settings)
+    search_text = get_search_text(search_window.search_settings)
 
     do_search = false
     if t.search_mark_end != nothing && t.search_mark_start != nothing
@@ -178,31 +180,40 @@ function replace_all(t::EditorTab,entry::GtkEntry)
 end
 
 function search_button_clicked_cb(widgetptr::Ptr, user_data)
-    search_forward(get_current_tab())
+    search_window = user_data
+    search_forward(current_tab(search_window.editor))
     return nothing
 end
-signal_connect(search_button_clicked_cb, search_window.search_button, "clicked", Void, (), false)
 
 function replace_button_clicked_cb(widgetptr::Ptr, user_data)
 
-    entry = user_data
-    t = get_current_tab()
-    replace_forward(t,entry)
+    search_window = user_data
+    t = current_tab(search_window.editor)
+    replace_forward(t,search_window.replace_entry,search_window)
     return nothing
 end
-signal_connect(replace_button_clicked_cb, search_window.replace_button, "clicked", Void, (), false,search_window.replace_entry)
+
+function init!(search_window::SearchWindow)
+
+    signal_connect(search_entry_key_press_cb, search_window.search_entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,search_window)
+    signal_connect(search_entry_key_release_cb, search_window.search_entry, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false,search_window)
+    signal_connect(replace_entry_key_press_cb, search_window.replace_entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,search_window)
+    signal_connect(search_button_clicked_cb, search_window.search_button, "clicked", Void, (), false,search_window)
+    signal_connect(replace_button_clicked_cb, search_window.replace_button, "clicked", Void, (), false,search_window)
+    signal_connect(search_window_quit_cb, search_window, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+    signal_connect(replace_all_button_clicked_cb, search_window.replace_all_button, "clicked", Void, (), false,search_window)
+end
 
 function replace_all_button_clicked_cb(widgetptr::Ptr, user_data)
-    replace_all(get_current_tab(), search_window.replace_entry)
+    search_window = user_data
+    replace_all(current_tab(search_window.editor), search_window.replace_entry)
     return nothing
 end
-signal_connect(replace_all_button_clicked_cb, search_window.replace_all_button, "clicked", Void, (), false)
 
 function search_window_quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
 
     return convert(Cint,true)
 end
-signal_connect(search_window_quit_cb, search_window, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
-visible(search_window,false)
+
 ##

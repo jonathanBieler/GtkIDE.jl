@@ -5,22 +5,14 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 
 ## Installation
 
-1. Get the latest version of Immerse and Gtk:
-
-    `Pkg.add("Gtk")`
-    
-    `Pkg.checkout("Gtk")`
-
-    `Pkg.add("Immerse")`
-    
-    `Pkg.checkout("Immerse")`
-    
-1. Install [GtkSourceWidget.jl](https://github.com/jonathanBieler/GtkSourceWidget.jl)
+1. Install the dependencies:
 
     `Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")`
+    `Pkg.clone("https://github.com/jonathanBieler/GtkExtensions.jl.git")`
+    `Pkg.clone("https://github.com/jonathanBieler/WordsUtils.jl.git")`
 
     
-3. Install the package
+2. Install the package
 
     `Pkg.clone("https://github.com/jonathanBieler/GtkIDE.jl.git")`
     
@@ -41,6 +33,8 @@ If `filename` does not exists it will be created instead. You can also use the f
 See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
 
 ### Running code
+
+**Additional consoles are broken at the moment**
 
 Each console is associated with a Julia worker. The first worker runs GtkIDE, so running 
 computations that use all the CPU on it will freeze the application. Additional workers/consoles can be

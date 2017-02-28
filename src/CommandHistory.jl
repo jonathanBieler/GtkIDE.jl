@@ -1,5 +1,3 @@
-import Base.push!
-
 type HistoryProvider
     history::Array{AbstractString,1}
     filename::AbstractString
@@ -76,7 +74,6 @@ function parse_history(h::HistoryProvider)
     return out
 end
 
-import Base.search
 function search(h::HistoryProvider,prefix::AbstractString)
 
     idx = Array(Integer,0)

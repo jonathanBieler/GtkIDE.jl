@@ -13,6 +13,9 @@ type PathComboBox <: GtkComboBoxText
     end
 end
 
+update_pathEntry(pathCBox::PathComboBox) = setproperty!(pathCBox.entry, :text, pwd())
+update_pathEntry(main_window::MainWindow) = update_pathEntry(main_window.pathCBox)
+
 function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     widget = convert(GtkEntry, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
@@ -27,7 +30,7 @@ function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         catch err
             println(string(err))
         end
-        on_path_change(true)
+        on_path_change(pathCBox.main_window,true)
     end
 
     return convert(Cint,false)
@@ -50,7 +53,7 @@ end
         println(string(err))
     end
 
-    on_path_change()
+    on_path_change(pathCBox.main_window)
     nothing
 end
 
@@ -62,11 +65,9 @@ function init!(pathCBox::PathComboBox)
     signal_connect(pathDbox_changed_cb,pathCBox,"changed", Void, (), false)
 
     setproperty!(pathCBox.entry, :width_request, 400)
-    update_pathEntry()
+    update_pathEntry(pathCBox)
     setproperty!(pathCBox.entry,:hexpand,true)
 
     sc = Gtk.G_.style_context(pathCBox.entry)
     push!(sc, style_provider(pathCBox.main_window), 600)
 end
-
-

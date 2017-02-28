@@ -1,4 +1,3 @@
-include("CommandHistory.jl")
 "
     Console <: GtkScrolledWindow
 
@@ -133,7 +132,7 @@ function on_return(c::Console,cmd::AbstractString)
     end
     c.run_task = t
     c.run_task_start_time = time()
-    GtkExtensions.text(statusBar,"Busy")
+    GtkExtensions.text(c.main_window.statusBar,"Busy")
 
     g_idle_add(write_output_to_console,c)
     nothing
@@ -202,7 +201,7 @@ end
 Run from Gtk main loop."
 function write_output_to_console(user_data)
 
-    c = unsafe_pointer_to_objref(user_data)
+    c = unsafe_pointer_to_objref(user_data)::Console
     t = c.run_task
 
     if t.state == :waiting#wait for task to be done
@@ -229,10 +228,10 @@ function write_output_to_console(user_data)
     else
         new_prompt(c)
     end
-    on_path_change()
+    on_path_change(c.main_window)
 
     t = @sprintf("%4.6f\n",time()-c.run_task_start_time)
-    GtkExtensions.text(statusBar,"Run time $(t)s")
+    GtkExtensions.text(c.main_window.statusBar,"Run time $(t)s")
 
     return Cint(false)
 end
@@ -428,7 +427,7 @@ cfunction(_callback_only_for_return, Cint, (Ptr{Console},Ptr{Gtk.GdkEvent},Conso
             #GtkSeparatorMenuItem,
             #MenuItem("Toggle Wrap Mode",kill_current_task_cb),
             ],
-            (console_ntkbook, console, main_window)
+            (console_manager(main_window), console, main_window)
         )
         popup(menu,event)
         return INTERRUPT
@@ -550,7 +549,7 @@ function kill_current_task(c::Console)
     end
 end
 
-function init(c::Console)
+function init!(c::Console)
     signal_connect(console_key_press_cb, c.view, "key-press-event",
     Cint, (Ptr{Gtk.GdkEvent},), false, c)
     signal_connect(_callback_only_for_return, c.view, "key-press-event",
@@ -561,8 +560,8 @@ function init(c::Console)
     Cint, (Ptr{Gtk.GdkEvent},), false)
     signal_connect(console_scroll_cb, c.view, "size-allocate", Void,
     (Ptr{Gtk.GdkRectangle},), false,c)
-    push!(console_ntkbook,c)
-    set_tab_label_text(console_ntkbook,c,"C" * string(c.worker_idx))
+    push!(console_manager(c),c)
+    set_tab_label_text(console_manager(c),c,"C" * string(c.worker_idx))
 end
 
 "Run from the main Gtk loop, and print to console
@@ -594,54 +593,6 @@ function translate_colors(s::AbstractString)
     s
 end
 
-"    free_workers()
-Returns the list of workers not linked to a `Console`"
-function free_workers()
-    w = workers()
-    used_w = Array(Int,0)
-
-    for i=1:length(console_ntkbook)
-        c = console_ntkbook[i]
-        push!(used_w,c.worker_idx)
-    end
-    setdiff(w,used_w)
-end
-
-@guarded (INTERRUPT) function console_ntkbook_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
-
-    ntbook = convert(GtkNotebook, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
-    main_window = user_data #TODO ntbook should be a console manager with a MainWindow field?
-
-    if rightclick(event)
-        menu = buildmenu([
-            MenuItem("Close Console",remove_console_cb),
-            MenuItem("Add Console",add_console_cb)
-            ],
-            (ntbook, get_current_console(ntbook), main_window)
-        )
-        popup(menu,event)
-        return INTERRUPT
-    end
-
-    return PROPAGATE
-end
-
-
-function add_console(main_window::MainWindow)
-
-    free_w = free_workers()
-    if isempty(free_w)
-        i = addprocs(1)[1]
-    else
-        i = free_w[1]
-    end
-    c = Console(i,main_window)
-    init(c)
-
-    g_timeout_add(100,print_to_console,c)
-    c
-end
 @guarded (nothing) function toggle_wrap_mode_cb(btn::Ptr, user_data)
     ntbook, tab, main_window = user_data
     toggle_wrap_mode(tab.view)
@@ -675,27 +626,19 @@ end
 
 function first_console(main_window::MainWindow)
     c = Console(1,main_window)
-    init(c)
+    init!(c)
     c
 end
 
-get_current_console() = console_ntkbook[index(console_ntkbook)]
-get_current_console(console_ntkbook::GtkNotebook) = console_ntkbook[index(console_ntkbook)]
+get_current_console(console_mng::GtkNotebook) = console_mng[index(console_mng)]
 
-function console_ntkbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
-#    page = convert(Gtk.GtkWidget, pageptr)
-#    if typeof(page) == Console
-#        console = page
-#    end
-    nothing
-end
 
 #this is called by remote workers
 function print_to_console_remote(s,idx::Integer)
     #print the output to the right console
-    for i = 1:length(console_ntkbook)
-        c = get_tab(console_ntkbook,i)
+    for i = 1:length(console_mng)
+        c = get_tab(console_mng,i)
         if c.worker_idx == idx
             write(c.stdout_buffer,s)
         end
