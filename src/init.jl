@@ -28,7 +28,7 @@ function __init__()
     pathCBox = PathComboBox(main_window)
     statusBar = @GtkStatusbar()
 
-    init!(main_window,editor,console_mng,pathCBox,statusBar)
+    init!(main_window,editor,console_mng,pathCBox,statusBar,project)
 
     load(project)
     cd(project.path)
@@ -36,10 +36,11 @@ function __init__()
 
     menubar = MainMenu(main_window)
 
-
     global sidepanel_ntbook = @GtkNotebook()
 
     ## Main layout
+    global mainPan = @GtkPaned(:h)
+    rightPan = @GtkPaned(:v)
 
     main_window |>
         ((mainVbox = @GtkBox(:v)) |>
@@ -53,8 +54,8 @@ function __init__()
             statusBar
         )
 
-    (mainPan = @GtkPaned(:h)) |>
-        (rightPan = @GtkPaned(:v) |>
+    mainPan |>
+        (rightPan |>
             #(canvas = @GtkCanvas())  |>
             (fig_ntbook)  |>
             console_mng
@@ -76,7 +77,7 @@ function __init__()
     console = first_console(main_window)
     #add_console()
     for i=1:length(free_workers(console_mng))
-        #add_console(main_window)
+        add_console(main_window)
     end
 
     setproperty!(statusBar,:margin,2)
@@ -136,8 +137,8 @@ function __init__()
 
     if REDIRECT_STDOUT
 
-        stdout = STDOUT
-        stderr = STDERR
+        global stdout = STDOUT
+        global stderr = STDERR
 
         read_stdout, wr = redirect_stdout()
         read_stderr, wre = redirect_stderr()
@@ -149,8 +150,10 @@ function __init__()
             @schedule watch_stream(read_stderr,console)
         end
 
-        global watch_stdout_tastk = watch_stdout()
-        global watch_stderr_tastk = watch_stderr()
+        global watch_stdout_task = watch_stdout()
+        global watch_stderr_task = watch_stderr()
+
+        init_stdout!(main_window.console_manager,watch_stdout_task,stdout,stderr)
 
         g_timeout_add(100,print_to_console,console)
     end

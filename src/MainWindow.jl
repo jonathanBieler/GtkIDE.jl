@@ -6,6 +6,7 @@ type MainWindow <: GtkWindow
     console_manager
     pathCBox
     statusBar
+    project
 
     function MainWindow()
 
@@ -19,23 +20,27 @@ type MainWindow <: GtkWindow
     end
 end
 
-function init!(main_window::MainWindow,editor,c_mng,pathCBox,statusBar)#TODO type this ?
+function init!(main_window::MainWindow,editor,c_mng,pathCBox,statusBar,project)#TODO type this ?
     main_window.editor = editor
     main_window.console_manager = c_mng
     main_window.pathCBox = pathCBox
     main_window.statusBar = statusBar
+    main_window.project = project
 end
 
 ## exiting
-function main_window_quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
+@guarded (PROPAGATE) function main_window_quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
 
-    if typeof(project) == Project
-        save(project)
+    main_window = convert(GtkWindow, widgetptr)
+
+    if typeof(main_window.project) == Project
+        save(main_window.project)
     end
-    #REDIRECT_STDOUT && stop_console_redirect(watch_stdio_tastk,stdout,stderr)
-    global is_running = false
 
-    return convert(Cint,false)
+    global is_running = false
+    REDIRECT_STDOUT && stop_console_redirect(main_window)
+    
+    return PROPAGATE
 end
 
 function toggle_editor()#use visible ?
@@ -50,6 +55,7 @@ end
 function main_window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     event = convert(Gtk.GdkEvent, eventptr)
+    main_window = convert(GtkWindow, widgetptr)
 
     mod = get_default_mod_mask()
 
@@ -58,11 +64,11 @@ function main_window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
             #crashes if we are still in the callback
             sleep(0.2)
 #            eval(Main,:(restart()))
-            restart()
+            restart(main_window)
         end
     end
     if event.keyval == Gtk.GdkKeySyms.F1
-      toggle_sidepanel()
+        toggle_sidepanel()
     end
     if event.keyval == Gtk.GdkKeySyms.F2
         toggle_editor()
@@ -96,16 +102,16 @@ function on_path_change(main_window::MainWindow,doUpdate=false)
 end
 
 ##
-function restart(new_workspace=false)
+function restart(main_window::MainWindow,new_workspace=false)
 
         println("restarting...")
         sleep(0.1)
         is_running = false
 
-        REDIRECT_STDOUT && stop_console_redirect(watch_stdout_tastk,stdout,stderr)
+        REDIRECT_STDOUT && stop_console_redirect(main_window)
 
-        update!(project)
-        save(project)
+        update!(main_window.project)
+        save(main_window.project)
         win_ = main_window
 
         new_workspace && workspace()
@@ -115,19 +121,19 @@ function restart(new_workspace=false)
         #include( joinpath(HOMEDIR,"GtkIDE.jl") )
 
         #Order matters
-         include("MenuUtils.jl")
-         include("PlotWindow.jl")
-         include("StyleAndLanguageManager.jl")
-         include("MainWindow.jl")
-         include("Project.jl")
-         include("ConsoleManager.jl")
-         include("CommandHistory.jl")
-         include("Console.jl")
-         include("Editor.jl")
-         include("NtbookUtils.jl")
-         include("PathDisplay.jl")
-         include("MainMenu.jl")
-         include("SidePanels.jl")
+        include("MenuUtils.jl")
+        include("PlotWindow.jl")
+        include("StyleAndLanguageManager.jl")
+        include("MainWindow.jl")
+        include("Project.jl")
+        include("ConsoleManager.jl")
+        include("CommandHistory.jl")
+        include("Console.jl")
+        include("Editor.jl")
+        include("NtbookUtils.jl")
+        include("PathDisplay.jl")
+        include("MainMenu.jl")
+        include("SidePanels.jl")
 
         include("init.jl")
         __init__()

@@ -6,7 +6,7 @@ end
 #module GtkIDE
 
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
-const REDIRECT_STDOUT = false
+const REDIRECT_STDOUT = true
 
 using Immerse
 using Gtk

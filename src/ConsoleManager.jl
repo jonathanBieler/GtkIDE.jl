@@ -2,6 +2,9 @@ type ConsoleManager <: GtkNotebook
 
     handle::Ptr{Gtk.GObject}
     main_window::MainWindow
+    watch_stdout_task::Task
+    stdout
+    stderr
 
     function ConsoleManager(main_window::MainWindow)
 
@@ -17,6 +20,12 @@ function init!(console_mng::ConsoleManager)
     signal_connect(console_mng_button_press_cb,console_mng, "button-press-event",
     Cint, (Ptr{Gtk.GdkEvent},),false,console_mng.main_window)
     signal_connect(console_mng_switch_page_cb,console_mng,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
+end
+
+function init_stdout!(console_mng::ConsoleManager,watch_stdout_task,stdout,stderr)
+    console_mng.watch_stdout_task = watch_stdout_task
+    console_mng.stdout = stdout
+    console_mng.stderr = stderr
 end
 
 function add_console(main_window::MainWindow)
@@ -76,4 +85,20 @@ function free_workers(console_mng::ConsoleManager)
         push!(used_w,c.worker_idx)
     end
     setdiff(w,used_w)
+end
+
+function stop_console_redirect(main_window::MainWindow)
+
+    t = main_window.console_manager.watch_stdout_task
+    out = main_window.console_manager.stdout
+    err = main_window.console_manager.stderr
+
+# The task end itself when is_running == false
+#    try
+#        Base.throwto(t, InterruptException())
+#    end
+    
+    sleep(0.1)
+    redirect_stdout(out)
+    redirect_stderr(err)
 end

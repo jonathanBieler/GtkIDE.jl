@@ -518,7 +518,7 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart,lastpart)
         maxLength = maximum(map(length,comp))
         w = width(c.view)
         nchar_to_width(x) = 0.9*x*fontsize #TODO pango_font_metrics_get_approximate_char_width
-        n_per_line = round(Int,w/nchar_to_width(maxLength))
+        n_per_line = max(1,round(Int,w/nchar_to_width(maxLength)))
 
         out = "\n"
         for i = 1:length(comp)
@@ -633,12 +633,11 @@ end
 get_current_console(console_mng::GtkNotebook) = console_mng[index(console_mng)]
 
 
-
 #this is called by remote workers
 function print_to_console_remote(s,idx::Integer)
     #print the output to the right console
-    for i = 1:length(console_mng)
-        c = get_tab(console_mng,i)
+    for i = 1:length(main_window.console_manager)
+        c = get_tab(main_window.console_manager,i)
         if c.worker_idx == idx
             write(c.stdout_buffer,s)
         end
@@ -660,18 +659,11 @@ function send_stream(rd::IO, stdout_buffer::IO)
 end
 
 function watch_stream(rd::IO, c::Console)
-    while !eof(rd) # blocks until something is available
+    while !eof(rd) && is_running # blocks until something is available
         send_stream(rd,c.stdout_buffer)
         sleep(0.01) # a little delay to accumulate output
     end
 end
 
-function stop_console_redirect(t::Task,out,err)
 
-    try
-        Base.throwto(t, InterruptException())
-    end
-    redirect_stdout(out)
-    redirect_stderr(err)
-end
 #

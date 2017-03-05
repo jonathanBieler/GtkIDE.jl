@@ -170,9 +170,9 @@ function replace_forward(t::EditorTab,entry::GtkEntry,search_window::SearchWindo
     search_context_replace(t.search_context,its,ite,s)
 end
 
-function replace_all(t::EditorTab,entry::GtkEntry)
+function replace_all(t::EditorTab,entry::GtkEntry,search_window::SearchWindow)
 
-    search_text = get_search_text(search_settings)
+    search_text = get_search_text(search_window.search_settings)
     search_text == "" && return
 
     s = getproperty(entry,:text,AbstractString)
@@ -206,7 +206,7 @@ end
 
 function replace_all_button_clicked_cb(widgetptr::Ptr, user_data)
     search_window = user_data
-    replace_all(current_tab(search_window.editor), search_window.replace_entry)
+    replace_all(current_tab(search_window.editor), search_window.replace_entry, search_window)
     return nothing
 end
 
