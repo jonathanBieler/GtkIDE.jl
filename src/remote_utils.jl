@@ -83,7 +83,7 @@ if !isdefined(:watch_stdio_task)
     stdout_buffer = IOBuffer()
 
     watch_stdio_task = @schedule watch_stream(read_stdout,stdout_buffer)
-    watch_stderr_tastk = @schedule watch_stream(read_stderr,stdout_buffer)
+    watch_stderr_task = @schedule watch_stream(read_stderr,stdout_buffer)
     
     send_to_main_worker_task = @schedule send_to_main_worker(stdout_buffer)
 

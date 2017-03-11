@@ -34,7 +34,7 @@ See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
 
 ### Running code
 
-**Additional consoles are broken at the moment**
+**Additional consoles are not working well at the moment**
 
 Each console is associated with a Julia worker. The first worker runs GtkIDE, so running 
 computations that use all the CPU on it will freeze the application. Additional workers/consoles can be

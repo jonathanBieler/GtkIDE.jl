@@ -258,12 +258,33 @@ new_prompt(c::Console) = write(c,"",true)
 function move_cursor_to_end(c::Console)
     text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
 end
+function move_cursor_to_prompt(c::Console)
+    text_buffer_place_cursor(c.buffer,c.prompt_position-1)
+end
 
 "return cursor position in the prompt text"
 function cursor_position(c::Console)
     a = c.prompt_position
     b = cursor_position(c.buffer)
     b-a+1
+end
+
+function select_on_ctrl_shift(direction,c::Console)
+
+    buffer = c.buffer
+    (found,its,ite) = selection_bounds(buffer)
+    
+    if direction == :start
+        ite,its = its,ite
+    end
+    
+    its = found ? nonmutable(buffer,its) : get_text_iter_at_cursor(buffer)
+    
+    direction == :start && move_cursor_to_prompt(c)
+    direction == :end && move_cursor_to_sentence_end(buffer)
+    
+    ite = get_text_iter_at_cursor(buffer)
+    selection_bounds(buffer,ite,its)#invert here so the cursor end up on the far right
 end
 
 ##
@@ -322,7 +343,26 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
             before_or_at_prompt() && return INTERRUPT
         end
     end
-    if event.keyval == Gtk.GdkKeySyms.Left
+    if doing(Actions["move_to_line_start"],event) ||
+        doing(Action(GdkKeySyms.Left, PrimaryModifier),event)
+        move_cursor_to_prompt(console)
+        return INTERRUPT
+    end
+    if doing(Actions["move_to_line_end"],event) ||
+       doing(Action(GdkKeySyms.Right, PrimaryModifier),event)
+        move_cursor_to_end(console)
+        return INTERRUPT
+    end
+    if doing(Action(GdkKeySyms.Right, PrimaryModifier+GdkModifierType.SHIFT),event)
+        select_on_ctrl_shift(:end,console)
+        return INTERRUPT
+    end
+    if doing(Action(GdkKeySyms.Left, PrimaryModifier+GdkModifierType.SHIFT),event)
+        select_on_ctrl_shift(:start,console)
+        return INTERRUPT
+    end
+    
+    if doing(Action(GdkKeySyms.Left, NoModifier),event)
         if found
             at_prompt(offset(it_start)) && return INTERRUPT
         else
@@ -351,7 +391,6 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
 
         return INTERRUPT
     end
-
     if event.keyval == Gtk.GdkKeySyms.Tab
         #convert cursor position into index
         autocomplete(console,cmd,pos)

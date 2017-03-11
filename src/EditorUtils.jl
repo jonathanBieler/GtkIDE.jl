@@ -222,3 +222,21 @@ function toggle_wrap_mode(v::GtkTextView)
     nothing
 end
 
+function select_on_ctrl_shift(direction,buffer::GtkSourceBuffer)
+        
+    (found,its,ite) = selection_bounds(buffer)
+
+    if direction == :start
+        ite,its = its,ite
+    end
+    
+    its = found ? nonmutable(buffer,its) : get_text_iter_at_cursor(buffer)
+    
+    direction == :start && move_cursor_to_sentence_start(buffer)
+    direction == :end && move_cursor_to_sentence_end(buffer)
+    
+    ite = get_text_iter_at_cursor(buffer)
+    selection_bounds(buffer,ite,its)#invert here so the cursor end up on the far right
+end
+
+

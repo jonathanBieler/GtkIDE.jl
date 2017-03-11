@@ -459,39 +459,13 @@ end
         return INTERRUPT
     end
     if doing(Action(GdkKeySyms.Right, PrimaryModifier+GdkModifierType.SHIFT),event)
-
-        #FIXME put this and bellow in a function
-        (found,its,ite) = selection_bounds(buffer)
-        if !found
-            its = get_text_iter_at_cursor(buffer)
-            move_cursor_to_sentence_end(buffer)
-            ite = get_text_iter_at_cursor(buffer)
-            selection_bounds(buffer,ite,its)#invert here so the cursor end up on the far right
-        else
-            its = nonmutable(buffer,its)#FIXME this shouldn't require the buffer
-            move_cursor_to_sentence_end(buffer)
-            ite = get_text_iter_at_cursor(buffer)
-            selection_bounds(buffer,ite,its)
-        end
+        select_on_ctrl_shift(:end,buffer)
         return INTERRUPT
     end
     if doing(Action(GdkKeySyms.Left, PrimaryModifier+GdkModifierType.SHIFT),event)
-
-        (found,its,ite) = selection_bounds(buffer)
-        if !found
-            ite = get_text_iter_at_cursor(buffer)
-            move_cursor_to_sentence_start(buffer)
-            its = get_text_iter_at_cursor(buffer)
-            selection_bounds(buffer,its,ite)
-        else
-            ite = nonmutable(buffer,ite)
-            move_cursor_to_sentence_start(buffer)
-            its = get_text_iter_at_cursor(buffer)
-            selection_bounds(buffer,its,ite)
-        end
+        select_on_ctrl_shift(:start,buffer)
         return INTERRUPT
     end
-
     if doing(Actions["toggle_comment"],event)
         user_action(toggle_comment, buffer)#make sure undo works
     end
