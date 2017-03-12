@@ -91,7 +91,7 @@ function stop_console_redirect(main_window::MainWindow)
 
     t = main_window.console_manager.watch_stdout_task
     out = main_window.console_manager.stdout
-    err = main_window.console_manager.stderr
+    #err = main_window.console_manager.stderr
 
 # The task end itself when is_running == false
 #    try
@@ -100,5 +100,5 @@ function stop_console_redirect(main_window::MainWindow)
     
     sleep(0.1)
     redirect_stdout(out)
-    redirect_stderr(err)
+    #redirect_stderr(err)
 end

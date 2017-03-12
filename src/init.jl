@@ -141,7 +141,7 @@ function __init__()
         global stderr = STDERR
 
         read_stdout, wr = redirect_stdout()
-        read_stderr, wre = redirect_stderr()
+        #read_stderr, wre = redirect_stderr()
 
         function watch_stdout()
             @schedule watch_stream(read_stdout,console)
@@ -151,7 +151,7 @@ function __init__()
         end
 
         global watch_stdout_task = watch_stdout()
-        global watch_stderr_task = watch_stderr()
+        #global watch_stderr_task = watch_stderr()
 
         init_stdout!(main_window.console_manager,watch_stdout_task,stdout,stderr)
 

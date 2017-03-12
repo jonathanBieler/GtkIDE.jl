@@ -34,11 +34,9 @@ See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
 
 ### Running code
 
-**Additional consoles are not working well at the moment**
-
 Each console is associated with a Julia worker. The first worker runs GtkIDE, so running 
 computations that use all the CPU on it will freeze the application. Additional workers/consoles can be
-added by calling `add_console()` on the first worker, or via the right-click activated menu.
+added by calling `add_console(main_window)` on the first worker, or via the right-click activated menu.
 
 - `F5`: Include the current file
 - `Ctrl+Return`: Run selected code, or run code between two `## ' (like Matlab's code sections).

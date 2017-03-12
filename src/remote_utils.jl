@@ -8,6 +8,13 @@ else
     import Base.showlimited
 end
 
+function trim(s::AbstractString,L::Int)
+    if length(s) > L
+        return string(s[1:L],"...")
+    end
+    s
+end
+
 function eval_command_remotely(cmd::AbstractString)
 
     ex = Base.parse_input_line(cmd)
@@ -15,7 +22,6 @@ function eval_command_remotely(cmd::AbstractString)
 
     evalout = ""
     v = :()
-
     try
         v = eval(Main,ex)
         eval(Main, :(ans = $(Expr(:quote, v))))
@@ -26,8 +32,9 @@ function eval_command_remotely(cmd::AbstractString)
         evalout = sprint(showerror,err,bt)
     end
 
+    evalout = trim(evalout,1000)
+#    warn("eval_command_remotely: $(myid()) : $evalout")
     finalOutput = evalout == "" ? "" : "$evalout\n"
-
     return finalOutput, v
 end
 
@@ -79,12 +86,12 @@ if !isdefined(:watch_stdio_task)
     stderr = STDERR
 
     read_stdout, wr = redirect_stdout()
-    read_stderr, wre = redirect_stderr()
+    #read_stderr, wre = redirect_stderr()
     stdout_buffer = IOBuffer()
 
     watch_stdio_task = @schedule watch_stream(read_stdout,stdout_buffer)
-    watch_stderr_task = @schedule watch_stream(read_stderr,stdout_buffer)
-    
+    #watch_stderr_task = @schedule watch_stream(read_stderr,stdout_buffer)
+
     send_to_main_worker_task = @schedule send_to_main_worker(stdout_buffer)
 
 end

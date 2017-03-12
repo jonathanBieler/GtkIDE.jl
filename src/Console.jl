@@ -162,7 +162,7 @@ function eval_command_remotely(cmd::AbstractString)
         evalout = sprint(showerror,err,bt)
     end
 
-    evalout = trim(evalout,4000)
+    evalout = trim(evalout,1000)
     finalOutput = evalout == "" ? "" : "$evalout\n"
     return finalOutput, v
 end
@@ -204,7 +204,7 @@ function write_output_to_console(user_data)
     c = unsafe_pointer_to_objref(user_data)::Console
     t = c.run_task
 
-    if t.state == :waiting#wait for task to be done
+    if !istaskdone(t) #wait for task to be done
         return Cint(true)
     end
 
@@ -273,16 +273,16 @@ function select_on_ctrl_shift(direction,c::Console)
 
     buffer = c.buffer
     (found,its,ite) = selection_bounds(buffer)
-    
+
     if direction == :start
         ite,its = its,ite
     end
-    
+
     its = found ? nonmutable(buffer,its) : get_text_iter_at_cursor(buffer)
-    
+
     direction == :start && move_cursor_to_prompt(c)
     direction == :end && move_cursor_to_sentence_end(buffer)
-    
+
     ite = get_text_iter_at_cursor(buffer)
     selection_bounds(buffer,ite,its)#invert here so the cursor end up on the far right
 end
@@ -361,7 +361,7 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
         select_on_ctrl_shift(:start,console)
         return INTERRUPT
     end
-    
+
     if doing(Action(GdkKeySyms.Left, NoModifier),event)
         if found
             at_prompt(offset(it_start)) && return INTERRUPT

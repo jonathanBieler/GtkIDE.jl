@@ -94,8 +94,9 @@ function save_as(t::EditorTab)
     save(t)
 end
 
-function open_in_new_tab(filename::AbstractString,editor)#FIXME type this, but Editor not defined at this point
+function open_in_new_tab(filename::AbstractString,editor;line=0)#FIXME type this, but Editor not defined at this point
     t = add_tab(filename,editor)
+    t.scroll_target_line = max(0,line-1)
     open(t,t.filename)
     return t
 end
@@ -176,9 +177,7 @@ function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not d
                 end
             end
 #            otherwise open it
-            t = open_in_new_tab(file,editor)
-            t.scroll_target_line = line
-
+            t = open_in_new_tab(file,editor,line=line)
             return true
         end
     catch

@@ -20,10 +20,21 @@ const console_commands = Array(ConsoleCommand,0)
 add_console_command(r::Regex,f::Function) = push!(console_commands,ConsoleCommand(r,f,:normal))
 add_console_command(r::Regex,f::Function,c::Symbol) = push!(console_commands,ConsoleCommand(r,f,c))
 
+#first try to match line number
+add_console_command(r"^edit (.*):(\d+)",(m,c) -> begin
+    try
+        line = parse(Int,m.captures[2])
+        open_in_new_tab(m.captures[1],_editor(c),line=line)
+    catch
+        println("Invalid line number: $(m.captures[2])")
+    end
+    nothing
+end,:file)
 add_console_command(r"^edit (.*)",(m,c) -> begin
     open_in_new_tab(m.captures[1],_editor(c))
     nothing
 end,:file)
+
 add_console_command(r"^clc$",(m,c) -> begin
     clear(c)
     nothing
