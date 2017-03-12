@@ -375,43 +375,43 @@ function type_close_enough(x::TypeConstructor, t::DataType)
 end
 
 ##
-function methods_with_tuple(t::Tuple, f::Function, meths = Method[])
 
-    if !isa(f.env, MethodTable)
-        return meths
-    end
-    d = f.env.defs
 
-    while d !== nothing
-        x = d.sig.parameters
-        cons = Dict{Symbol,Type}()
-        if length(x) == length(t)
-            m = true
-            for i = 1:length(x)
+function methods_with_tuple(t::Tuple, d::Method, meths = Method[])
 
-                if !(t[i] <: x[i]) ||
-                (x[i] == Any && t[i] != Any) ||
-                (x[i] == ANY && t[i] != ANY)
+    x = d.sig.parameters[2:end]
+    cons = Dict{Symbol,Type}()
+    if length(x) == length(t)
+        m = true
+        for i = 1:length(x)
+
+            if !(t[i] <: x[i]) ||
+            (x[i] == Any && t[i] != Any) ||
+            (x[i] == ANY && t[i] != ANY)
+                m = false
+                break
+            end
+
+            #check thing like (T<:K,T<:K)
+            if typeof(x[i]) == TypeVar
+                if haskey(cons,x[i].name) && !(t[i] <: cons[x[i].name])
                     m = false
                     break
                 end
-
-                #check thing like (T<:K,T<:K)
-                if typeof(x[i]) == TypeVar
-                    if haskey(cons,x[i].name) && !(t[i] <: cons[x[i].name])
-                        m = false
-                        break
-                    end
-                    cons[x[i].name] = t[i]
-                end
+                cons[x[i].name] = t[i]
             end
-            m && push!(meths, d)
         end
-        d = d.next
+        m && push!(meths, d)
     end
+
     return meths
 end
-##
+
+function methods_with_tuple(t::Tuple, f::Function, meths = Method[])
+    for m in methods(f)
+        methods_with_tuple(t, m, meths)
+    end
+end
 
 function methods_with_tuple(t::Tuple, m::Module)
     meths = Method[]
@@ -441,7 +441,10 @@ function methods_with_tuple(t::Tuple)
     return unique(meths)
 end
 
-#take a tuple as a string "(x,y)", parse it and return the types in a tuple if defined
+
+"
+take a tuple as a string `(x,y)`, parse it and return the types in a tuple if defined
+"
 function tuple_to_types(tu::AbstractString)
     args = []
     try

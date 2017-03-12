@@ -253,7 +253,7 @@ function completions(p::TupleCompletion,t,idx)
     isempty(args) && return
     m = methods_with_tuple(args)
     comp = map(string,m)
-    func_names = [string(x.func.code.name) for x in m]
+    func_names = [string(x.name) for x in m]
     p.comp = comp
     p.func_names = func_names
 end
