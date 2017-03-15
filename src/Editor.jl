@@ -137,7 +137,8 @@ end
     end
     return nothing
 end
-function switch_tab_cb(btn::Ptr, idx)
+function switch_tab_cb(btn::Ptr, user_data)
+    idx, editor = user_data
     index(editor,idx)
     return nothing
 end
@@ -180,7 +181,7 @@ function create_tab_menu(container, tab)
         if typeof(editor[i]) == EditorTab
             s = @GtkMenuItem(basename(editor[i].filename))
             push!(menu,s)
-            signal_connect(switch_tab_cb, s, "activate", Void,(),false,i)
+            signal_connect(switch_tab_cb, s, "activate", Void,(),false,(i,editor))
         end
     end
 
