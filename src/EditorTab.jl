@@ -383,6 +383,7 @@ end
     console = current_console(editor)
 
 #    println(event.state)
+#    println(event.keyval)
 
     doing(Actions["save"], event) && save(t)
     doing(Actions["open"], event) && openfile_dialog()
@@ -407,11 +408,11 @@ end
             return init_autocomplete(textview,t)
         end
     end
-    if doing(Actions["runline"], event)
+    if doing(Actions["runline"], event) || doing(Actions["runline_kp"], event)
         run_line(console,t)
         return convert(Cint,true)
     end
-    if doing(Actions["runcode"], event)
+    if doing(Actions["runcode"], event) || doing(Actions["runcode_kp"], event)
         run_code(console,t)
         return INTERRUPT
     end
