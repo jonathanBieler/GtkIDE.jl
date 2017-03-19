@@ -118,7 +118,7 @@ function __init__()
     ## Plots
 
     sleep(0.5)
-    #figure()
+    figure()
     drawnow() = sleep(0.001)
 
     init!(pathCBox)#need on_path_change to be defined

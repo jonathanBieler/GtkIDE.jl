@@ -128,7 +128,6 @@ function on_return(c::Console,cmd::String)
 
         ref = remotecall(eval_command_remotely,c.worker_idx,cmd)
         t = @schedule fetch(ref) #I need a task here to be able to check if it's done
-#        t = eval_command_locally(cmd)
     end
     c.run_task = t
     c.run_task_start_time = time()
@@ -166,43 +165,12 @@ function eval_command_remotely(cmd::String)
 
         evalout = v == nothing ? "" : sprint(showlimited,v)
     catch err
-        bt = catch_backtrace()
-        evalout = clean_error_msg( sprint(showerror,err,bt) )
+        evalout = clean_error_msg( sprint(showerror,err,catch_backtrace()) )
     end
 
     evalout = trim(evalout,2000)
     finalOutput = evalout == "" ? "" : "$evalout\n"
     return finalOutput, v
-end
-
-function eval_command_locally(cmd::String)
-
-    ex = Base.parse_input_line(cmd)
-    ex = expand(ex)
-
-    evalout = ""
-    v = :()
-
-    t = @schedule begin
-        try
-            v = eval(Main,ex)
-            eval(Main, :(ans = $(Expr(:quote, v))))
-
-            if typeof(v) <: Gadfly.Plot
-                display(v)
-            end
-            evalout = v == nothing ? "" : sprint(showlimited,v)
-        catch err
-            bt = catch_backtrace()
-            evalout = sprint(showerror,err,bt)
-        end
-
-        evalout = trim(evalout,4000)
-        finalOutput = evalout == "" ? "" : "$evalout\n"
-
-        return finalOutput, v
-    end
-    return t
 end
 
 "Wait for the running task to end and print the result in the console.
@@ -228,11 +196,15 @@ function write_output_to_console(user_data)
             finalOutput = string(str) * "\n"
         end
 
-        write(c,finalOutput,true)
-
         if typeof(v) <: Gadfly.Plot
-            display(v)
+            try
+                display(v)
+            catch err
+                finalOutput = sprint(showerror,err) 
+            end
         end
+        
+        write(c,finalOutput,true)
     else
         new_prompt(c)
     end
