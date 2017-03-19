@@ -26,31 +26,31 @@ function __init__()
     global project = Project(main_window)
 
     pathCBox = PathComboBox(main_window)
-    statusBar = @GtkStatusbar()
+    statusBar = GtkStatusbar()
 
-    init!(main_window,editor,console_mng,pathCBox,statusBar,project)
+    menubar = MainMenu(main_window)
+
+    init!(main_window,editor,console_mng,pathCBox,statusBar,project,menubar)
 
     load(project)
     cd(project.path)
     load_tabs(editor,project)
 
-    menubar = MainMenu(main_window)
-
-    global sidepanel_ntbook = @GtkNotebook()
+    global sidepanel_ntbook = GtkNotebook()
 
     ## Main layout
-    global mainPan = @GtkPaned(:h)
-    rightPan = @GtkPaned(:v)
+    global mainPan = GtkPaned(:h)
+    rightPan = GtkPaned(:v)
 
     main_window |>
-        ((mainVbox = @GtkBox(:v)) |>
+        ((mainVbox = GtkBox(:v)) |>
             menubar |>
-            (topBarBox = @GtkBox(:h) |>
-                (sidePanelButton = @GtkButton("F1")) |>
+            (topBarBox = GtkBox(:h) |>
+                (sidePanelButton = GtkButton("F1")) |>
                  pathCBox   |>
-                (editorButton = @GtkButton("F2"))
+                (editorButton = GtkButton("F2"))
             ) |>
-            (sidePan = @GtkPaned(:h)) |>
+            (sidePan = GtkPaned(:h)) |>
             statusBar
         )
 
@@ -60,8 +60,8 @@ function __init__()
             (fig_ntbook)  |>
             console_mng
         ) |>
-        ((editorVBox = @GtkBox(:v)) |>
-            ((editorBox = @GtkBox(:h)) |>
+        ((editorVBox = GtkBox(:v)) |>
+            ((editorBox = GtkBox(:h)) |>
                 editor |>
                 editor.sourcemap
             ) |>

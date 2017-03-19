@@ -35,7 +35,6 @@ function doing(a::Action, event::Gtk.GdkEvent)
         if a.state == NoModifier && event.state == NoModifier
              return event.keyval == a.keyval
         end
-
         if (event.keyval == a.keyval) && (event.state & mod == a.state)
             return true
         end
@@ -71,7 +70,7 @@ Actions["delete_line"] = Action("k", PrimaryModifier, "Delete line")
 Actions["duplicate_line"] = Action("d", PrimaryModifier, "Duplicate line")
 Actions["toggle_comment"] = Action("t", PrimaryModifier, "Toggle comment")
 Actions["undo"] = Action("z", PrimaryModifier, "Undo")
-Actions["redo"] = Action("z", PrimaryModifier + GdkModifierType.SHIFT, "Redo")
+Actions["redo"] = Action("Z", PrimaryModifier + GdkModifierType.SHIFT, "Redo")
 Actions["goto_line"] = Action("g", PrimaryModifier, "Go to line")
 
 Actions["select_all"] = Action("a", PrimaryModifier, "Select all")

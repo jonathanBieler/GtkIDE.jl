@@ -204,6 +204,8 @@ get_text_right_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it,it+1)
 get_text_left_of_iter(it::GtkTextIter) = text_iter_get_text(mutable(it)-1,mutable(it))
 get_text_right_of_iter(it::GtkTextIter) = text_iter_get_text(mutable(it),mutable(it)+1)
 
+nlines(it_start,it_end) = abs(line(it_end)-line(it_start))+1
+
 function move_cursor_to_sentence_start(buffer::GtkTextBuffer)
     it = mutable( get_text_iter_at_cursor(buffer) )
     text_iter_backward_sentence_start(it)

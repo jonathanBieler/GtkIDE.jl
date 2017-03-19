@@ -656,3 +656,41 @@ function tab_buffer_changed_cb(widgetptr::Ptr,user_data)
 
     return nothing
 end
+
+
+@guarded (PROPAGATE) function input_dialog_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+
+    dialog = convert(GtkMessageDialog, widgetptr)
+    event = convert(Gtk.GdkEvent, eventptr)
+
+    if doing(Action(GdkKeySyms.Return,NoModifier),event)
+        response(dialog,1)
+        return INTERRUPT
+    end
+    if doing(Action(GdkKeySyms.Escape,NoModifier),event)
+        response(dialog,0)
+        return INTERRUPT
+    end
+
+    return PROPAGATE
+end
+
+#FIXME put this into Gtk.jl ?
+import Gtk.input_dialog
+function input_dialog(message::AbstractString, entry_default::AbstractString, buttons = (("Cancel", 0), ("Accept", 1)), parent = GtkNullContainer())
+    widget = GtkMessageDialog(message, buttons, Gtk.GtkDialogFlags.DESTROY_WITH_PARENT, Gtk.GtkMessageType.INFO, parent)
+    
+    box = Gtk.content_area(widget)
+    entry = GtkEntry(; text = entry_default)
+    push!(box, entry)
+    
+    signal_connect(input_dialog_key_press_cb, widget, "key-press-event",
+    Cint, (Ptr{Gtk.GdkEvent},), false)
+    
+    showall(widget)
+    resp = run(widget)
+    entry_text = getproperty(entry, :text, String)
+    destroy(widget)
+    return resp, entry_text
+end
+

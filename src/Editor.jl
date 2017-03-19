@@ -12,7 +12,7 @@ type Editor <: GtkNotebook
     search_window::SearchWindow
 
     function Editor(main_window::MainWindow)
-        ntbook = @GtkNotebook()
+        ntbook = GtkNotebook()
         setproperty!(ntbook,:scrollable, true)
         setproperty!(ntbook,:enable_popup, false)
 
@@ -20,7 +20,7 @@ type Editor <: GtkNotebook
             sourcemap = @GtkSourceMap()
             t = new(ntbook.handle,sourcemap,main_window)
         else
-            sourcemap = @GtkBox(:v)#put a dummy box instead
+            sourcemap = GtkBox(:v)#put a dummy box instead
             t = new(ntbook.handle,sourcemap,main_window)
         end
         Gtk.gobject_move_ref(t, ntbook)

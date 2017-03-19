@@ -8,14 +8,22 @@ else
     import Base.showlimited
 end
 
-function trim(s::AbstractString,L::Int)
+function trim(s::AbstractString,L::Int)#need to be AbstracString to accept SubString
     if length(s) > L
         return string(s[1:L],"...")
     end
     s
 end
 
-function eval_command_remotely(cmd::AbstractString)
+#FIXME dirty hack
+function clean_error_msg(s::String)
+    r  = Regex("(.*)in eval_command_remotely.*","s")
+    m = match(r,s)
+    m != nothing && return m.captures[1]
+    s
+end
+
+function eval_command_remotely(cmd::String)
 
     ex = Base.parse_input_line(cmd)
     ex = expand(ex)
@@ -29,14 +37,14 @@ function eval_command_remotely(cmd::AbstractString)
         evalout = v == nothing ? "" : sprint(showlimited,v)
     catch err
         bt = catch_backtrace()
-        evalout = sprint(showerror,err,bt)
+        evalout = clean_error_msg( sprint(showerror,err,bt) )
     end
 
-    evalout = trim(evalout,1000)
-#    warn("eval_command_remotely: $(myid()) : $evalout")
+    evalout = trim(evalout,2000)
     finalOutput = evalout == "" ? "" : "$evalout\n"
     return finalOutput, v
 end
+
 
 #FIXME I probably don't need the two step system here
 function send_stream(rd::IO, stdout_buffer::IO)

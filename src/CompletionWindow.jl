@@ -92,10 +92,16 @@ function insert_autocomplete(s::AbstractString,itstart::GtkTextIters,itend::GtkT
     end
 end
 
+#FIXME dirty hack
 function remove_filename_from_methods_def(s::AbstractString)
     ex = r"(^.*\))( at .+\.jl:[0-9]+$)" #remove the file/line number for methods)
     m = match(ex,s)
     s = m == nothing ? s : m[1]
+    
+    ex = r"(^.*\))( at none:[0-9]+$)" 
+    m = match(ex,s)
+    s = m == nothing ? s : m[1]
+    
     return s
 end
 

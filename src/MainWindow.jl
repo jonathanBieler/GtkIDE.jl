@@ -7,10 +7,11 @@ type MainWindow <: GtkWindow
     pathCBox
     statusBar
     project
+    menubar
 
     function MainWindow()
 
-        w = @GtkWindow("GtkIDE.jl",1800,1200)
+        w = GtkWindow("GtkIDE.jl",1800,1200)
         signal_connect(main_window_key_press_cb,w, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
         signal_connect(main_window_quit_cb, w, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
@@ -20,12 +21,13 @@ type MainWindow <: GtkWindow
     end
 end
 
-function init!(main_window::MainWindow,editor,c_mng,pathCBox,statusBar,project)#TODO type this ?
+function init!(main_window::MainWindow,editor,c_mng,pathCBox,statusBar,project,menubar)#TODO type this ?
     main_window.editor = editor
     main_window.console_manager = c_mng
     main_window.pathCBox = pathCBox
     main_window.statusBar = statusBar
     main_window.project = project
+    main_window.menubar = menubar
 end
 
 ## exiting
@@ -39,7 +41,7 @@ end
 
     global is_running = false
     REDIRECT_STDOUT && stop_console_redirect(main_window)
-    
+
     return PROPAGATE
 end
 

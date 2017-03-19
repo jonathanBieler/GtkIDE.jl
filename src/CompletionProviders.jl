@@ -75,6 +75,14 @@
 function init_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
 
     buffer = getbuffer(view)
+    
+    #let's not autocomplete multiple lines
+    (found,it_start,it_end) = selection_bounds(buffer)
+    nline = 0 
+    if found 
+        nlines(it_start, it_end) > 1 && @goto exit
+    end
+    
     it = get_text_iter_at_cursor(buffer)
 
     p = get_completion_provider(view,t)

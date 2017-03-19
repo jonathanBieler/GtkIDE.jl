@@ -39,7 +39,7 @@ type Console <: GtkScrolledWindow
 
         setproperty!(v,:margin_bottom,10)
 
-        sc = @GtkScrolledWindow()
+        sc = GtkScrolledWindow()
         setproperty!(sc,:hscrollbar_policy,1)
 
         push!(sc,v)
@@ -104,7 +104,7 @@ function clear(c::Console)
 end
 ##
 
-function on_return(c::Console,cmd::AbstractString)
+function on_return(c::Console,cmd::String)
 
     cmd = strip(cmd)
     buffer = c.buffer
@@ -145,7 +145,15 @@ function trim(s::AbstractString,L::Int)
     s
 end
 
-function eval_command_remotely(cmd::AbstractString)
+#FIXME dirty hack
+function clean_error_msg(s::String)
+    r  = Regex("(.*)in eval_command_remotely.*","s")
+    m = match(r,s)
+    m != nothing && return m.captures[1]
+    s
+end
+
+function eval_command_remotely(cmd::String)
 
     ex = Base.parse_input_line(cmd)
     ex = expand(ex)
@@ -159,15 +167,15 @@ function eval_command_remotely(cmd::AbstractString)
         evalout = v == nothing ? "" : sprint(showlimited,v)
     catch err
         bt = catch_backtrace()
-        evalout = sprint(showerror,err,bt)
+        evalout = clean_error_msg( sprint(showerror,err,bt) )
     end
 
-    evalout = trim(evalout,1000)
+    evalout = trim(evalout,2000)
     finalOutput = evalout == "" ? "" : "$evalout\n"
     return finalOutput, v
 end
 
-function eval_command_locally(cmd::AbstractString)
+function eval_command_locally(cmd::String)
 
     ex = Base.parse_input_line(cmd)
     ex = expand(ex)
@@ -301,6 +309,19 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
         SecondaryModifer, PrimaryModifier+SHIFT, PrimaryModifier+GdkModifierType.META])
 
 
+before_prompt(console,pos::Integer) = pos+1 < console.prompt_position
+before_prompt(console) = before_prompt(console,getproperty(console.buffer,:cursor_position,Int) )
+
+before_or_at_prompt(console,pos::Integer) = pos+1 <= console.prompt_position
+before_or_at_prompt(console) = before_or_at_prompt(console,getproperty(console.buffer,:cursor_position,Int))
+at_prompt(console,pos::Integer) = pos+1 == console.prompt_position
+
+function iters_at_console_prompt(console)
+    its = GtkTextIter(console.buffer,console.prompt_position)
+    ite = nonmutable(console.buffer, end_iter(console.buffer) )
+    (its,ite)
+end
+
 #FIXME disable drag and drop text above cursor
 @guarded (PROPAGATE) function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
@@ -315,16 +336,8 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
 
     mod = get_default_mod_mask()
 
-    #FIXME put this elsewhere?
-    before_prompt(pos::Integer) = pos+1 < console.prompt_position
-    before_prompt() = before_prompt( getproperty(buffer,:cursor_position,Int) )
-
-    before_or_at_prompt(pos::Integer) = pos+1 <= console.prompt_position
-    before_or_at_prompt() = before_or_at_prompt(getproperty(buffer,:cursor_position,Int))
-    at_prompt(pos::Integer) = pos+1 == console.prompt_position
-
     #put back the cursor after the prompt
-    if before_prompt()
+    if before_prompt(console)
         #check that we are not trying to copy or something of the sort
         if !ismodkey(event,mod)
             move_cursor_to_end(console)
@@ -338,9 +351,9 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
        event.keyval == Gtk.GdkKeySyms.Clear
 
         if found
-            before_prompt(offset(it_start)) && return INTERRUPT
+            before_prompt(console,offset(it_start)) && return INTERRUPT
         else
-            before_or_at_prompt() && return INTERRUPT
+            before_or_at_prompt(console) && return INTERRUPT
         end
     end
     if doing(Actions["move_to_line_start"],event) ||
@@ -364,16 +377,22 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
 
     if doing(Action(GdkKeySyms.Left, NoModifier),event)
         if found
-            at_prompt(offset(it_start)) && return INTERRUPT
+            at_prompt(console,offset(it_start)) && return INTERRUPT
         else
-            before_or_at_prompt() && return INTERRUPT
+            before_or_at_prompt(console) && return INTERRUPT
         end
+        return PROPAGATE
+    end
+    if doing(Action(GdkKeySyms.Left, GdkModifierType.SHIFT),event)
+
+        at_prompt(console,offset(it_start)) && return INTERRUPT
+
         return PROPAGATE
     end
 
     if event.keyval == Gtk.GdkKeySyms.Up
         if found
-            if !before_prompt(offset(it_start))
+            if !before_prompt(console,offset(it_start))
                 selection_bounds(buffer,GtkTextIter(buffer,console.prompt_position),nonmutable(buffer,it_end))
                 return INTERRUPT
             end
@@ -396,10 +415,12 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
         autocomplete(console,cmd,pos)
         return INTERRUPT
     end
-    if doing(Actions["select_all"],event)#select only prompt
-        its = GtkTextIter(buffer,console.prompt_position)
-        ite = end_iter(buffer)
-        selection_bounds(buffer,mutable(its),ite)
+    if doing(Actions["select_all"],event)
+        #select all
+        before_prompt(console) && return PROPAGATE               
+        #select only prompt        
+        its,ite = iters_at_console_prompt(console)
+        selection_bounds(buffer,its,ite)
         return INTERRUPT
     end
     if doing(Actions["interrupt_run"],event)
@@ -407,6 +428,12 @@ ismodkey(event::Gtk.GdkEvent,mod::Integer) =
         return INTERRUPT
     end
     if doing(Actions["copy"],event)
+    
+        if !found && !before_prompt(console)
+            its,ite = iters_at_console_prompt(console)
+            selection_bounds(buffer,its,ite)
+        end
+    
         signal_emit(textview, "copy-clipboard", Void)
         return INTERRUPT
     end

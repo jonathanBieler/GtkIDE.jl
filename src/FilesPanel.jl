@@ -466,7 +466,6 @@ function filespanel_newFileItem_activate_cb(widgetptr::Ptr,filespanel)
                   filespanel,
                   current_path )
 
-
         file_path_dialog_set_button_caption(filespanel.path_dialog,"+")
 
         ret = run(filespanel.path_dialog.dialog)
