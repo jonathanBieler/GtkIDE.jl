@@ -41,7 +41,7 @@ type EditorTab <: GtkScrolledWindow
         setproperty!(v,:tab_width,opt("Editor","tab_width"))
         setproperty!(v,:insert_spaces_instead_of_tabs,true)
 
-        sc = @GtkScrolledWindow()
+        sc = GtkScrolledWindow()
         push!(sc,v)
 
         search_con = @GtkSourceSearchContext(b,_editor(main_window).search_window.search_settings)
@@ -146,7 +146,8 @@ hasselection(t::EditorTab) = hasselection(t.buffer)
 function selected_text(t::EditorTab)
     (found,it_start,it_end) = selection_bounds(t.buffer)
     return found ? text_iter_get_text(it_start,it_end) : ""
-end
+end
+
 function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not defined at this point
 
     word = get_word_under_mouse_cursor(view)
@@ -177,7 +178,8 @@ function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not d
                 end
             end
 #            otherwise open it
-            t = open_in_new_tab(file,editor,line=line)
+            t = open_in_new_tab(file,editor,line=line)
+
             return true
         end
     catch

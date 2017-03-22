@@ -32,10 +32,10 @@ end
 
 function MainMenu(main_window::MainWindow)
 
-    menubar = @GtkMenuBar() |>
-        (fileMenu = @GtkMenuItem("_File")) |>
-        (settingsMenu= @GtkMenuItem("_Settings"))|>
-        (helpMenu = @GtkMenuItem("_Help"))
+    menubar = GtkMenuBar() |>
+        (fileMenu = GtkMenuItem("_File")) |>
+        (settingsMenu= GtkMenuItem("_Settings"))|>
+        (helpMenu = GtkMenuItem("_Help"))
 
     buildmenu([
         MenuItem("New File",newMenuItem_activate_cb),

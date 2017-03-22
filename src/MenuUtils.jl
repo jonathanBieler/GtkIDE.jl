@@ -14,7 +14,7 @@ function buildmenu(items::Array,menu::GtkMenu,user_data)
             push!(menu,mi)
             signal_connect(i.cb, mi, "activate", Void,(),false,user_data)
         elseif i == GtkSeparatorMenuItem
-            push!(menu,@GtkSeparatorMenuItem())
+            push!(menu,GtkSeparatorMenuItem())
         end
     end
     showall(menu)

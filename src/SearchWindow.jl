@@ -17,18 +17,18 @@ type SearchWindow <: GtkFrame
 
     function SearchWindow(editor)
 
-        search_window = @GtkFrame("") |>
-            (@GtkBox(:v) |>
-                ((@GtkBox(:h)) |>
-                    (search_entry  = @GtkEntry()) |>
-                    (search_button = @GtkButton("Search")) |>
-                    (case_button = @GtkToggleButton("Aa")) |>
-                    (word_button = @GtkToggleButton("Word"))
+        search_window = GtkFrame("") |>
+            (GtkBox(:v) |>
+                ((GtkBox(:h)) |>
+                    (search_entry  = GtkEntry()) |>
+                    (search_button = GtkButton("Search")) |>
+                    (case_button = GtkToggleButton("Aa")) |>
+                    (word_button = GtkToggleButton("Word"))
                 ) |>
-                ((@GtkBox(:h)) |>
-                    (replace_entry  = @GtkEntry()) |>
-                    (replace_button = @GtkButton("Replace")) |>
-                    (replace_all_button = @GtkButton("Replace All"))
+                ((GtkBox(:h)) |>
+                    (replace_entry  = GtkEntry()) |>
+                    (replace_button = GtkButton("Replace")) |>
+                    (replace_all_button = GtkButton("Replace All"))
                 )
             )
 
@@ -76,6 +76,7 @@ function word_button_toggled_cb(widgetptr::Ptr, user_data)
     return nothing
 end
 
+import GtkSourceWidget.get_search_text
 get_search_text(s::GtkSourceSearchSettings) = getproperty(s,:search_text,AbstractString)
 
 function search_entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)

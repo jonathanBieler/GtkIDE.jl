@@ -8,7 +8,7 @@ type ConsoleManager <: GtkNotebook
 
     function ConsoleManager(main_window::MainWindow)
 
-        ntb = @GtkNotebook()
+        ntb = GtkNotebook()
 
         n = new(ntb.handle,main_window)
         Gtk.gobject_move_ref(n, ntb)

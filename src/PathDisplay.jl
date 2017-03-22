@@ -5,7 +5,7 @@ type PathComboBox <: GtkComboBoxText
     main_window::MainWindow
 
     function PathComboBox(main_window::MainWindow)
-        cbox = @GtkComboBoxText(true)
+        cbox = GtkComboBoxText(true)
         entry = cbox[1]
 
         p = new(cbox.handle, entry, time(), main_window)

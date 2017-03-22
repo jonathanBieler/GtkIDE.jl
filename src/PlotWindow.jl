@@ -1,4 +1,4 @@
-const fig_ntbook = @GtkNotebook()
+const fig_ntbook = GtkNotebook()
 const _display = Immerse._display
 
 type Image <: GtkBox
@@ -10,7 +10,7 @@ type Image <: GtkBox
     function Image(img)
 
         data = array_to_rgb(img)
-        c = @GtkCanvas()
+        c = GtkCanvas()
         setproperty!(c,:expand,true)
 
         @guarded Gtk.ShortNames.draw(c) do widget
@@ -23,7 +23,7 @@ type Image <: GtkBox
             copy!(widget, roi)
         end
 
-        b = @GtkBox(:v)
+        b = GtkBox(:v)
         push!(b,c)
         # Initialize panning & zooming
         panzoom(c, (1,size(data,1)), (1,size(data,2)))

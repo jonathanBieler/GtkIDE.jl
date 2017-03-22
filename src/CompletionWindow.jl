@@ -14,7 +14,7 @@ type CompletionWindow <: GtkWindow #FIXME not the right container?
 
     function CompletionWindow()
 
-        buffer = @GtkSourceBuffer()
+        buffer = GtkSourceBuffer()
         setproperty!(buffer,:text,"")
         Gtk.create_tag(buffer, "selected",font="Bold")
 

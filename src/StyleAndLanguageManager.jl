@@ -19,7 +19,7 @@ type StyleAndLanguageManager
         languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"markdown")
 
         @static if is_windows()
-            main_style = style_scheme(sourceStyleManager,"autumn")
+            main_style = style_scheme(sourceStyleManager,"visualcode")
             fontsize = opt("fontsize")
             fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
                 font-family: Consolas, Courier, monospace;
@@ -27,7 +27,7 @@ type StyleAndLanguageManager
             }"""
         end
         @static if is_apple()
-            main_style = style_scheme(sourceStyleManager,"autumn")
+            main_style = style_scheme(sourceStyleManager,"visualcode")
             fontsize = opt("fontsize")
             fontCss =  "button, entry, window, sourceview, textview {
                 font-family: Monaco, Consolas, Courier, monospace;
