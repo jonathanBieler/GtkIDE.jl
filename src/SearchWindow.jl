@@ -36,7 +36,7 @@ type SearchWindow <: GtkFrame
         setproperty!(search_entry,:hexpand,true)
         setproperty!(replace_entry,:hexpand,true)
 
-        search_settings = @GtkSourceSearchSettings()
+        search_settings = GtkSourceSearchSettings()
         setproperty!(search_settings,:wrap_around,true)
 
         w = new(search_window.handle,

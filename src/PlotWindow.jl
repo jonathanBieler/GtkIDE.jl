@@ -71,11 +71,19 @@ function image(img)
     else
         idx = length(fig_ntbook)+1
         insert!(fig_ntbook,idx,i,"Image")
-
     end
     showall(fig_ntbook)
     set_current_page_idx(fig_ntbook,idx)
-    nothing
+    i
+end
+
+function save(f::Image,filename)
+    w, h = width(f.c), height(f.c)
+    surf = Cairo.CairoPDFSurface(filename,w,h)
+    cr = CairoContext(surf)
+    set_source_surface(cr,f.c.backcc.surface)
+    paint(cr)
+    finish(surf)
 end
 
 @guarded (PROPAGATE) function image_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)

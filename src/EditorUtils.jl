@@ -29,7 +29,7 @@ getindex(s::SolidString,i::UnitRange) = string(s.c[i]...)
 
 # maybe not the most efficient way of doing this.
 const _word_bounardy = [' ', '\n','\t','(',')','[',']',',','\'',
-                       '*','+','/','\\','%','{','}','#',':',
+                       '*','+','-','/','\\','%','{','}','#',':',
                        '&','|','?','!','"','$','=','>','<']
 const _word_bounardy_dot = [_word_bounardy; '.']#include dot in function of the context
 

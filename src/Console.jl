@@ -21,9 +21,9 @@ type Console <: GtkScrolledWindow
 
         lang = main_window.style_and_language_manager.languageDefinitions[".jl"]
 
-        b = @GtkSourceBuffer(lang)
+        b = GtkSourceBuffer(lang)
         setproperty!(b,:style_scheme,main_window.style_and_language_manager.main_style)
-        v = @GtkSourceView(b)
+        v = GtkSourceView(b)
 
         highlight_matching_brackets(b,true)
         setproperty!(b,:text,">")

@@ -7,15 +7,15 @@ end
 function give_me_a_treeview(n,rownames)
 
     t = ntuple(i->AbstractString,n)
-    list = @GtkTreeStore(t...)
+    list = GtkTreeStore(t...)
 
-    tv = @GtkTreeView(GtkTreeModel(list))
+    tv = GtkTreeView(GtkTreeModel(list))
 
     cols = Array(GtkTreeViewColumn,0)
 
     for i=1:n
-        r1 = @GtkCellRendererText()
-        c1 = @GtkTreeViewColumn(rownames[i], r1, Dict([("text",i-1)]))
+        r1 = GtkCellRendererText()
+        c1 = GtkTreeViewColumn(rownames[i], r1, Dict([("text",i-1)]))
         Gtk.G_.sort_column_id(c1,i-1)
         push!(cols,c1)
         Gtk.G_.max_width(c1,Int(200/n))
@@ -59,7 +59,7 @@ type WorkspacePanel <: GtkScrolledWindow
 
         (tv,list,cols) = give_me_a_treeview(2,["Name","Type"])
 
-        sc = @GtkScrolledWindow()
+        sc = GtkScrolledWindow()
         push!(sc,tv)
 
         t = new(sc.handle,list,tv)

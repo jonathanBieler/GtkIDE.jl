@@ -27,10 +27,10 @@ type EditorTab <: GtkScrolledWindow
         filename = isabspath(filename) ? filename : joinpath(pwd(),filename)
         filename = normpath(filename)
 
-        b = @GtkSourceBuffer(lang)
+        b = GtkSourceBuffer(lang)
 
         setproperty!(b,:style_scheme,main_window.style_and_language_manager.main_style)
-        v = @GtkSourceView(b)
+        v = GtkSourceView(b)
 
         highlight_matching_brackets(b,true)
 
@@ -44,7 +44,7 @@ type EditorTab <: GtkScrolledWindow
         sc = GtkScrolledWindow()
         push!(sc,v)
 
-        search_con = @GtkSourceSearchContext(b,_editor(main_window).search_window.search_settings)
+        search_con = GtkSourceSearchContext(b,_editor(main_window).search_window.search_settings)
         highlight(search_con,true)
 
         t = new(sc.handle,v,b,filename,false,search_con,nothing,nothing)
@@ -581,8 +581,8 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
             v = sprint(showlimited,v)
         end
 
-        label = @GtkLabel(v)
-        popup = @GtkWindow("", 2, 2, true, false) |> label
+        label = GtkLabel(v)
+        popup = GtkWindow("", 2, 2, true, false) |> label
         setproperty!(label,:margin,5)
 
         Gtk.G_.position(popup,mousepos_root[1]+10,mousepos_root[2])

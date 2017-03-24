@@ -56,7 +56,7 @@ function __init__()
 
     mainPan |>
         (rightPan |>
-            #(canvas = @GtkCanvas())  |>
+            #(canvas = GtkCanvas())  |>
             (fig_ntbook)  |>
             console_mng
         ) |>

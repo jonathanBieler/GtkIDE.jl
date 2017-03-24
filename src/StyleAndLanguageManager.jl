@@ -8,7 +8,7 @@ type StyleAndLanguageManager
     function StyleAndLanguageManager()
 
         #FIXME this should be in GtkSourceWidget
-        sourceStyleManager = @GtkSourceStyleSchemeManager()
+        sourceStyleManager = GtkSourceStyleSchemeManager()
         GtkSourceWidget.set_search_path(sourceStyleManager,
           Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
 

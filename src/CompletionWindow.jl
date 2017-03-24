@@ -18,14 +18,14 @@ type CompletionWindow <: GtkWindow #FIXME not the right container?
         setproperty!(buffer,:text,"")
         Gtk.create_tag(buffer, "selected",font="Bold")
 
-        textview = @GtkSourceView()
+        textview = GtkSourceView()
         setproperty!(textview,:buffer, buffer)
         setproperty!(textview,:editable, false)
         setproperty!(textview,:can_focus, false)
         setproperty!(textview,:hexpand, true)
         setproperty!(textview,:wrap_mode,0)
 
-        completion_window = @GtkWindow("",1,1,true,false)
+        completion_window = GtkWindow("",1,1,true,false)
         #setproperty!(completion_window,:height_request, 100)
         push!(completion_window,textview)
         showall(completion_window)

@@ -17,7 +17,7 @@ type Editor <: GtkNotebook
         setproperty!(ntbook,:enable_popup, false)
 
         if GtkSourceWidget.SOURCE_MAP #old linux libraries don't have GtkSourceMap
-            sourcemap = @GtkSourceMap()
+            sourcemap = GtkSourceMap()
             t = new(ntbook.handle,sourcemap,main_window)
         else
             sourcemap = GtkBox(:v)#put a dummy box instead
@@ -146,14 +146,14 @@ function create_tab_menu(container, tab)
 
     editor = parent(tab)::Editor
 
-#    menu =  @GtkMenu() |>
-#    (closeTabItem = @GtkMenuItem("Close Tab")) |>
-#    (closeOthersTabsItem = @GtkMenuItem("Close Others Tabs")) |>
-#    (closeTabsRight = @GtkMenuItem("Close Tabs to the Right ")) |>
-#    (closeAllTabs = @GtkMenuItem("Close All Tabs")) |>
-#    @GtkSeparatorMenuItem() |>
-#    (revealInTreeItem = @GtkMenuItem("Reveal in Tree View")) |>
-#    (@GtkSeparatorMenuItem())
+#    menu =  GtkMenu() |>
+#    (closeTabItem = GtkMenuItem("Close Tab")) |>
+#    (closeOthersTabsItem = GtkMenuItem("Close Others Tabs")) |>
+#    (closeTabsRight = GtkMenuItem("Close Tabs to the Right ")) |>
+#    (closeAllTabs = GtkMenuItem("Close All Tabs")) |>
+#    GtkSeparatorMenuItem() |>
+#    (revealInTreeItem = GtkMenuItem("Reveal in Tree View")) |>
+#    (GtkSeparatorMenuItem())
 
 
 #
@@ -179,7 +179,7 @@ function create_tab_menu(container, tab)
     #show all open tabs
     for i=1:length(editor)
         if typeof(editor[i]) == EditorTab
-            s = @GtkMenuItem(basename(editor[i].filename))
+            s = GtkMenuItem(basename(editor[i].filename))
             push!(menu,s)
             signal_connect(switch_tab_cb, s, "activate", Void,(),false,(i,editor))
         end
@@ -204,13 +204,13 @@ end
 
 function get_tab_widget(tab, filename)
 
-    layout = @GtkBox(:h)
-    event_box = @GtkEventBox()
+    layout = GtkBox(:h)
+    event_box = GtkEventBox()
     push!(event_box,layout)
     signal_connect(tab_button_press_event_cb, event_box, "button-press-event",Cint, (Ptr{Gtk.GdkEvent},), false,tab)
-    lbl = @GtkLabel(basename(filename))
+    lbl = GtkLabel(basename(filename))
     setproperty!(lbl,:name, "filename_label")
-    btn = @GtkButton("X")
+    btn = GtkButton("X")
 
     style_css(btn,"button {
           padding: 0px;
