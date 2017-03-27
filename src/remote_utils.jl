@@ -8,6 +8,23 @@ else
     import Base.showlimited
 end
 
+function workspace()
+    last = Core.Main
+    b = last.Base
+    ccall(:jl_new_main_module, Any, ())
+    m = Core.Main
+    ccall(:jl_add_standard_imports, Void, (Any,), m)
+    eval(m,
+         Expr(:toplevel,
+              :(const Base = $(Expr(:quote, b))),
+              :(const LastMain = $(Expr(:quote, last))),
+              :(include(joinpath(Pkg.dir(),"GtkIDE","src","remote_utils.jl")))
+              )
+          )
+    empty!(Base.package_locks)
+    nothing
+end
+
 function trim(s::AbstractString,L::Int)#need to be AbstracString to accept SubString
     if length(s) > L
         return string(s[1:L],"...")
