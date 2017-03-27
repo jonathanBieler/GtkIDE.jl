@@ -1,4 +1,8 @@
 #things that need to be defined on remote workers
+using Gadfly
+import Base.show
+
+Base.show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
 
 # Compatitbily with 0.5
 if !isdefined(Base,:(showlimited))
@@ -59,6 +63,9 @@ function eval_command_remotely(cmd::String)
 
     evalout = trim(evalout,2000)
     finalOutput = evalout == "" ? "" : "$evalout\n"
+    v = typeof(v) <: Gadfly.Plot ? v : nothing #FIXME refactor. This avoid sending types that
+    # are not defined on worker 1
+    
     return finalOutput, v
 end
 

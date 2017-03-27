@@ -165,11 +165,15 @@ function eval_command_remotely(cmd::String)
 
         evalout = v == nothing ? "" : sprint(showlimited,v)
     catch err
-        evalout = clean_error_msg( sprint(showerror,err,catch_backtrace()) )
+        bt = catch_backtrace()
+        evalout = clean_error_msg( sprint(showerror,err,bt) )
     end
 
     evalout = trim(evalout,2000)
     finalOutput = evalout == "" ? "" : "$evalout\n"
+    v = typeof(v) <: Gadfly.Plot ? v : nothing #FIXME refactor. This avoid sending types that
+    # are not defined on worker 1
+    
     return finalOutput, v
 end
 
@@ -184,29 +188,36 @@ function write_output_to_console(user_data)
         return Cint(true)
     end
 
-    if t.result != nothing
-        if typeof(t.result) <: Tuple #console commands can return just a string
-            str, v = t.result
-        else
-            str, v = (t.result, nothing)
-        end
-        finalOutput = str == nothing ? "" : str
-
-        if str == InterruptException()
-            finalOutput = string(str) * "\n"
-        end
-
-        if typeof(v) <: Gadfly.Plot
-            try
-                display(v)
-            catch err
-                finalOutput = sprint(showerror,err) 
+    try
+        if t.result != nothing
+            
+            if typeof(t.result) <: Tuple #console commands can return just a string
+                str, v = t.result
+            else
+                str, v = (t.result, nothing)
             end
+
+            
+            finalOutput = str == nothing ? "" : str
+
+            if str == InterruptException()
+                finalOutput = string(str) * "\n"
+            end
+
+            if typeof(v) <: Gadfly.Plot
+                try
+                    display(v)
+                catch err
+                    finalOutput = sprint(showerror,err) 
+                end
+            end
+            
+            write(c,finalOutput,true)
+        else
+            new_prompt(c)
         end
-        
-        write(c,finalOutput,true)
-    else
-        new_prompt(c)
+    catch other_err
+        write(c,sprint(showerror,other_err),true)
     end
     on_path_change(c.main_window)
 
@@ -626,6 +637,7 @@ end
 function translate_colors(s::AbstractString)
 
     s = replace(s,"\e[1m\e[31m","* ")
+    s = replace(s,"\e[1m\e[32m","* ")
     s = replace(s,"\e[1m\e[31","* ")
     s = replace(s,"\e[0m","")
     s
