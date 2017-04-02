@@ -477,7 +477,5 @@ function tuple_to_types(tu::AbstractString)
 end
 
 ##
-global completion_window = CompletionWindow()
-completion_window.idx = 1
-visible(completion_window,false)
+
 #Gtk.G_.keep_above(completion_window,true)

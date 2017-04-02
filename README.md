@@ -10,8 +10,8 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
     `Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")`
     `Pkg.clone("https://github.com/jonathanBieler/GtkExtensions.jl.git")`
     `Pkg.clone("https://github.com/jonathanBieler/WordsUtils.jl.git")`
+    `Pkg.clone("https://github.com/jonathanBieler/RemoteEval.jl.git")`
 
-    
 2. Install the package
 
     `Pkg.clone("https://github.com/jonathanBieler/GtkIDE.jl.git")`
@@ -36,7 +36,7 @@ See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
 
 Each console is associated with a Julia worker. The first worker runs GtkIDE, so running 
 computations that use all the CPU on it will freeze the application. Additional workers/consoles can be
-added by calling `add_console(main_window)` on the first worker, or via the right-click activated menu.
+added by calling `GtkIDE.add_console(GtkIDE.main_window)` on the first worker, or via the right-click activated menu.
 
 - `F5`: Include the current file
 - `Ctrl+Return`: Run selected code, or run code between two `## ' (like Matlab's code sections).

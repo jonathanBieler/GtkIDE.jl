@@ -1,6 +1,3 @@
-const fig_ntbook = GtkNotebook()
-const _display = Immerse._display
-
 type Image <: GtkBox
 
     handle::Ptr{Gtk.GObject}
@@ -112,7 +109,7 @@ end
     end
     return PROPAGATE
 end
-signal_connect(fig_ntbook_key_press_cb,fig_ntbook, "key-press-event",Cint, (Ptr{Gtk.GdkEvent},), false)
+
 
 @guarded (nothing) function fig_ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
@@ -122,8 +119,6 @@ signal_connect(fig_ntbook_key_press_cb,fig_ntbook, "key-press-event",Cint, (Ptr{
     end
     nothing
 end
-signal_connect(fig_ntbook_switch_page_cb,fig_ntbook,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
-
 
 Base.show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
 

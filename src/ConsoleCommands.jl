@@ -103,6 +103,18 @@ add_console_command(r"^mkdir (.*)",(m,c) -> begin
 	end
 end,:file)
 
+add_console_command(r"^evalin (.*)",(m,c) -> begin
+	try
+        v = m.captures[1]
+        m = eval(Main,parse(v))
+        typeof(m) != Module && error("evalin : $v is not a module")
+        c.eval_in = m
+	catch err
+		return sprint(show,err) * "\n"
+	end
+	nothing
+end)
+
 ##
 function console_commands_context(cmd::AbstractString)
     for c in console_commands

@@ -37,6 +37,20 @@ function __init__()
     load_tabs(editor,project)
 
     global sidepanel_ntbook = GtkNotebook()
+    
+    ## Ploting window
+    
+    global const fig_ntbook = GtkNotebook()
+    global const _display = Immerse._display
+
+    #FIXME need init!
+    signal_connect(fig_ntbook_key_press_cb,fig_ntbook, "key-press-event",Cint, (Ptr{Gtk.GdkEvent},), false)
+    signal_connect(fig_ntbook_switch_page_cb,fig_ntbook,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
+
+    ## completion window
+
+    global const completion_window = CompletionWindow()
+    visible(completion_window,false)
 
     ## Main layout
     global mainPan = GtkPaned(:h)
