@@ -16,6 +16,7 @@ type Console <: GtkScrolledWindow
     history::HistoryProvider
     run_task_start_time::AbstractFloat
     main_window::MainWindow
+    eval_in::Module
 
     function Console(w_idx::Int,main_window::MainWindow)
 
@@ -49,17 +50,21 @@ type Console <: GtkScrolledWindow
         t = @schedule begin end
 
         if w_idx > 1
-            remotecall_wait(
-                (HOMEDIR)->begin
-                    include(joinpath(HOMEDIR,"remote_utils.jl"))
-                end
-            ,w_idx
-            ,HOMEDIR)
+            eval(Main,
+            quote 
+                remotecall_wait(
+                    (HOMEDIR)->begin
+                        include(joinpath(HOMEDIR,"remote_utils.jl"))
+                    end
+                ,$w_idx
+                ,$HOMEDIR)
+            end
+            )
         end
 
         history = setup_history(w_idx)
 
-        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel(),history,time(),main_window)
+        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel(),history,time(),main_window,Main)
         Gtk.gobject_move_ref(n, sc)
     end
 end
@@ -115,66 +120,20 @@ function on_return(c::Console,cmd::String)
     (found,t) = check_console_commands(cmd,c)
 
     if !found
-
-        #after workspace calls
-        if !remotecall_fetch(isdefined,c.worker_idx,:eval_command_remotely)
-            remotecall_wait(
-                (HOMEDIR)->begin
-                    include(joinpath(HOMEDIR,"remote_utils.jl"))
-                end
-            ,c.worker_idx
-            ,HOMEDIR)
+        ref = remotecall(eval_command_remotely,c.worker_idx,cmd,c.eval_in)
+        t = @task fetch(ref) #I need a task here to be able to check if it's done
+        schedule(t)
+        while !istaskstarted(t)
+            sleep(0.001)
         end
-
-        ref = remotecall(eval_command_remotely,c.worker_idx,cmd)
-        t = @schedule fetch(ref) #I need a task here to be able to check if it's done
     end
+
     c.run_task = t
     c.run_task_start_time = time()
     GtkExtensions.text(c.main_window.statusBar,"Busy")
 
-    g_idle_add(write_output_to_console,c)
+    g_timeout_add(50,write_output_to_console,c)
     nothing
-end
-
-function trim(s::AbstractString,L::Int)
-    if length(s) > L
-        return string(s[1:L],"...")
-    end
-    s
-end
-
-#FIXME dirty hack
-function clean_error_msg(s::String)
-    r  = Regex("(.*)in eval_command_remotely.*","s")
-    m = match(r,s)
-    m != nothing && return m.captures[1]
-    s
-end
-
-function eval_command_remotely(cmd::String)
-
-    ex = Base.parse_input_line(cmd)
-    ex = expand(ex)
-
-    evalout = ""
-    v = :()
-    try
-        v = eval(Main,ex)
-        eval(Main, :(ans = $(Expr(:quote, v))))
-
-        evalout = v == nothing ? "" : sprint(showlimited,v)
-    catch err
-        bt = catch_backtrace()
-        evalout = clean_error_msg( sprint(showerror,err,bt) )
-    end
-
-    evalout = trim(evalout,2000)
-    finalOutput = evalout == "" ? "" : "$evalout\n"
-    v = typeof(v) <: Gadfly.Plot ? v : nothing #FIXME refactor. This avoid sending types that
-    # are not defined on worker 1
-    
-    return finalOutput, v
 end
 
 "Wait for the running task to end and print the result in the console.
@@ -184,10 +143,11 @@ function write_output_to_console(user_data)
     c = unsafe_pointer_to_objref(user_data)::Console
     t = c.run_task
 
+    yield()
     if !istaskdone(t) #wait for task to be done
         return Cint(true)
     end
-
+    
     try
         if t.result != nothing
             
@@ -197,7 +157,6 @@ function write_output_to_console(user_data)
                 str, v = (t.result, nothing)
             end
 
-            
             finalOutput = str == nothing ? "" : str
 
             if str == InterruptException()
@@ -681,7 +640,6 @@ function first_console(main_window::MainWindow)
 end
 
 get_current_console(console_mng::GtkNotebook) = console_mng[index(console_mng)]
-
 
 #this is called by remote workers
 function print_to_console_remote(s,idx::Integer)

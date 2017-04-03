@@ -1,14 +1,10 @@
-if(myid()!=1)
-    error("GtkIDE need to run on the first worker")
-end
-
-#__precompile__()
-#module GtkIDE
+__precompile__()
+module GtkIDE
 
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
 const REDIRECT_STDOUT = true
-
-using Immerse
+using Reexport
+@reexport using Immerse
 using Gtk
 using GtkSourceWidget
 using GtkExtensions
@@ -17,9 +13,12 @@ using JSON
 using Compat
 using ConfParser
 using WordsUtils
+using RemoteEval
 include("Options.jl")
 
 import Gtk.GtkTextIter
+
+export gtkide
 
 # Compatitbily with 0.5
 if !isdefined(Base,:(showlimited))
@@ -68,5 +67,6 @@ include("SidePanels.jl")
 
 include("init.jl")
 
-__init__()
-#end#module
+
+#__init__()
+end#module
