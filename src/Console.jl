@@ -123,9 +123,6 @@ function on_return(c::Console,cmd::String)
         ref = remotecall(eval_command_remotely,c.worker_idx,cmd,c.eval_in)
         t = @task fetch(ref) #I need a task here to be able to check if it's done
         schedule(t)
-        while !istaskstarted(t)
-            sleep(0.001)
-        end
     end
 
     c.run_task = t
@@ -143,7 +140,7 @@ function write_output_to_console(user_data)
     c = unsafe_pointer_to_objref(user_data)::Console
     t = c.run_task
 
-    yield()
+    #yield()
     if !istaskdone(t) #wait for task to be done
         return Cint(true)
     end
@@ -491,20 +488,34 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
     lastpart = j < length(scmd) ? scmd[j+1:end] : ""
     cmd = scmd[i:j]
 
-    isempty(cmd) && return
-
     if ctx == :normal
+        isempty(cmd) && return
         (comp,dotpos) = completions(cmd, endof(cmd))
     end
     if ctx == :file
 
-        (root,file) = splitdir(m.captures[1])
+        m = m.captures[1]
+
+        if isdir(m)
+            if m[end] == '/'  #FIXME windows
+                root, file = m, ""
+            else #when trying to complete something like /Users we just add '/'
+                dotpos = 1:1
+                comp = ["$(cmd)/"]
+                return update_completions(c,comp,dotpos,cmd,firstpart,lastpart)
+            end
+        else
+            root,file = splitdir(m)
+        end
+        
         comp = Array(AbstractString,0)
         try
             S = root == "" ? readdir() : readdir(root)
-            comp = complete_additional_symbols(cmd, S)
+            comp = complete_additional_symbols(file, S)
         catch err
+            println(err)
         end
+
         dotpos = 1:1
     end
 

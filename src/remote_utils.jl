@@ -86,3 +86,7 @@ if !isdefined(:watch_stdio_task)
 
 end
 
+function plot_image(m)
+    image(m)
+end
+

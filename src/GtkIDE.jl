@@ -4,7 +4,7 @@ module GtkIDE
 const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
 const REDIRECT_STDOUT = true
 using Reexport
-@reexport using Immerse
+using Immerse
 using Gtk
 using GtkSourceWidget
 using GtkExtensions
@@ -17,8 +17,10 @@ using RemoteEval
 include("Options.jl")
 
 import Gtk.GtkTextIter
+import Gadfly.Colors
+import Immerse.Cairo
 
-export gtkide
+export gtkide, image, plot, figure
 
 # Compatitbily with 0.5
 if !isdefined(Base,:(showlimited))

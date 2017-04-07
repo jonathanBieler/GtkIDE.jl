@@ -131,7 +131,7 @@ function __init__()
     ################
     ## Plots
 
-    sleep(0.5)
+    sleep(0.01)
     figure()
     drawnow() = sleep(0.001)
 
@@ -147,7 +147,7 @@ function __init__()
 
     #
 
-    sleep(0.5)
+    sleep(0.01)
 
     if REDIRECT_STDOUT
 
