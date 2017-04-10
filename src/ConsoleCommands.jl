@@ -115,6 +115,17 @@ add_console_command(r"^evalin (.*)",(m,c) -> begin
 	nothing
 end)
 
+add_console_command(r"^morespace",(m,c) -> begin
+	try
+        main_window = c.main_window
+        visible(main_window.menubar,!visible(main_window.menubar))
+        visible(main_window.editor.sourcemap,!visible(main_window.editor.sourcemap))
+	catch err
+		return sprint(show,err) * "\n"
+	end
+	nothing
+end)
+
 ##
 function console_commands_context(cmd::AbstractString)
     for c in console_commands

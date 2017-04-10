@@ -30,14 +30,14 @@ function __init__()
 
     menubar = MainMenu(main_window)
 
-    init!(main_window,editor,console_mng,pathCBox,statusBar,project,menubar)
+    global const sidepanel_ntbook = GtkNotebook()
+
+    init!(main_window,editor,console_mng,pathCBox,statusBar,project,menubar,sidepanel_ntbook)
 
     load(project)
     cd(project.path)
     load_tabs(editor,project)
 
-    global sidepanel_ntbook = GtkNotebook()
-    
     ## Ploting window
     
     global const fig_ntbook = GtkNotebook()
@@ -110,19 +110,9 @@ function __init__()
     ################
     # Side Panels
 
-    #form_builder = Gtk.GtkBuilderLeaf(filename=joinpath(HOMEDIR,"forms/forms.glade"))
-    #filespanel = FilesPanel()
-    #update!(filespanel)
-    #add_side_panel(filespanel,"Files")
-
-    #=#FIXME I should stop all tasks when exiting
-    #this can make it crash if it runs while sorting
-    @schedule begin
-        while(false)
-            sleep(1.0)
-            update!(filespanel)
-        end
-    end=#
+    global const filespanel = FilesPanel(main_window)
+    update!(filespanel)
+    add_side_panel(filespanel,"Files")
 
     workspacepanel = WorkspacePanel()
     update!(workspacepanel)
@@ -145,7 +135,7 @@ function __init__()
     visible(sidepanel_ntbook,false)
     GtkSourceWidget.SOURCE_MAP && visible(editor.sourcemap,opt("Editor","show_source_map"))
 
-    #
+    ## starting task and such
 
     sleep(0.01)
 

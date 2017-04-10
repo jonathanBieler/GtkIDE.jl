@@ -8,6 +8,7 @@ type MainWindow <: GtkWindow
     statusBar
     project
     menubar
+    sidepanel_ntbook
 
     function MainWindow()
 
@@ -21,13 +22,14 @@ type MainWindow <: GtkWindow
     end
 end
 
-function init!(main_window::MainWindow,editor,c_mng,pathCBox,statusBar,project,menubar)#TODO type this ?
+function init!(main_window::MainWindow,editor,c_mng,pathCBox,statusBar,project,menubar,sidepanel_ntbook)#TODO type this ?
     main_window.editor = editor
     main_window.console_manager = c_mng
     main_window.pathCBox = pathCBox
     main_window.statusBar = statusBar
     main_window.project = project
     main_window.menubar = menubar
+    main_window.sidepanel_ntbook = sidepanel_ntbook
 end
 
 ## exiting
@@ -97,9 +99,12 @@ end
 function on_path_change(main_window::MainWindow,doUpdate=false)
     c_path = unsafe_string(Gtk.G_.active_text(main_window.pathCBox))
     update_pathEntry(main_window)
+
     if pwd() != c_path || doUpdate
         push!(main_window.pathCBox,pwd())
-        isdefined(:filespanel) && update!(filespanel)#FIXME global
+        for panel in main_window.sidepanel_ntbook 
+            on_path_change(panel)
+        end
     end
 end
 
