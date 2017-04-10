@@ -75,6 +75,8 @@
 function init_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
 
     buffer = getbuffer(view)
+    editor = parent(t)::Editor
+    console = current_console(editor)
     
     #let's not autocomplete multiple lines
     (found,it_start,it_end) = selection_bounds(buffer)
@@ -92,7 +94,7 @@ function init_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
         p.comp = p.steps[p.state]()
         p.state += 1
     else
-        completions(p,t,completion_window.idx)
+        completions(p,t,completion_window.idx,console)
     end
     isempty(p.comp) && @goto exit
 
@@ -188,11 +190,11 @@ function select_text(p::NormalCompletion,buffer,it,t)
     p.itend = ite
     true
 end
-function completions(p::NormalCompletion,t,idx)
+function completions(p::NormalCompletion,t,idx,c::Console)
     if !isdefined(t,:autocomplete_words)
         t.autocomplete_words = [""]
     end
-    comp,dotpos = extcompletions(p.cmd,t.autocomplete_words)
+    comp,dotpos = extcompletions(p.cmd,t.autocomplete_words,c)
     p.comp = comp
     p.dotpos = dotpos
 end
@@ -222,7 +224,7 @@ function select_text(p::MethodCompletion,buffer,it,t)
     p.itend = ite
     true
 end
-function completions(p::MethodCompletion,t,idx)
+function completions(p::MethodCompletion,t,idx,c::Console)
     comp,dotpos = completions(p.cmd, endof(p.cmd))
     p.comp = comp
     cmd = p.cmd[1:end-1]
@@ -255,7 +257,7 @@ function select_text(p::TupleCompletion,buffer,it,t)
     p.itend = itstart
     true
 end
-function completions(p::TupleCompletion,t,idx)
+function completions(p::TupleCompletion,t,idx,c::Console)
 
     args = tuple_to_types(p.cmd)
     isempty(args) && return
@@ -291,7 +293,7 @@ function select_text(p::WordCompletion,buffer,it,t)
     p.itend = ite
     true
 end
-function completions(p::WordCompletion,t,idx)
+function completions(p::WordCompletion,t,idx,c::Console)
     comp = startswith(WordsUtils.wordlist,ascii(p.cmd))
     p.comp = comp
 end
@@ -314,7 +316,7 @@ function select_text(p::WordMenuCompletion,buffer,it,t)
     p.itend = ite
     true
 end
-function completions(p::WordMenuCompletion,t,idx)
+function completions(p::WordMenuCompletion,t,idx,c::Console)
     #["search","endswith","synonyms"]
     if idx == 1
         comp = search(WordsUtils.wordlist,ascii(p.cmd))

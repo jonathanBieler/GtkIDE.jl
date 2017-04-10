@@ -474,6 +474,7 @@ function console_scroll_cb(widgetptr::Ptr, rectptr::Ptr, user_data)
 end
 
 ## Auto-complete
+
 #FIXME call completions on the right worker
 function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
 
@@ -490,7 +491,7 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
 
     if ctx == :normal
         isempty(cmd) && return
-        (comp,dotpos) = completions(cmd, endof(cmd))
+        (comp,dotpos) = remotecall_fetch(completions,c.worker_idx,cmd, endof(cmd))
     end
     if ctx == :file
 
@@ -521,6 +522,8 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
 
     update_completions(c,comp,dotpos,cmd,firstpart,lastpart)
 end
+
+##
 
 # cmd is the word, including dots we are trying to complete
 function update_completions(c::Console,comp,dotpos,cmd,firstpart,lastpart)

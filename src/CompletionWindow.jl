@@ -220,7 +220,6 @@ function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuf
     event.keyval == Gtk.GdkKeySyms.Tab && return false
 
     t = current_tab(editor)
-#    visible(completion_window) && editor_autocomplete(t.view,t,false)
     visible(completion_window) && init_autocomplete(t.view, t,false)
     return true
 end
@@ -329,9 +328,10 @@ function complete_additional_symbols(str,S)
     comp
 end
 
-function extcompletions(cmd,S)
+function extcompletions(cmd,S,c::Console)
 
-    (comp,dotpos) = completions(cmd, endof(cmd))
+    #(comp,dotpos) = completions(cmd, endof(cmd))
+    (comp,dotpos) = remotecall_fetch(completions,c.worker_idx,cmd, endof(cmd))
     comp2 = complete_additional_symbols(cmd,S)
 
     for c in comp2

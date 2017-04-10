@@ -85,8 +85,3 @@ if !isdefined(:watch_stdio_task)
     send_to_main_worker_task = @schedule send_to_main_worker(stdout_buffer)
 
 end
-
-function plot_image(m)
-    image(m)
-end
-

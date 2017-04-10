@@ -258,57 +258,6 @@ function completion_mode(buffer,it,t)
     (:none,cmd,nothing,nothing)
 end
 
-
-#FIXME: this should be reworked a bit with CompletionWindow code
-function editor_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
-
-    buffer = getbuffer(view)
-    it = get_text_iter_at_cursor(buffer)
-
-    mode,cmd,itstart,itend = completion_mode(buffer,it,t)
-
-    if mode == :none
-        visible(completion_window,false)
-        return PROPAGATE #we go back to normal behavior if there's nothing to do
-    end
-    if mode == :tuple
-        return tuple_autocomplete(it,buffer,completion_window,view)
-    end
-
-    if mode == :text
-        comp = startswith(WordsUtils.wordlist,ascii(cmd))
-        dotpos = -1:0
-    else
-        if !isdefined(t,:autocomplete_words)
-            t.autocomplete_words = [""]
-        end
-        (comp,dotpos) = extcompletions(cmd,t.autocomplete_words)
-    end
-
-    if isempty(comp)
-        visible(completion_window,false)
-        return PROPAGATE
-    end
-
-    dotpos_ = dotpos
-    dotpos = dotpos.start
-    prefix = dotpos > 1 ? cmd[1:dotpos-1] : "" #FIXME: redundant with the console code
-    out = ""
-    if(length(comp)>1)
-        out = prefix * Base.LineEdit.common_prefix(comp)
-        build_completion_window(comp,view,prefix)
-    else
-        out = prefix * comp[1]
-        visible(completion_window) && build_completion_window(comp,view,prefix)
-    end
-
-    #don't insert prefix when completing a method
-    replace = (cmd[end] == '(' && length(comp)>1) ? false : replace
-    replace && insert_autocomplete(out,itstart,itend,buffer)
-
-    return convert(Cint, true)
-end
-
 function tuple_autocomplete(it::GtkTextIter, buffer::GtkTextBuffer, completion_window::CompletionWindow, view::GtkTextView)
 
     (found,tu,itstart) = select_tuple(it, buffer)
@@ -406,7 +355,6 @@ end
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
         if !visible(completion_window)
-#            return editor_autocomplete(textview,t)
             return init_autocomplete(textview,t)
         end
     end

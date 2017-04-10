@@ -36,7 +36,7 @@ type StyleAndLanguageManager
         end
 
         @static if is_linux()
-            main_style = style_scheme(sourceStyleManager,"tango")
+            main_style = style_scheme(sourceStyleManager,"visualcode")
             fontsize = opt("fontsize")-1
             fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
                 font-family: Consolas, Courier, monospace;
