@@ -483,7 +483,6 @@ function tuple_to_types(tu::AbstractString,c::Console)
     catch err
         warn(err)
     end
-    warn(args)
     tuple(args...)
 end
 
