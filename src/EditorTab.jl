@@ -258,27 +258,6 @@ function completion_mode(buffer,it,t)
     (:none,cmd,nothing,nothing)
 end
 
-function tuple_autocomplete(it::GtkTextIter, buffer::GtkTextBuffer, completion_window::CompletionWindow, view::GtkTextView)
-
-    (found,tu,itstart) = select_tuple(it, buffer)
-    !found && return PROPAGATE
-
-    args = tuple_to_types(tu)
-    isempty(args) && return PROPAGATE
-
-    m = methods_with_tuple(args)
-    comp = map(string,m)
-    func_names = [string(x.func.code.name) for x in m]
-
-    if isempty(comp)
-        visible(completion_window,false)
-        return PROPAGATE
-    end
-
-    build_completion_window(comp,view,"",func_names)
-    return INTERRUPT
-end
-
 function replace_text{T<:GtkTextIters}(buffer::GtkTextBuffer,itstart::T,itend::T,str::AbstractString)
     pos = offset(itstart)+1
     splice!(buffer,itstart:itend)

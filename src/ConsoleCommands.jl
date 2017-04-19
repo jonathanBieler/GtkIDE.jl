@@ -106,6 +106,8 @@ end,:file)
 add_console_command(r"^evalin (.*)",(m,c) -> begin
 	try
         v = m.captures[1]
+        v == "?" && return string(c.eval_in) * "\n"
+        
         m = eval(Main,parse(v))
         typeof(m) != Module && error("evalin : $v is not a module")
         c.eval_in = m

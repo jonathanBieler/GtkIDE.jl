@@ -42,6 +42,8 @@ added by calling `GtkIDE.add_console(GtkIDE.main_window)` on the first worker, o
 - `Ctrl+Return`: Run selected code, or run code between two `## ' (like Matlab's code sections).
 - `Ctrl+Shift+Return`: Run selected code, or run current line.
 
+The evaluation context of each console can be changed with the `ConsoleCommand` `evalin Module`.
+The current context is printed via `evalin ?`.
 
 ### Making plots
 

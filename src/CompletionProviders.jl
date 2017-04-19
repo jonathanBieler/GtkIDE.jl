@@ -259,7 +259,7 @@ function select_text(p::TupleCompletion,buffer,it,t)
 end
 function completions(p::TupleCompletion,t,idx,c::Console)
 
-    args = tuple_to_types(p.cmd)
+    args = tuple_to_types(p.cmd,c)
     isempty(args) && return
     m = methods_with_tuple(args)
     comp = map(string,m)

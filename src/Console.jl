@@ -491,7 +491,7 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
 
     if ctx == :normal
         isempty(cmd) && return
-        (comp,dotpos) = remotecall_fetch(completions,c.worker_idx,cmd, endof(cmd))
+        comp,dotpos = completions_in_module(cmd,c)
     end
     if ctx == :file
 

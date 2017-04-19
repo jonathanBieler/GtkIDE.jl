@@ -328,10 +328,18 @@ function complete_additional_symbols(str,S)
     comp
 end
 
+function completions_in_module(cmd,c::Console)
+
+    prefix = string(c.eval_in,".")
+    (comp,dotpos) = remotecall_fetch(completions,c.worker_idx,prefix * cmd, endof(prefix * cmd))
+    dotpos -= endof(prefix)
+    comp,dotpos
+end
+
 function extcompletions(cmd,S,c::Console)
 
     #(comp,dotpos) = completions(cmd, endof(cmd))
-    (comp,dotpos) = remotecall_fetch(completions,c.worker_idx,cmd, endof(cmd))
+    comp,dotpos = completions_in_module(cmd,c)
     comp2 = complete_additional_symbols(cmd,S)
 
     for c in comp2
@@ -451,7 +459,7 @@ end
 "
 take a tuple as a string `(x,y)`, parse it and return the types in a tuple if defined
 "
-function tuple_to_types(tu::AbstractString)
+function tuple_to_types(tu::AbstractString,c::Console)
     args = []
     try
         ex = parse(tu)
@@ -461,18 +469,21 @@ function tuple_to_types(tu::AbstractString)
 
         for a in ex.args
             try
-                v = eval(a)
+                v = remotecall_fetch(eval,c.worker_idx,c.eval_in,a)
                 if typeof(v) <: Union{Type,TypeVar}
                     push!(args,v)
                 else
                     push!(args,typeof(v))
                 end
             catch err
+                warn(err)
                 return ()
             end
         end
-    catch
+    catch err
+        warn(err)
     end
+    warn(args)
     tuple(args...)
 end
 
