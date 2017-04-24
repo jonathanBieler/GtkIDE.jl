@@ -12,7 +12,7 @@ type Image <: GtkBox
 
         @guarded Gtk.ShortNames.draw(c) do widget
             xview, yview = guidata[widget, :xview], guidata[widget, :yview]
-            set_coords(Cairo.getgc(widget), xview, yview)
+            set_coordinates(Cairo.getgc(widget), xview, yview)
 
             roi = data[floor(Int,xview.min):ceil(Int,xview.max),
                        floor(Int,yview.min):ceil(Int,yview.max)]
