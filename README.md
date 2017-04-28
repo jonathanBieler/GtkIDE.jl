@@ -86,6 +86,11 @@ In the editor :
 
 See [Actions.jl](src/Actions.jl) for all actions.
 
+### Refactoring
+
+You can create a function for a selected piece of code by pressing `Ctrl+e` and typing the name of the function. GtkIDE will try to guess
+the parameters but will fail to do so in some situations.
+
 ### Editing text
 
 When editing markdown files (.md) autocompletion will display a list of English words

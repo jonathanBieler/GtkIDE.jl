@@ -118,7 +118,6 @@ function extract_method(body::AbstractString)
     end
     
     body = indent_body(body)
-    @show body
         
 "
 function ($sargs)
