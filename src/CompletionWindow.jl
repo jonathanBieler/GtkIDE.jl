@@ -7,12 +7,14 @@ type CompletionWindow <: GtkWindow #FIXME not the right container?
     buffer::GtkSourceBuffer
     content::Array{AbstractString,1}
     idx::Integer
+    main_window::MainWindow
     prefix::AbstractString
     func_names::Array{AbstractString,1}#store just the name of functions, for tuple autocomplete
     mode::Symbol
     provider::CompletionProvider
 
-    function CompletionWindow()
+
+    function CompletionWindow(main_window::MainWindow)
 
         buffer = GtkSourceBuffer()
         setproperty!(buffer,:text,"")
@@ -30,7 +32,7 @@ type CompletionWindow <: GtkWindow #FIXME not the right container?
         push!(completion_window,textview)
         showall(completion_window)
 
-        t = new(completion_window.handle,textview,buffer,AbstractString[],1)
+        t = new(completion_window.handle,textview,buffer,AbstractString[],1,main_window)
         Gtk.gobject_move_ref(t, completion_window)
     end
 end
@@ -105,53 +107,6 @@ function remove_filename_from_methods_def(s::AbstractString)
     return s
 end
 
-#function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer)
-#
-#    propagate = true
-#
-#    if event.keyval == Gtk.GdkKeySyms.Escape
-#        visible(completion_window, false)
-#    elseif event.keyval == Gtk.GdkKeySyms.Up
-#        if visible(completion_window)
-#            selection_up(completion_window)
-#            propagate = false
-#        end
-#    elseif event.keyval == Gtk.GdkKeySyms.Down
-#        if visible(completion_window)
-#            selection_down(completion_window)
-#            propagate = false
-#        end
-#    elseif event.keyval == Gtk.GdkKeySyms.Return || event.keyval == Gtk.GdkKeySyms.Tab
-#        if visible(completion_window)
-#
-#            FIXME redundant with Editor code
-#            mode = :normal
-#            it = get_text_iter_at_cursor(buffer)
-#            (cmd,itstart,itend) = select_word_backward(it,buffer,false)
-#
-#            if cmd == ""
-#                if get_text_left_of_cursor(buffer) == ")"
-#                    (found,tu,itstart) = select_tuple(it, buffer)
-#                    mode = found ? :tuple : mode
-#                end
-#            end
-#            if mode == :normal
-#                out = completion_window.prefix * completion_window.content[completion_window.idx]
-#                insert_autocomplete(out,itstart,itend,buffer)
-#            end
-#            if mode == :tuple
-#                out = completion_window.func_names[completion_window.idx]
-#                insert_autocomplete(out,itstart,itstart,buffer,:tuple)
-#            end
-#
-#            visible(completion_window,false)
-#            propagate = false
-#        end
-#    else
-#    end
-#    return propagate
-#end
-
 function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer,t)
 
     propagate = true
@@ -181,8 +136,9 @@ function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer,t)
 end
 ##
 
-function on_return(c::CompletionWindow,buffer,t)
-    p = c.provider
+function on_return(w::CompletionWindow,buffer,t)
+    p = w.provider
+    c = current_console(w.main_window)
 
     #check if we are still in the right mode, and update iterators
     if !select_text(p,buffer,get_text_iter_at_cursor(buffer),t)
@@ -196,7 +152,7 @@ function on_return(c::CompletionWindow,buffer,t)
     else
         #this was multisteps
         if !isempty(p.steps) && p.state == length(p.steps)+1
-            completions(p,t,completion_window.idx)
+            completions(p,t,completion_window.idx,c)
             completion_window.content = p.comp
             display(completion_window)
             p.state = p.state+1

@@ -49,7 +49,7 @@ function __init__()
 
     ## completion window
 
-    global const completion_window = CompletionWindow()
+    global const completion_window = CompletionWindow(main_window)
     visible(completion_window,false)
 
     ## Main layout

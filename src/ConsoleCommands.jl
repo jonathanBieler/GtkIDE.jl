@@ -42,9 +42,21 @@ end)
 add_console_command(r"^pwd",(m,c) -> begin
     return pwd() * "\n"
 end)
-add_console_command(r"^ls\s*(.*)",(m,c) -> begin
+add_console_command(r"^ls\s+(.*)",(m,c) -> begin
 	try
         files = m.captures[1] == "" ? readdir() : readdir(m.captures[1])
+        s = ""
+        for f in files
+            s = string(s,f,"\n")
+        end
+        return s
+	catch err
+		return sprint(show,err) * "\n"
+	end
+end,:file)
+add_console_command(r"^ls$",(m,c) -> begin
+	try
+        files = readdir() 
         s = ""
         for f in files
             s = string(s,f,"\n")

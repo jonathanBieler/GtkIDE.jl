@@ -302,6 +302,7 @@ function editor_tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     return PROPAGATE
 end
+##
 
 @guarded (INTERRUPT) function editor_tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
@@ -432,11 +433,30 @@ end
             end
         end
     end
+    if doing(Actions["extract_method"],event)
+        return user_action(editor_extract_method,buffer)
+    end
 
     !update_completion_window(event,buffer,t) && return INTERRUPT
 
     return PROPAGATE
 end
+
+##
+
+function editor_extract_method(buffer::GtkTextBuffer)
+    (found,itstart,itend) = selection_bounds(buffer)
+    body = found ? text_iter_get_text(itstart,itend) : ""
+    body == "" && return PROPAGATE
+    
+    insert_offset = offset(itstart)
+    replace_text(buffer,itstart,itend,Refactoring.extract_method(body))
+    it = GtkTextIter(buffer, insert_offset + sizeof("function ")+2) #FIXME probable offset issue 
+    text_buffer_place_cursor(buffer,it)
+    
+    return INTERRUPT 
+end
+
 
 function toggle_comment(buffer::GtkTextBuffer)
 

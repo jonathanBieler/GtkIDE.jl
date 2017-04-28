@@ -81,5 +81,8 @@ Actions["goto_line"] = Action("g", PrimaryModifier, "Go to line")
 
 Actions["select_all"] = Action("a", PrimaryModifier, "Select all")
 
+##
+Actions["extract_method"] = Action("e", PrimaryModifier, "Extract method")
+
 #console
 Actions["interrupt_run"] = Action("x", PrimaryModifier, "Interrupt current task")
