@@ -99,6 +99,13 @@ function write(c::Console,str::AbstractString,set_prompt=false)
 end
 write(c::Console,x,set_prompt=false) = write(c,string(x),set_prompt)
 
+
+function commit_command(c::Console)
+    insert!(c.buffer,end_iter(c.buffer),"\n")
+    c.prompt_position = length(c.buffer)+1
+    text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
+end
+
 """
     clear(c::Console)
 
@@ -110,6 +117,12 @@ end
 ##
 
 function on_return(c::Console,cmd::String)
+
+#    commit_command(c)
+#    sleep(10/1000) 
+# it seems that something asynchronous is going on, 
+# print commands arrive before commit_command applies
+
 
     cmd = strip(cmd)
     buffer = c.buffer

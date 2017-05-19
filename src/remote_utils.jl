@@ -1,8 +1,12 @@
 #things that need to be defined on remote workers
 using RemoteEval
-import Base.show
+import Base: show, display
 
-Base.show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
+show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
+function display(p::Gadfly.Plot) 
+    remotecall(display,1,p)
+    nothing
+end
 
 # Compatitbily with 0.5
 if !isdefined(Base,:(showlimited))
