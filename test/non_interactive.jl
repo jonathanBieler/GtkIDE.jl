@@ -1,3 +1,17 @@
+## Word selection
+
+@assert extend_word("rand(", 2, true) == ("rand", 1, 4)
+@assert extend_word("σ rand(", 4, true) == ("rand", 3, 6)
+
+@assert extend_word("GtkIDE.Refactoring", 4, true) == ("GtkIDE", 1, 6)
+@assert extend_word("GtkIDE.Refactoring", 4, false) == ("GtkIDE.Refactoring", 1, 18)
+@assert extend_word("GtkIDE.Refactoring", 18, false) == ("GtkIDE.Refactoring", 1, 18)
+
+@assert extend_word("sort!", 3, false) == ("sort!", 1, 5)
+@assert extend_word(" @assert", 3, false) == ("@assert", 2, 8)
+
+
+##
 # Refactoring.arguments
 
 args(x) = GtkIDE.Refactoring.arguments(x)

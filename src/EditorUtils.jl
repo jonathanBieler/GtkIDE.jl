@@ -50,7 +50,7 @@ function extend_word_backward(it::Integer,txt::SolidString,include_dot::Bool)
     end
     return it+1 #I stopped at the boundary
 end
-function extend_word_forward(it::Integer,txt::AbstractString,include_dot::Bool)
+function extend_word_forward(it::Integer,txt::SolidString,include_dot::Bool)
     it >= length(txt) && return length(txt)
 
     while !is_word_boundary(txt[it],include_dot)
@@ -58,6 +58,17 @@ function extend_word_forward(it::Integer,txt::AbstractString,include_dot::Bool)
         it = it+1
     end
     return it-1 #I stopped at the boundary
+end
+
+function extend_word(txt, pos, include_dot)
+    stxt = SolidString(txt)#this is a bit of a mess
+    i = extend_word_backward(pos,stxt,include_dot)
+    j = extend_word_forward(pos,stxt,include_dot)
+
+    if j < length(txt) && stxt[j+1] == '!' #allow for a single ! at the end of words
+       j = j + 1
+    end
+    stxt[i:j], i, j
 end
 
 function select_word(it::GtkTextIter,buffer::GtkTextBuffer,include_dot::Bool)#include_dot means we include "." in word boundary def
@@ -71,18 +82,12 @@ function select_word(it::GtkTextIter,buffer::GtkTextBuffer,include_dot::Bool)#in
         GtkTextIter(buffer,offset(it)))
     end
 
-    stxt = SolidString(txt)#this is a bit of a mess
-    i = extend_word_backward(pos,stxt,include_dot)
-    j = extend_word_forward(pos,txt,include_dot)
-
-    if j < length(txt) && txt[j+1] == '!' #allow for a single ! at the end of words
-        j = j + 1
-    end
+    word,i,j = extend_word(txt, pos, include_dot)
 
     its = GtkTextIter(buffer, i + offset(line_start) )
     ite = GtkTextIter(buffer, j + offset(line_start) + 1)
 
-    return (txt[i:j],its,ite)
+    return (word,its,ite)
 end
 select_word(it::GtkTextIter,buffer::GtkTextBuffer) = select_word(it,buffer,true)
 
