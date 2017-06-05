@@ -51,7 +51,7 @@ type Console <: GtkScrolledWindow
 
         if w_idx > 1
             eval(Main,
-            quote 
+            quote
                 remotecall_wait(
                     (HOMEDIR)->begin
                         include(joinpath(HOMEDIR,"remote_utils.jl"))
@@ -119,8 +119,8 @@ end
 function on_return(c::Console,cmd::String)
 
 #    commit_command(c)
-#    sleep(10/1000) 
-# it seems that something asynchronous is going on, 
+#    sleep(10/1000)
+# it seems that something asynchronous is going on,
 # print commands arrive before commit_command applies
 
 
@@ -157,10 +157,10 @@ function write_output_to_console(user_data)
     if !istaskdone(t) #wait for task to be done
         return Cint(true)
     end
-    
+
     try
         if t.result != nothing
-            
+
             if typeof(t.result) <: Tuple #console commands can return just a string
                 str, v = t.result
             else
@@ -177,10 +177,10 @@ function write_output_to_console(user_data)
                 try
                     display(v)
                 catch err
-                    finalOutput = sprint(showerror,err) 
+                    finalOutput = sprint(showerror,err)
                 end
             end
-            
+
             write(c,finalOutput,true)
         else
             new_prompt(c)
@@ -278,7 +278,7 @@ end
 @guarded (PROPAGATE) function console_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
     console = user_data
     buffer = console.buffer
 
@@ -369,8 +369,8 @@ end
     end
     if doing(Actions["select_all"],event)
         #select all
-        before_prompt(console) && return PROPAGATE               
-        #select only prompt        
+        before_prompt(console) && return PROPAGATE
+        #select only prompt
         its,ite = iters_at_console_prompt(console)
         selection_bounds(buffer,its,ite)
         return INTERRUPT
@@ -380,12 +380,12 @@ end
         return INTERRUPT
     end
     if doing(Actions["copy"],event)
-    
+
         if !found && !before_prompt(console)
             its,ite = iters_at_console_prompt(console)
             selection_bounds(buffer,its,ite)
         end
-    
+
         signal_emit(textview, "copy-clipboard", Void)
         return INTERRUPT
     end
@@ -399,7 +399,7 @@ end
 
 function _callback_only_for_return(widgetptr::Ptr, eventptr::Ptr, user_data)
 
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
     console = user_data
     buffer = console.buffer
 
@@ -414,14 +414,14 @@ function _callback_only_for_return(widgetptr::Ptr, eventptr::Ptr, user_data)
     end
     return Cint(false)
 end
-cfunction(_callback_only_for_return, Cint, (Ptr{Console},Ptr{Gtk.GdkEvent},Console))
+cfunction(_callback_only_for_return, Cint, (Ptr{Console},Ptr{Gtk.GdkEventKey},Console))
 
 ## MOUSE CLICKS
 
 @guarded (INTERRUPT) function _console_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
     buffer = getproperty(textview,:buffer,GtkTextBuffer)
     console = user_data
     main_window = console.main_window
@@ -460,7 +460,7 @@ global console_mousepos_root = zeros(Int,2)
 #FIXME replace this by the same thing at the window level ?
 #or put this as a field of the type.
 function console_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
 
     console_mousepos[1] = round(Int,event.x)
     console_mousepos[2] = round(Int,event.y)
@@ -521,7 +521,7 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
         else
             root,file = splitdir(m)
         end
-        
+
         comp = Array(AbstractString,0)
         try
             S = root == "" ? readdir() : readdir(root)
@@ -586,13 +586,13 @@ end
 
 function init!(c::Console)
     signal_connect(console_key_press_cb, c.view, "key-press-event",
-    Cint, (Ptr{Gtk.GdkEvent},), false, c)
+    Cint, (Ptr{Gtk.GdkEventKey},), false, c)
     signal_connect(_callback_only_for_return, c.view, "key-press-event",
-    Cint, (Ptr{Gtk.GdkEvent},), false,c)
+    Cint, (Ptr{Gtk.GdkEventKey},), false,c)
     signal_connect(_console_button_press_cb,c.view, "button-press-event",
-    Cint, (Ptr{Gtk.GdkEvent},),false,c)
+    Cint, (Ptr{Gtk.GdkEventButton},),false,c)
     signal_connect(console_motion_notify_event_cb,c, "motion-notify-event",
-    Cint, (Ptr{Gtk.GdkEvent},), false)
+    Cint, (Ptr{Gtk.GdkEventMotion},), false)
     signal_connect(console_scroll_cb, c.view, "size-allocate", Void,
     (Ptr{Gtk.GdkRectangle},), false,c)
     push!(console_manager(c),c)

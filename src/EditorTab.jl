@@ -211,7 +211,7 @@ end
 @guarded (INTERRUPT) function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
     buffer = getproperty(textview,:buffer,GtkTextBuffer)
     editor = user_data
 
@@ -294,7 +294,7 @@ end
 function editor_tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
     buffer = getbuffer(textview)
     editor = user_data
 
@@ -307,7 +307,7 @@ end
 @guarded (INTERRUPT) function editor_tab_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
-    event = convert(Gtk.GdkEvent,eventptr)
+    event = unsafe_load(eventptr)
     buffer = getbuffer(textview)
     t = user_data
     editor = parent(t)::Editor
@@ -448,13 +448,13 @@ function editor_extract_method(buffer::GtkTextBuffer)
     (found,itstart,itend) = selection_bounds(buffer)
     body = found ? text_iter_get_text(itstart,itend) : ""
     body == "" && return PROPAGATE
-    
+
     insert_offset = offset(itstart)
     replace_text(buffer,itstart,itend,Refactoring.extract_method(body))
-    it = GtkTextIter(buffer, insert_offset + sizeof("function ")+2) #FIXME probable offset issue 
+    it = GtkTextIter(buffer, insert_offset + sizeof("function ")+2) #FIXME probable offset issue
     text_buffer_place_cursor(buffer,it)
-    
-    return INTERRUPT 
+
+    return INTERRUPT
 end
 
 
@@ -611,7 +611,7 @@ end
 @guarded (PROPAGATE) function input_dialog_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     dialog = convert(GtkMessageDialog, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
 
     if doing(Action(GdkKeySyms.Return,NoModifier),event)
         response(dialog,1)
@@ -629,18 +629,17 @@ end
 import Gtk.input_dialog
 function input_dialog(message::AbstractString, entry_default::AbstractString, buttons = (("Cancel", 0), ("Accept", 1)), parent = GtkNullContainer())
     widget = GtkMessageDialog(message, buttons, Gtk.GtkDialogFlags.DESTROY_WITH_PARENT, Gtk.GtkMessageType.INFO, parent)
-    
+
     box = Gtk.content_area(widget)
     entry = GtkEntry(; text = entry_default)
     push!(box, entry)
-    
+
     signal_connect(input_dialog_key_press_cb, widget, "key-press-event",
-    Cint, (Ptr{Gtk.GdkEvent},), false)
-    
+    Cint, (Ptr{Gtk.GdkEventKey},), false)
+
     showall(widget)
     resp = run(widget)
     entry_text = getproperty(entry, :text, String)
     destroy(widget)
     return resp, entry_text
 end
-

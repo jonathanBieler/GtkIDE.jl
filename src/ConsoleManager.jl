@@ -18,7 +18,7 @@ end
 function init!(console_mng::ConsoleManager)
 
     signal_connect(console_mng_button_press_cb,console_mng, "button-press-event",
-    Cint, (Ptr{Gtk.GdkEvent},),false,console_mng.main_window)
+    Cint, (Ptr{Gtk.GdkEventButton},),false,console_mng.main_window)
     signal_connect(console_mng_switch_page_cb,console_mng,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
 end
 
@@ -46,7 +46,7 @@ end
 @guarded (INTERRUPT) function console_mng_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     ntbook = convert(GtkNotebook, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
     main_window = user_data #TODO ntbook should be a console manager with a MainWindow field?
 
     if rightclick(event)
@@ -97,7 +97,7 @@ function stop_console_redirect(main_window::MainWindow)
 #    try
 #        Base.throwto(t, InterruptException())
 #    end
-    
+
     sleep(0.1)
     redirect_stdout(out)
     #redirect_stderr(err)

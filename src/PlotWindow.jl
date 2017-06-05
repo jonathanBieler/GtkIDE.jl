@@ -31,7 +31,7 @@ type Image <: GtkBox
         Gtk.gobject_move_ref(i, b)
 
         signal_connect(image_key_press_cb, i, "key-press-event",
-        Cint, (Ptr{Gtk.GdkEvent},), false, i)
+        Cint, (Ptr{Gtk.GdkEventKey},), false, i)
         i
     end
 end
@@ -85,7 +85,7 @@ end
 
 @guarded (PROPAGATE) function image_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     i = user_data
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
     if doing(Action(keyval("r"),""),event)
         GtkUtilities.PanZoom.zoom_reset(i.c)
     end

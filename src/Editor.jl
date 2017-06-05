@@ -49,7 +49,7 @@ global mousepos_root = zeros(Int,2)
 
 #I need this to get the mouse position when we use the keyboard
 function ntbook_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
 
     mousepos[1] = round(Int,event.x)
     mousepos[2] = round(Int,event.y)
@@ -61,7 +61,7 @@ end
 #this could be in the constructor but it doesn't work for some reason
 function init!(editor::Editor,search_window::SearchWindow)
     signal_connect(ntbook_switch_page_cb,editor,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
-    signal_connect(ntbook_motion_notify_event_cb,editor,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
+    signal_connect(ntbook_motion_notify_event_cb,editor,"motion-notify-event",Cint, (Ptr{Gtk.GdkEventMotion},), false)
     editor.search_window = search_window
 end
 
@@ -207,7 +207,7 @@ function get_tab_widget(tab, filename)
     layout = GtkBox(:h)
     event_box = GtkEventBox()
     push!(event_box,layout)
-    signal_connect(tab_button_press_event_cb, event_box, "button-press-event",Cint, (Ptr{Gtk.GdkEvent},), false,tab)
+    signal_connect(tab_button_press_event_cb, event_box, "button-press-event",Cint, (Ptr{Gtk.GdkEventButton},), false,tab)
     lbl = GtkLabel(basename(filename))
     setproperty!(lbl,:name, "filename_label")
     btn = GtkButton("X")
@@ -265,9 +265,9 @@ function add_tab(filename::AbstractString,editor::Editor)
     style_css(t.view,style_provider(editor.main_window))
 
     #we need to use the view here to capture all the keystrokes
-    signal_connect(editor_tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t)
-    signal_connect(editor_tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false,editor)
-    signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,editor)
+    signal_connect(editor_tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEventKey},), false,t)
+    signal_connect(editor_tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEventKey},), false,editor)
+    signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEventButton},), false,editor)
     signal_connect(tab_buffer_changed_cb,t.buffer,"changed", Void, (), false,t)
 
 #    signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint,

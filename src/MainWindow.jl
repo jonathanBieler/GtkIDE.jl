@@ -13,8 +13,8 @@ type MainWindow <: GtkWindow
     function MainWindow()
 
         w = GtkWindow("GtkIDE.jl",1800,1200)
-        signal_connect(main_window_key_press_cb,w, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-        signal_connect(main_window_quit_cb, w, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+        signal_connect(main_window_key_press_cb,w, "key-press-event", Cint, (Ptr{Gtk.GdkEventKey},), false)
+        signal_connect(main_window_quit_cb, w, "delete-event", Cint, (Ptr{Gtk.GdkEventKey},), false)
 
         sl_mng = StyleAndLanguageManager()
         n = new(w.handle,sl_mng)
@@ -58,7 +58,7 @@ end
 
 function main_window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
     main_window = convert(GtkWindow, widgetptr)
 
     mod = get_default_mod_mask()
@@ -102,7 +102,7 @@ function on_path_change(main_window::MainWindow,doUpdate=false)
 
     if pwd() != c_path || doUpdate
         push!(main_window.pathCBox,pwd())
-        for panel in main_window.sidepanel_ntbook 
+        for panel in main_window.sidepanel_ntbook
             on_path_change(panel)
         end
     end

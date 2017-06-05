@@ -26,9 +26,9 @@ type FilesPanel <: GtkScrolledWindow
         t.menu = filespanel_context_menu_create(t)
 
         signal_connect(filespanel_treeview_clicked_cb,tv, "button-press-event",
-                       Cint, (Ptr{Gtk.GdkEvent},), false,t)
+                       Cint, (Ptr{Gtk.GdkEventButton},), false,t)
         signal_connect(filespanel_treeview_keypress_cb,tv, "key-press-event",
-                       Cint, (Ptr{Gtk.GdkEvent},), false,t)
+                       Cint, (Ptr{Gtk.GdkEventKey},), false,t)
         signal_connect(filespanel_treeview_row_expanded_cb,tv, "test-expand-row",
                        Cint, (Ptr{Gtk.TreeIter},Ptr{Gtk.TreePath}))
         Gtk.gobject_move_ref(t,sc)
@@ -444,7 +444,7 @@ end
 @guarded function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
 
     treeview = convert(GtkTreeView, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
     list = filespanel.list
     menu = filespanel.menu
 
@@ -467,7 +467,7 @@ end
 
 @guarded function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
     treeview = convert(GtkTreeView, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
     list = filespanel.list
     if event.keyval == Gtk.GdkKeySyms.Return
         open_file(treeview,list,_editor(filespanel.main_window))

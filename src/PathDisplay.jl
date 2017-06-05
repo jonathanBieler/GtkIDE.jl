@@ -18,7 +18,7 @@ update_pathEntry(main_window::MainWindow) = update_pathEntry(main_window.pathCBo
 
 function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     widget = convert(GtkEntry, widgetptr)
-    event = convert(Gtk.GdkEvent, eventptr)
+    event = unsafe_load(eventptr)
 
     pathCBox = user_data
     pathCBox.time_last_keypress = time()
@@ -60,7 +60,7 @@ end
 function init!(pathCBox::PathComboBox)
 
     signal_connect(pathEntry_key_press_cb, pathCBox.entry, "key-press-event",
-    Cint, (Ptr{Gtk.GdkEvent},), false, pathCBox)
+    Cint, (Ptr{Gtk.GdkEventKey},), false, pathCBox)
 
     signal_connect(pathDbox_changed_cb,pathCBox,"changed", Void, (), false)
 
