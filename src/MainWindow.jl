@@ -64,12 +64,12 @@ function main_window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     mod = get_default_mod_mask()
 
     if doing(Action("r",PrimaryModifier),event)
-        @schedule begin
+        #@schedule begin
             #crashes if we are still in the callback
-            sleep(0.2)
+            #sleep(0.2)
 #            eval(Main,:(restart()))
-            restart(main_window)
-        end
+            #restart(main_window)
+        #end
     end
     if event.keyval == Gtk.GdkKeySyms.F1
         toggle_sidepanel()
