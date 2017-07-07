@@ -86,3 +86,7 @@ Actions["extract_method"] = Action("e", PrimaryModifier, "Extract method")
 
 #console
 Actions["interrupt_run"] = Action("x", PrimaryModifier, "Interrupt current task")
+
+#main window
+
+Actions["console_editor_switch"] = Action("§", PrimaryModifier, "Switch between editor and console")

@@ -159,7 +159,7 @@ function __init__()
 
         init_stdout!(main_window.console_manager,watch_stdout_task,stdout,stderr)
 
-        g_timeout_add(100,print_to_console,console)
+        g_timeout_add(10,print_to_console,console)
     end
 
 end

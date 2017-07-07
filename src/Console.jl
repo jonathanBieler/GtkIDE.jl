@@ -72,39 +72,31 @@ end
 include("ConsoleCommands.jl")
 
 import Base.write
-function write(c::Console,str::AbstractString,set_prompt=false)
 
-    if set_prompt
-        insert!(c.buffer,end_iter(c.buffer),"\n>")
-        c.prompt_position = length(c.buffer)+1
+function write(c::Console,str::AbstractString)
+    insert!(c.buffer,end_iter(c.buffer),str)
+    text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
+end
 
-        it = GtkTextIter(c.buffer,c.prompt_position-1)
-        insert!(c.buffer, it,str)
-#        c.prompt_position = length(c.buffer)+1
-        c.prompt_position += length(str)
-        text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
-    else
+function write_before_prompt(c::Console,str::AbstractString)
 
-        it = GtkTextIter(c.buffer,c.prompt_position-1)
-        insert!(c.buffer, it,str)
-        c.prompt_position += length(str)
+    it = GtkTextIter(c.buffer,c.prompt_position-1)
+    insert!(c.buffer, it,str)
+    c.prompt_position += length(str)
 
-        it = GtkTextIter(c.buffer,c.prompt_position-1)
-        if get_text_left_of_iter(it) != "\n"
-            insert!(c.buffer,it,"\n")
-            c.prompt_position += 1
-        end
-
+    it = GtkTextIter(c.buffer,c.prompt_position-1)
+    if get_text_left_of_iter(it) != "\n"
+        insert!(c.buffer,it,"\n")
+        c.prompt_position += 1
     end
 end
-write(c::Console,x,set_prompt=false) = write(c,string(x),set_prompt)
 
-
-function commit_command(c::Console)
-    insert!(c.buffer,end_iter(c.buffer),"\n")
+function new_prompt(c::Console) 
+    insert!(c.buffer,end_iter(c.buffer),"\n>")
     c.prompt_position = length(c.buffer)+1
     text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
 end
+
 
 """
     clear(c::Console)
@@ -117,15 +109,11 @@ end
 ##
 
 function on_return(c::Console,cmd::String)
-
-#    commit_command(c)
-#    sleep(10/1000) 
-# it seems that something asynchronous is going on, 
-# print commands arrive before commit_command applies
-
-
+    
     cmd = strip(cmd)
     buffer = c.buffer
+
+    write(c,"\n")
 
     push!(c.history,cmd)
     seek_end(c.history)
@@ -181,12 +169,12 @@ function write_output_to_console(user_data)
                 end
             end
             
-            write(c,finalOutput,true)
-        else
-            new_prompt(c)
+            write(c,finalOutput)
         end
+        new_prompt(c)
     catch other_err
-        write(c,sprint(showerror,other_err),true)
+        write(c,sprint(showerror,other_err))
+        new_prompt(c)
     end
     on_path_change(c.main_window)
 
@@ -213,7 +201,7 @@ function prompt(c::Console,str::AbstractString,offset::Integer)
     end
 end
 prompt(c::Console,str::AbstractString) = prompt(c,str,-1)
-new_prompt(c::Console) = write(c,"",true)
+
 
 function move_cursor_to_end(c::Console)
     text_buffer_place_cursor(c.buffer,end_iter(c.buffer))
@@ -563,7 +551,8 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart,lastpart)
                 out = out * "\n"
             end
         end
-        write(c,out)#use write instead of print so it goes to the right console
+        
+        write_before_prompt(c,out)
         out = prefix * Base.LineEdit.common_prefix(comp)
     else
         out = prefix * comp[1]
@@ -573,9 +562,9 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart,lastpart)
     #update entry
     out = firstpart * out * lastpart
     out = remove_filename_from_methods_def(out)
+        
     prompt(c,out,offset)
     #set_position!(console.entry,endof(out))
-
 end
 
 function kill_current_task(c::Console)
@@ -696,7 +685,7 @@ end
 function watch_stream(rd::IO, c::Console)
     while !eof(rd) && is_running # blocks until something is available
         send_stream(rd,c.stdout_buffer)
-        sleep(0.01) # a little delay to accumulate output
+        sleep(0.001) # a little delay to accumulate output
     end
 end
 
