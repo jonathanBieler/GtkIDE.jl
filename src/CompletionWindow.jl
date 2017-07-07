@@ -99,11 +99,11 @@ function remove_filename_from_methods_def(s::AbstractString)
     ex = r"(^.*\))( at .+\.jl:[0-9]+$)" #remove the file/line number for methods)
     m = match(ex,s)
     s = m == nothing ? s : m[1]
-    
-    ex = r"(^.*\))( at none:[0-9]+$)" 
+
+    ex = r"(^.*\))( at none:[0-9]+$)"
     m = match(ex,s)
     s = m == nothing ? s : m[1]
-    
+
     return s
 end
 
@@ -165,7 +165,7 @@ function on_return(w::CompletionWindow,buffer,t)
 end
 
 ##
-function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuffer,editor)#FIXME? Editor not defined 
+function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuffer,editor)#FIXME? Editor not defined
 
     #if event.keyval >= keyval("0") && event.keyval <= keyval("z")
 
@@ -340,9 +340,9 @@ end
 function type_close_enough(x::TypeVar, t::DataType )
     return x.ub != Any && t == x.ub
 end
-function type_close_enough(x::TypeConstructor, t::DataType)
-    return t <: x &&  x.ub != Any
-end
+#function type_close_enough(x::TypeConstructor, t::DataType)
+#    return t <: x &&  x.ub != Any
+#end
 
 ##
 
