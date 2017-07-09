@@ -16,6 +16,7 @@ end
 ## EDITOR
 
 editor = main_window.editor
+console = current_console(main_window)
 
 cd(joinpath(Pkg.dir(),"GtkIDE"))
 update_pathEntry(main_window.pathCBox)

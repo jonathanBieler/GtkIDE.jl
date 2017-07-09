@@ -8,7 +8,7 @@ immutable SolidString
     function SolidString(s::AbstractString,l::Integer)
         l > length(s) && error("Offset larger than string length.")
 
-        c = Array(Char,0)
+        c = Array{Char}(0)
         i = start(s)
         count = 0
         while !done(s,i) && count < l

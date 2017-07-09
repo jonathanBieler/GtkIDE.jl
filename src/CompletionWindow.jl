@@ -219,10 +219,10 @@ function collect_symbols(t::EditorTab)
 
     ##
     str = String(getproperty(t.buffer,:text,AbstractString))
-    S = Array(Symbol,0)
+    S = Array{Symbol}(0)
 
     #no searchall :'(
-    pos = Array(Integer,0)
+    pos = Array{Integer}(0)
     del = '\n'
     i = start(str)
     for j=1:length(str)
@@ -259,7 +259,7 @@ function collect_symbols(t::EditorTab)
 end
 
 function collect_symbols(ex::Expr)
-    S = Array(Symbol,0)
+    S = Array{Symbol}(0)
     for i=1:length(ex.args)
         s  = collect_symbols(ex.args[i])
         if typeof(s) == Symbol
@@ -277,7 +277,7 @@ collect_symbols(other) = :nothing
 
 ##
 function complete_additional_symbols(str,S)
-    comp = Array(AbstractString,0)
+    comp = Array{String}(0)
     for s in S
         startswith(s,str) && push!(comp,s)
     end

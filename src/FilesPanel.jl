@@ -44,7 +44,7 @@ function files_tree_view(rownames)
     list = GtkTreeStore(t...)
     tv = GtkTreeView(GtkTreeModel(list))
     setproperty!(tv,"level-indentation",4)
-    cols = Array(GtkTreeViewColumn,0)
+    cols = Array{GtkTreeViewColumn}(0)
 
     r1 = GtkCellRendererPixbuf()
     c1 = GtkTreeViewColumn(rownames[1], r1, Dict([("pixbuf",0)]))

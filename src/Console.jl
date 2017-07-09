@@ -64,7 +64,7 @@ type Console <: GtkScrolledWindow
 
         history = setup_history(w_idx)
 
-        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel(),history,time(),main_window,Main)
+        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel{Any}(32),history,time(),main_window,Main)
         Gtk.gobject_move_ref(n, sc)
     end
 end
@@ -515,7 +515,7 @@ function autocomplete(c::Console,cmd::AbstractString,pos::Integer)
             root,file = splitdir(m)
         end
         
-        comp = Array(AbstractString,0)
+        comp = Array{String}(0)
         try
             S = root == "" ? readdir() : readdir(root)
             comp = complete_additional_symbols(file, S)
@@ -599,7 +599,7 @@ function print_to_console(user_data)
 
     console = unsafe_pointer_to_objref(user_data)
 
-    s = takebuf_string(console.stdout_buffer)
+    s = String(take!(console.stdout_buffer))
     if !isempty(s)
         s = translate_colors(s)
         write(console,s)

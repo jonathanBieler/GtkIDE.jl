@@ -78,7 +78,7 @@ current_console(m::ConsoleManager) = m[index(m)]
 Returns the list of workers not linked to a `Console`"
 function free_workers(console_mng::ConsoleManager)
     w = workers()
-    used_w = Array(Int,0)
+    used_w = Array{Int}(0)
 
     for i=1:length(console_mng)
         c = console_mng[i]

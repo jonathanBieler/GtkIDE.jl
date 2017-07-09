@@ -2,13 +2,13 @@
 ## create folder if necessary
 
 type Project
-    path::AbstractString
-    files::Array{AbstractString,1}
-    scroll_position::Array{AbstractFloat,1}
+    path::String
+    files::Array{String,1}
+    scroll_position::Array{Float64,1}
     ntbook_idx::Integer
     main_window::MainWindow
 
-    Project(main_window::MainWindow) = new("",Array(AbstractString,0),Array(AbstractFloat,0),1,main_window)
+    Project(main_window::MainWindow) = new("",Array{String}(0),Array{Float64}(0),1,main_window)
 end
 
 #let's not serialize main_window
@@ -22,8 +22,8 @@ JSON.lower(w::Project) = Dict(
 function update!(w::Project)
     editor = _editor(w.main_window)
     w.path = pwd()
-    w.files = Array(AbstractString,0)
-    w.scroll_position = Array(AbstractFloat,0)
+    w.files = Array{String}(0)
+    w.scroll_position = Array{Float64}(0)
     w.ntbook_idx = get_current_page_idx(editor)
 
     for i=1:length(editor)

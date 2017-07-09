@@ -77,7 +77,7 @@ end
 function send_to_main_worker(stdout_buffer::IO)
 
     while true
-        s = takebuf_string(stdout_buffer)
+        s = String(take!(stdout_buffer))
         if !isempty(s)
             remotecall(print_to_console_remote,1,s,myid())
         end
