@@ -2,8 +2,9 @@
 using RemoteEval
 import Base: show, display
 
+
 show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
-function display(p::Gadfly.Plot) 
+function display(p::Gadfly.Plot)
     remotecall(display,1,p)
     nothing
 end
@@ -30,6 +31,26 @@ function workspace()
               )
           )
     empty!(Base.package_locks)
+    nothing
+end
+
+function figure()
+    s,v = remotecall_fetch(eval_command_remotely,1,"figure()",Main)
+    parse(Int,"2\n") #not ideal
+end
+function figure(i::Integer)
+    s,v = remotecall_fetch(eval_command_remotely,1,"figure($i)",Main)
+    parse(Int,"2\n") #not ideal
+end
+
+function rprint(x)
+    x = string(x,"\n")
+    remotecall_fetch(eval_command_remotely,1,
+    """
+        c = GtkIDE.main_window.console_manager[$(myid())]
+        write(c,"$x")
+    """
+    ,Main)
     nothing
 end
 

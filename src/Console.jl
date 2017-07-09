@@ -306,6 +306,11 @@ end
         move_cursor_to_end(console)
         return INTERRUPT
     end
+    if doing(Actions["clear_console"],event)
+        clear(console)  
+        new_prompt(console)
+        return INTERRUPT
+    end
     if doing(Action(GdkKeySyms.Right, PrimaryModifier+GdkModifierType.SHIFT),event)
         select_on_ctrl_shift(:end,console)
         return INTERRUPT

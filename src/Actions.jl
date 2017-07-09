@@ -86,7 +86,9 @@ Actions["extract_method"] = Action("e", PrimaryModifier, "Extract method")
 
 #console
 Actions["interrupt_run"] = Action("x", PrimaryModifier, "Interrupt current task")
+Actions["clear_console"] = Action("k", PrimaryModifier, "Clear Console")
 
 #main window
 
-Actions["console_editor_switch"] = Action("§", PrimaryModifier, "Switch between editor and console")
+# § key when pressing cmd
+Actions["console_editor_switch"] = Action(167, PrimaryModifier, "Switch between editor and console")

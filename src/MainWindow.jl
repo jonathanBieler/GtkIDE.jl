@@ -77,11 +77,14 @@ function main_window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     if event.keyval == Gtk.GdkKeySyms.F2
         toggle_editor()
     end
-    @show event.keyval
-    @show event.state
-    @show Actions["console_editor_switch"]
-    if doing(Actions["console_editor_switch"],event)
-        grab_focus(current_console(main_window.console_manager).view)
+
+    if doing(Actions["console_editor_switch"], event)
+        c = current_console(main_window.console_manager).view
+        if !getproperty(c,:has_focus,Bool)
+            grab_focus(c)
+        else
+            grab_focus(current_tab(main_window.editor).view)
+        end
     end
     
     return Cint(false)

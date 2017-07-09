@@ -20,7 +20,7 @@ import Gtk.GtkTextIter
 import Gadfly.Colors
 import Immerse.Cairo
 
-export gtkide, image, plot, figure
+export image, plot, figure, rprint
 
 # Compatitbily with 0.5
 if !isdefined(Base,:(showlimited))
