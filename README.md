@@ -7,18 +7,24 @@ GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](
 
 1. Install the dependencies:
 
-    `Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")`
-    `Pkg.clone("https://github.com/jonathanBieler/GtkExtensions.jl.git")`
-    `Pkg.clone("https://github.com/jonathanBieler/WordsUtils.jl.git")`
-    `Pkg.clone("https://github.com/jonathanBieler/RemoteEval.jl.git")`
+    ```julia
+     Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")
+     Pkg.clone("https://github.com/jonathanBieler/GtkExtensions.jl.git")
+     Pkg.clone("https://github.com/jonathanBieler/WordsUtils.jl.git")
+     Pkg.clone("https://github.com/jonathanBieler/RemoteEval.jl.git")
+     Pkg.checkout("Gtk")
+     ```
 
 2. Install the package
 
     `Pkg.clone("https://github.com/jonathanBieler/GtkIDE.jl.git")`
     
-4. Run it
+3. Start julia with no colors, and run it
 
-    `using GtkIDE`
+    ```
+    ... julia --color=no
+    using GtkIDE
+    ```
     
 ## Usage
  

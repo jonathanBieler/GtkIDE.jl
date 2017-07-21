@@ -104,6 +104,21 @@ function __init__()
     Gtk.G_.position(mainPan,600)
     Gtk.G_.position(rightPan,450)
     #-
+    
+    ## set some style
+    
+    nbtbookcss =
+    "* tab {              
+        padding:0px;
+        padding-left:6px;
+        padding-right:1px;
+        margin:0px;
+        font-size:$(main_window.style_and_language_manager.fontsize-1)px;
+    }"
+    style_css(main_window.editor,nbtbookcss)
+    style_css(main_window.console_manager,nbtbookcss)
+    style_css(fig_ntbook,nbtbookcss)
+    style_css(sidepanel_ntbook,nbtbookcss)
 
     setproperty!(topBarBox,:hexpand,true)
 

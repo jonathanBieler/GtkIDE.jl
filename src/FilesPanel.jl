@@ -378,6 +378,7 @@ end
     return nothing
 end
 
+#FIXME return type ?
 @guarded function configure_text_entry_fixed_content(te, fixed, nonfixed="")
     setproperty!(te, :text,"");
     setproperty!(te, :text,string(fixed,nonfixed));
@@ -424,7 +425,7 @@ function file_path_dialog_set_button_caption(filespanel, caption::AbstractString
     setproperty!(btn_create_file,:label,caption)
 end
 
-@guarded function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
+@guarded (PROPAGATE) function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
                                              iterptr::Ptr{Gtk.TreeIter},
                                              path::Ptr{Gtk.TreePath},
                                              data)
@@ -438,10 +439,10 @@ end
         end
         populate_folder(tree_view_model,iter)
     end
-    return Cint(0)
+    return PROPAGATE
 end
 
-@guarded function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
+@guarded (PROPAGATE) function filespanel_treeview_clicked_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
 
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
@@ -465,7 +466,7 @@ end
     return PROPAGATE
 end
 
-@guarded function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
+@guarded (PROPAGATE) function filespanel_treeview_keypress_cb(widgetptr::Ptr, eventptr::Ptr, filespanel)
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     list = filespanel.list

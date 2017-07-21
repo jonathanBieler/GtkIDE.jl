@@ -39,7 +39,7 @@ function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, use
     page = convert(Gtk.GtkWidget, pageptr)
     if typeof(page) == EditorTab && GtkSourceWidget.SOURCE_MAP
         set_view(editor.sourcemap, page.view)
-        visible(editor.sourcemap,opt("Editor","show_source_map"))
+        #visible(editor.sourcemap,opt("Editor","show_source_map"))
     end
     nothing
 end

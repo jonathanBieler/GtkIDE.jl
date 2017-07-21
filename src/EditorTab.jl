@@ -514,18 +514,15 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
 
     try
         if extension(t.filename) == ".md"
-
-            defs = definition(lowercase(word))
-            value = ""
+            defs = WordsUtils.definition(lowercase(word))
+            v = ""
             for d in defs
-                value = string(value,d,"\n\n")
+                v = string(v,d,"\n\n")
             end
-
         else
             ex = parse(word)
             v = eval(Main,ex)
-            v = typeof(v) <: Function ? methods(v) : v
-            v = sprint(showlimited,v)
+            v = RemoteEval.format_output(v)
         end
 
         label = GtkLabel(v)
@@ -536,11 +533,11 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
         showall(popup)
 
         @schedule begin
-            sleep(3)
+            sleep(2.5)
             destroy(popup)#FIXME close on click or something
         end
     catch err
-#        @show err
+#        warn(err)
     end
 end
 
