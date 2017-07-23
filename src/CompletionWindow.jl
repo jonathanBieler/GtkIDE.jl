@@ -349,6 +349,10 @@ end
 
 function methods_with_tuple(t::Tuple, d::Method, meths = Method[])
 
+    if !isdefined(d.sig,:parameters) 
+        return meths
+    end
+
     x = d.sig.parameters[2:end]
     cons = Dict{Symbol,Type}()
     if length(x) == length(t)

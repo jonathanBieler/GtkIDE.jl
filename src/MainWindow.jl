@@ -56,7 +56,7 @@ function toggle_editor()#use visible ?
     end
 end
 
-function main_window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+@guarded (PROPAGATE) function main_window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     event = convert(Gtk.GdkEvent, eventptr)
     main_window = convert(GtkWindow, widgetptr)
@@ -87,7 +87,7 @@ function main_window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
         end
     end
     
-    return Cint(false)
+    return PROPAGATE
 end
 
 function sidePanelButton_clicked_cb(widgetptr::Ptr, user_data)
@@ -117,6 +117,27 @@ function on_path_change(main_window::MainWindow,doUpdate=false)
     end
 end
 
+function reload()
+
+    eval(GtkIDE,quote 
+    include("MenuUtils.jl")
+    include("PlotWindow.jl")
+    include("StyleAndLanguageManager.jl")
+    include("MainWindow.jl")
+    include("Project.jl")
+    include("ConsoleManager.jl")
+    include("CommandHistory.jl")
+    include("Console.jl")
+    include("Refactoring.jl")
+    include("Editor.jl")
+    include("NtbookUtils.jl")
+    include("PathDisplay.jl")
+    include("MainMenu.jl")
+    include("SidePanels.jl")
+    end)
+    
+end
+
 ##
 function restart(main_window::MainWindow,new_workspace=false)
 
@@ -136,20 +157,7 @@ function restart(main_window::MainWindow,new_workspace=false)
 
         #include( joinpath(HOMEDIR,"GtkIDE.jl") )
 
-        #Order matters
-        include("MenuUtils.jl")
-        include("PlotWindow.jl")
-        include("StyleAndLanguageManager.jl")
-        include("MainWindow.jl")
-        include("Project.jl")
-        include("ConsoleManager.jl")
-        include("CommandHistory.jl")
-        include("Console.jl")
-        include("Editor.jl")
-        include("NtbookUtils.jl")
-        include("PathDisplay.jl")
-        include("MainMenu.jl")
-        include("SidePanels.jl")
+        reload()
 
         include("init.jl")
         __init__()

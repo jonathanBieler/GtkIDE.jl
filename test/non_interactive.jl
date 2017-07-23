@@ -20,6 +20,8 @@ args(x) = GtkIDE.Refactoring.arguments(x)
 
 @assert args(:(x = 2)) == Symbol[]
 
+@assert args(:(x = Int)) == Symbol[]
+
 @assert args(:(x,y = 1,2)) == Symbol[]
 @assert args(:(x,y,z,k = 1,2,3,4)) == Symbol[]
 
@@ -61,7 +63,7 @@ ex = quote
     ind, K7 = K6.asd
     x = K8[K7]
 end
-@assert args(ex) == [:K1,:K2,:K3,:K4,:K5,:Geom,:K6,:K8] 
+@assert args(ex) == [:K1,:K2,:K3,:K4,:K5,:K6,:K8] 
 
 ex = quote
     for i=1:10
@@ -82,5 +84,5 @@ end
 #end
 #@assert args(ex) == Symbol[]
 
-
+##
 

@@ -286,9 +286,11 @@ end
 
     (found,it_start,it_end) = selection_bounds(buffer)
 
+    #prevent deleting text before prompt
     if event.keyval == Gtk.GdkKeySyms.BackSpace ||
        event.keyval == Gtk.GdkKeySyms.Delete ||
-       event.keyval == Gtk.GdkKeySyms.Clear
+       event.keyval == Gtk.GdkKeySyms.Clear ||
+       doing(Actions["cut"],event)
 
         if found
             before_prompt(console,offset(it_start)) && return INTERRUPT
@@ -373,12 +375,7 @@ end
         return INTERRUPT
     end
     if doing(Actions["copy"],event)
-    
-        if !found && !before_prompt(console)
-            its,ite = iters_at_console_prompt(console)
-            selection_bounds(buffer,its,ite)
-        end
-    
+        auto_select_prompt(found, console, buffer)
         signal_emit(textview, "copy-clipboard", Void)
         return INTERRUPT
     end
@@ -386,8 +383,24 @@ end
         signal_emit(textview, "paste-clipboard", Void)
         return INTERRUPT
     end
+    if doing(Actions["cut"],event)
+        auto_select_prompt(found, console, buffer)
+        signal_emit(textview, "cut-clipboard", Void)
+        return INTERRUPT
+    end
 
     return PROPAGATE
+end
+
+"""
+Auto select the prompt text when nothing is selected
+and we are trying to copy or cut.
+"""
+function auto_select_prompt(found, console, buffer)
+    if !found && !before_prompt(console)
+        its,ite = iters_at_console_prompt(console)
+        selection_bounds(buffer,its,ite)
+    end
 end
 
 function _callback_only_for_return(widgetptr::Ptr, eventptr::Ptr, user_data)

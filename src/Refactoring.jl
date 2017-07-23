@@ -63,10 +63,22 @@ function arguments(ex::Expr,out,assigned)
     end
 end
 
+"Filter out types and modules."
+function filter_types(s::Symbol)
+    try
+        t = eval(Main,:(typeof($s))) 
+        t <: DataType && return false
+        t <: Module && return false
+        t <: Type && return false
+    catch
+    end
+    true
+end
+
 function arguments(ex::Expr) 
     out, assigned = Symbol[], Symbol[]
     arguments(ex,out,assigned) 
-    unique(out)
+    filter(filter_types,unique(out))
 end
 arguments(s::Symbol,out,assigned) = !any(s .== assigned) && push!(out,s)
 arguments(s::Any,out,assigned) = nothing

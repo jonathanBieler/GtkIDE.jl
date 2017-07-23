@@ -291,7 +291,7 @@ function run_command(c::Console,cmd::AbstractString)
     on_return(c,cmd)
 end
 
-function editor_tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+@guarded (PROPAGATE) function editor_tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
