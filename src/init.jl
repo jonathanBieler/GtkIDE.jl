@@ -176,5 +176,9 @@ function __init__()
 
         g_timeout_add(10,print_to_console,console)
     end
+    
+    println("Warming up, hold on...")
+    sleep(0.1)
+    @schedule logo()
 
 end

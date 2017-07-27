@@ -67,6 +67,7 @@ include("NtbookUtils.jl")
 include("PathDisplay.jl")
 include("MainMenu.jl")
 include("SidePanels.jl")
+include("Logo.jl")
 
 include("init.jl")
 
