@@ -13,14 +13,14 @@ function logo()
     xt = linspace(0,1,70)
     xt = xt.^4 ./ (0.3.^4 + xt.^4)
 
-    opt  = (Geom.point,Theme(default_color=c0,highlight_width=0pt,default_point_size=3pt))
-    opt1 = (Geom.point,Theme(default_color=c1,highlight_width=0pt,default_point_size=3pt))
-    opt2 = (Geom.point,Theme(default_color=c2,highlight_width=0pt,default_point_size=3pt))
-    opt3 = (Geom.point,Theme(default_color=c3,highlight_width=0pt,default_point_size=3pt))
+    opt  = (Geom.point,Theme(default_color=c0,highlight_width=0pt,point_size=3pt))
+    opt1 = (Geom.point,Theme(default_color=c1,highlight_width=0pt,point_size=3pt))
+    opt2 = (Geom.point,Theme(default_color=c2,highlight_width=0pt,point_size=3pt))
+    opt3 = (Geom.point,Theme(default_color=c3,highlight_width=0pt,point_size=3pt))
 
     for maxt in xt
 
-        t = collect(linspace(0,maxt,100))
+        t = collect(linspace(0,maxt,90))
        
         spacing = 0.3 + maxt/15
         h = 1.6
