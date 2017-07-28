@@ -260,6 +260,8 @@ function add_tab(filename::AbstractString,editor::Editor)
     showall(editor)
     index(editor,idx)
 
+    Gtk.GAccessor.tooltip_text(t.label,t.filename)#t.filename is the full path
+
 #    Gtk.create_tag(t.buffer, "debug1", font="Normal $fontsize",background="green")
 #    Gtk.create_tag(t.buffer, "debug2", font="Normal $fontsize",background="blue")
     style_css(t.view,style_provider(editor.main_window))
