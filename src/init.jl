@@ -23,7 +23,7 @@ function __init__()
 
     init!(editor,search_window)
 
-    global project = Project(main_window)
+    global project = Project(main_window,"default")
 
     pathCBox = PathComboBox(main_window)
     statusBar = GtkStatusbar()
@@ -127,11 +127,16 @@ function __init__()
 
     global const filespanel = FilesPanel(main_window)
     update!(filespanel)
-    add_side_panel(filespanel,"Files")
+    add_side_panel(filespanel,"F")
 
-    workspacepanel = WorkspacePanel()
+    global const workspacepanel = WorkspacePanel(main_window)
     update!(workspacepanel)
     add_side_panel(workspacepanel,"W")
+
+    global const projectspanel = ProjectsPanel(main_window)
+    update!(projectspanel)
+    add_side_panel(projectspanel,"P")
+
 
     ################
     ## Plots
@@ -177,8 +182,9 @@ function __init__()
         g_timeout_add(10,print_to_console,console)
     end
     
-    println("Warming up, hold on...")
-    sleep(0.1)
-    @schedule logo()
+    #println("Warming up, hold on...")
+    #sleep(0.1)
+    #@schedule logo()
+    #new_prompt(console)
 
 end

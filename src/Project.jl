@@ -2,17 +2,19 @@
 ## create folder if necessary
 
 type Project
+    name::String
     path::String
     files::Array{String,1}
     scroll_position::Array{Float64,1}
     ntbook_idx::Integer
     main_window::MainWindow
 
-    Project(main_window::MainWindow) = new("",Array{String}(0),Array{Float64}(0),1,main_window)
+    Project(main_window::MainWindow,name::String) = new(name,"",Array{String}(0),Array{Float64}(0),1,main_window)
 end
 
 #let's not serialize main_window
 JSON.lower(w::Project) = Dict(
+    "name" => w.name,
     "path" => w.path,
     "files" => w.files,
     "scroll_position" => w.scroll_position,
@@ -40,21 +42,27 @@ end
 
 function save(w::Project)
     update!(w)
-    !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
-    open( joinpath(HOMEDIR,"config","project") ,"w") do io
-        JSON.print(io,w)
+    !isdir( joinpath(HOMEDIR,"config","projects") ) && mkdir( joinpath(HOMEDIR,"config","projects") )
+    open( joinpath(HOMEDIR,"config","projects","$(w.name).json") ,"w") do io
+        JSON.print(io,w,4)
     end
 end
 
 function load(w::Project)
-    !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
-
-    if !isfile( joinpath(HOMEDIR,"config","project") )
+    !isdir( joinpath(HOMEDIR,"config","projects") ) && mkdir( joinpath(HOMEDIR,"config","projects") )
+    pth = joinpath(HOMEDIR,"config","projects","$(w.name).json")
+    if !isfile(pth)
         w.path = pwd()
         return
     end
 #	println( joinpath(HOMEDIR,"config","project"))
-    j = JSON.parsefile( joinpath(HOMEDIR,"config","project") )
+    j = JSON.parsefile(pth)
+
+    if haskey(j,"name")#allow smooth upgrade
+        w.name = j["name"]
+    else
+        w.name = "default"
+    end
 
     w.path = j["path"]
     w.files = j["files"]

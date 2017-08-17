@@ -30,6 +30,7 @@ function init!(main_window::MainWindow,editor,c_mng,pathCBox,statusBar,project,m
     main_window.project = project
     main_window.menubar = menubar
     main_window.sidepanel_ntbook = sidepanel_ntbook
+    load(main_window) #load last session
 end
 
 ## exiting
@@ -40,6 +41,7 @@ end
     if typeof(main_window.project) == Project
         save(main_window.project)
     end
+    save(main_window) 
 
     global is_running = false
     REDIRECT_STDOUT && stop_console_redirect(main_window)
@@ -105,7 +107,7 @@ function toggle_sidepanel()
 end
 
 # Not ideal, it always refresh when using the pathdisplay
-function on_path_change(main_window::MainWindow,doUpdate=false)
+@guarded nothing function on_path_change(main_window::MainWindow,doUpdate=false)
     c_path = unsafe_string(Gtk.G_.active_text(main_window.pathCBox))
     update_pathEntry(main_window)
 
@@ -115,6 +117,11 @@ function on_path_change(main_window::MainWindow,doUpdate=false)
             on_path_change(panel)
         end
     end
+    nothing
+end
+
+function on_commands_return(main_window::MainWindow)
+    update!(workspacepanel)
 end
 
 function reload()
@@ -146,25 +153,50 @@ function restart(main_window::MainWindow,new_workspace=false)
         sleep(0.1)
         is_running = false
 
-        REDIRECT_STDOUT && stop_console_redirect(main_window)
-
         update!(main_window.project)
         save(main_window.project)
-        win_ = main_window
 
+        REDIRECT_STDOUT && stop_console_redirect(main_window)
+        
         new_workspace && workspace()
-        destroy(win_)
+        destroy(main_window)
 #        gtkide()
 
         #include( joinpath(HOMEDIR,"GtkIDE.jl") )
 
         reload()
 
-        include("init.jl")
+        #include("init.jl")
         __init__()
 
 end
 
 function run_tests()
     include( joinpath(Pkg.dir(),"GtkIDE","test","runtests.jl") )
+end
+
+
+#this allows to save some info about the session
+JSON.lower(w::MainWindow) = Dict(
+    "project.name" => w.project.name,
+ )
+
+function save(w::MainWindow)
+    !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
+    open( joinpath(HOMEDIR,"config","main_window.json") ,"w") do io
+        JSON.print(io,w)
+    end
+end
+
+function load(w::MainWindow)
+    !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
+    pth = joinpath(HOMEDIR,"config","main_window.json")
+    if !isfile(pth)
+        w.project.name = "default"
+        return
+    end
+
+    j = JSON.parsefile(pth)
+
+    w.project.name = j["project.name"]
 end

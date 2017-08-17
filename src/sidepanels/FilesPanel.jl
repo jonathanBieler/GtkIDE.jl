@@ -627,7 +627,7 @@ end
     return nothing
 end
 
-#this is call from MainWindow
+#this is called from MainWindow
 function on_path_change(filespanel::FilesPanel)
     update!(filespanel)
 end

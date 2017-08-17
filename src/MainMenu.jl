@@ -28,8 +28,6 @@ function user_settings_MenuItem_activate_cb(widgetptr::Ptr, user_data)
     nothing
 end
 
-##
-
 function MainMenu(main_window::MainWindow)
 
     menubar = GtkMenuBar() |>
@@ -62,5 +60,6 @@ function MainMenu(main_window::MainWindow)
         helpMenu,
         (main_window)
     )
+    
     return menubar
 end

@@ -177,6 +177,7 @@ function write_output_to_console(user_data)
         new_prompt(c)
     end
     on_path_change(c.main_window)
+    on_commands_return(c.main_window)
 
     t = @sprintf("%4.6f\n",time()-c.run_task_start_time)
     GtkExtensions.text(c.main_window.statusBar,"Run time $(t)s")
