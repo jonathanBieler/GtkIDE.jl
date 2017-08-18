@@ -64,7 +64,7 @@ function __init__()
                  pathCBox   |>
                 (editorButton = GtkButton("F2"))
             ) |>
-            (sidePan = GtkPaned(:h)) |>
+            (global const sidePan = GtkPaned(:h)) |>
             statusBar
         )
 

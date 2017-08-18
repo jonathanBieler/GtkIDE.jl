@@ -110,12 +110,13 @@ end
 @guarded nothing function on_path_change(main_window::MainWindow,doUpdate=false)
     c_path = unsafe_string(Gtk.G_.active_text(main_window.pathCBox))
     update_pathEntry(main_window)
-
+    
     if pwd() != c_path || doUpdate
         push!(main_window.pathCBox,pwd())
         for panel in main_window.sidepanel_ntbook 
             on_path_change(panel)
         end
+        save(main_window.project)
     end
     nothing
 end

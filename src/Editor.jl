@@ -33,10 +33,15 @@ end
 
 get_current_tab() = get_tab(editor,index(editor))# remove this ?
 
+function save_project(editor::Editor)
+    save(editor.main_window.project)
+end
+
 function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
     editor = convert(GtkNotebook,widgetptr)
     page = convert(Gtk.GtkWidget, pageptr)
+
     if typeof(page) == EditorTab && GtkSourceWidget.SOURCE_MAP
         set_view(editor.sourcemap, page.view)
         #visible(editor.sourcemap,opt("Editor","show_source_map"))
@@ -85,6 +90,7 @@ close_tab(editor::Editor) = close_tab(editor,index(editor))
 function close_tab_cb(btn::Ptr, tab)
     editor = parent(tab)::Editor
     close_tab(editor,Gtk.pagenumber(editor,tab)+1)
+    save_project(editor)
     return nothing
 end
 
@@ -97,6 +103,7 @@ function close_other_tabs_cb(btn::Ptr,tab)
             splice!(editor,1)
         end
     end
+    save_project(editor)
     return nothing
 end
 function close_tabs_right_cb(btn::Ptr,tab)
@@ -105,6 +112,7 @@ function close_tabs_right_cb(btn::Ptr,tab)
     while (Gtk.GAccessor.n_pages(editor) > idx)
         close_tab(editor,idx+1)
     end
+    save_project(editor)
     return nothing
 end
 function close_all_tabs_cb(btn::Ptr,tab)
@@ -112,6 +120,7 @@ function close_all_tabs_cb(btn::Ptr,tab)
     while (Gtk.GAccessor.n_pages(editor) > 0)
         close_tab(editor,1)
     end
+    save_project(editor)
     return nothing
 end
 

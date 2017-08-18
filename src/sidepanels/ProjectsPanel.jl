@@ -2,22 +2,24 @@ type ProjectsPanel <: GtkScrolledWindow
 
     handle::Ptr{Gtk.GObject}
     list::GtkTreeStore
-    tree_view::GtkTreeView
-    add_button::GtkButton
+    treeview::GtkTreeView
+    add_button::GtkToolButton
     main_window::MainWindow
     
 
     function ProjectsPanel(main_window::MainWindow)
 
-        (tv,list,cols) = give_me_a_treeview(1,["Name"])
+        tv,list,cols = projectspanel_treeview()
 
         vbox = GtkBox(:v)
-        add_button = GtkButton("A")
+        add_button = GtkToolButton("gtk-add")
+        rm_button = GtkToolButton("gtk-remove")
         bbox = GtkButtonBox(false)
-        push!(bbox,add_button)
+        push!(bbox,add_button,rm_button)
 
         sc = GtkScrolledWindow()
         setproperty!(sc,:vexpand,true)
+        setproperty!(sc,:hscrollbar_policy,1)
         push!(sc,tv)
 
         push!(vbox,bbox,sc)
@@ -31,9 +33,22 @@ type ProjectsPanel <: GtkScrolledWindow
                        Cint, (Ptr{Gtk.GdkEvent},), false,t)
         
         signal_connect(projectspanel_add_button_clicked_cb, add_button, "clicked", Void, (), false, t)
+        signal_connect(projectspanel_rm_button_clicked_cb, rm_button, "clicked", Void, (), false, t)
 
         Gtk.gobject_move_ref(t,vbox)
     end
+end
+
+function projectspanel_treeview()
+
+    list = GtkTreeStore(String, Int)
+    tv = GtkTreeView(GtkTreeModel(list))
+
+    cell = GtkCellRendererText()
+    cols = GtkTreeViewColumn("Name", cell, Dict([("text",0),("weight",1)]))#the second collumn controls the font weight
+    push!(tv,cols)
+
+    return tv,list,cols
 end
 
 function update!(w::ProjectsPanel)
@@ -44,7 +59,8 @@ function update!(w::ProjectsPanel)
 
     empty!(w.list)
     for i = 1:length(n)
-        push!(w.list,(n[i],))
+        weight = n[i] == w.main_window.project.name ? 800 : 400 #bold the select project
+        push!(w.list,(n[i],weight))
     end
 
 end
@@ -56,18 +72,39 @@ function add_project(w::ProjectsPanel)
     w.main_window.project.name = name
     save(w.main_window.project)
     save(w.main_window)
-
 end
 
-function projectspanel_add_button_clicked_cb(widgetptr::Ptr, user_data)
+function remove_project(w::ProjectsPanel)
+    
+    v = selected(w.treeview, w.list)
+    v == nothing && return
+    
+    name = v[1]
+    name == "default" && return #can't delete default
+    
+    rm(joinpath(HOMEDIR,"config","projects","$(name).json"))
+    
+    if name == project.name #when current, load default
+        load(project,"default", w.main_window.editor, w.main_window; dosave=false)#we shouldn't resave the project we just deleted
+    end
+end
+
+@guarded nothing function projectspanel_add_button_clicked_cb(widgetptr::Ptr, user_data)
     w = user_data
     add_project(w)
     update!(w)
     return nothing
 end
 
-function on_path_change(w::ProjectsPanel)
+@guarded nothing function projectspanel_rm_button_clicked_cb(widgetptr::Ptr, user_data)
+    w = user_data
+    remove_project(w)
+    update!(w)
+    return nothing
+end
 
+function on_path_change(w::ProjectsPanel)
+   
 end
 
 function load(w::ProjectsPanel,treeview::GtkTreeView,list::GtkTreeStore)
@@ -78,7 +115,15 @@ function load(w::ProjectsPanel,treeview::GtkTreeView,list::GtkTreeStore)
     main_window = w.main_window
     editor = main_window.editor
 
-    project.name = v[1]
+    load(project,v[1], editor, main_window)
+    update!(w)
+end
+
+function load(project::Project,name::String, editor::Editor, main_window::MainWindow; dosave=true)
+
+    dosave && save(main_window.project)
+
+    project.name = name
     load(project)
     cd(project.path)
     empty!(editor)
