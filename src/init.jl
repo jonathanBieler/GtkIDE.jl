@@ -23,6 +23,8 @@ function __init__()
 
     init!(editor,search_window)
 
+    upgrade_project()
+
     global project = Project(main_window,"default")
 
     pathCBox = PathComboBox(main_window)
@@ -133,6 +135,8 @@ function __init__()
     update!(workspacepanel)
     add_side_panel(workspacepanel,"W")
 
+    ##
+
     global const projectspanel = ProjectsPanel(main_window)
     update!(projectspanel)
     add_side_panel(projectspanel,"P")
@@ -182,9 +186,9 @@ function __init__()
         g_timeout_add(10,print_to_console,console)
     end
     
-    #println("Warming up, hold on...")
-    #sleep(0.1)
-    #@schedule logo()
-    #new_prompt(console)
-
+    println("Warming up, hold on...")
+    sleep(0.1)
+    @schedule logo()
+    new_prompt(console)
+    
 end

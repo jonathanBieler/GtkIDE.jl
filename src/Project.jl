@@ -40,6 +40,15 @@ function update!(w::Project)
     end
 end
 
+#upgrade smoothly from the old project system
+function upgrade_project()
+    !isdir( joinpath(HOMEDIR,"config","projects") ) && mkdir( joinpath(HOMEDIR,"config","projects") )
+    if !isfile(joinpath(HOMEDIR,"config","projects","default.json"))
+        isfile(joinpath(HOMEDIR,"config","project")) &&
+        cp(joinpath(HOMEDIR,"config","project"),joinpath(HOMEDIR,"config","projects","default.json"))
+    end
+end
+
 function save(w::Project)
     update!(w)
     !isdir( joinpath(HOMEDIR,"config","projects") ) && mkdir( joinpath(HOMEDIR,"config","projects") )
