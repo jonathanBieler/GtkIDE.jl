@@ -588,7 +588,7 @@ end
 
 function kill_current_task(c::Console)
     try #otherwise this makes the callback fail in some versions
-        Base.throwto(c.run_task,InterruptException())
+        @schedule Base.throwto(c.run_task, InterruptException())
     end
 end
 

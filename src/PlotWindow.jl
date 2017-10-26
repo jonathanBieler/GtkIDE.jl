@@ -59,7 +59,7 @@ function array_to_rgb{T<:Number}(img::Array{T,3})
 end
 
 function image(img)
-    i = Image(img)
+    i = Image(flipdim(img,1))
     f = get_tab(fig_ntbook,get_current_page_idx(fig_ntbook))
     if typeof(f) == Image
         idx = get_current_page_idx(fig_ntbook)
