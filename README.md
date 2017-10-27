@@ -122,7 +122,7 @@ on the left.
 
 To gain space you can hide elements of the UI, e.g.:
 
-    `GtkIDE.visible(GtkIDE.main_window.menubar,false)`
+    GtkIDE.visible(GtkIDE.main_window.menubar,false)
 
 ### Issues
 
