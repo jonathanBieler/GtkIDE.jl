@@ -6,7 +6,7 @@
 #     export NoCompletion, NormalCompletion, MethodCompletion, TupleCompletion, CompletionProvider,
 #     WordCompletion, WordMenuCompletion,WordMenuCompletion_step1
 
-    abstract CompletionProvider
+    @compat abstract type CompletionProvider end
 
     type NoCompletion <: CompletionProvider
     end

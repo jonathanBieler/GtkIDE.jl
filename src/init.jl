@@ -187,7 +187,7 @@ function __init__()
     end
     
     println("Warming up, hold on...")
-    sleep(0.1)
+    sleep(0.05)
     @schedule logo()
     new_prompt(console)
     

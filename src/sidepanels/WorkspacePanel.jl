@@ -40,7 +40,7 @@ function update!(w::WorkspacePanel)
     t = map(s->var_type(s,mod),n)
     n = map(string,n)
 
-    idx = (t .!= "Module") & map(s->!startswith(s,"#"),n)
+    idx = (t .!= "Module") .& map(s->!startswith(s,"#"),n)
     n,t = n[idx], t[idx]
     
     M = sortrows([t n])#FIXME use tree view sorting?

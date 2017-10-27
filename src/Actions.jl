@@ -91,4 +91,4 @@ Actions["clear_console"] = Action("k", PrimaryModifier, "Clear Console")
 #main window
 
 # § key when pressing cmd
-Actions["console_editor_switch"] = Action(167, PrimaryModifier, "Switch between editor and console")
+Actions["console_editor_switch"] = Action(167, PrimaryModifier, "Switch focus between editor and console")

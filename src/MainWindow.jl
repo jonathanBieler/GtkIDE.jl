@@ -12,7 +12,7 @@ type MainWindow <: GtkWindow
 
     function MainWindow()
 
-        w = GtkWindow("GtkIDE.jl",1800,1200)
+        w = GtkWindow("GtkIDE.jl - v$(VERSION)",1800,1200)
         signal_connect(main_window_key_press_cb,w, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
         signal_connect(main_window_quit_cb, w, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 

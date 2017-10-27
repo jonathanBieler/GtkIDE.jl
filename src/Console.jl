@@ -121,29 +121,41 @@ function on_return(c::Console,cmd::String)
     (found,t) = check_console_commands(cmd,c)
 
     if !found
-        ref = remotecall(eval_command_remotely,c.worker_idx,cmd,c.eval_in)
-        t = @task fetch(ref) #I need a task here to be able to check if it's done
-        schedule(t)
+        remotecall_fetch(eval_command_remotely,c.worker_idx,cmd,c.eval_in)
+    else
+        c.run_task = t
     end
 
-    c.run_task = t
     c.run_task_start_time = time()
     GtkExtensions.text(c.main_window.statusBar,"Busy")
 
-    g_timeout_add(50,write_output_to_console,c)
+    g_timeout_add(50,write_output_to_console,(c,found))
     nothing
 end
+
+function kill_current_task(c::Console)
+    try #otherwise this makes the callback fail in some versions
+        #@schedule Base.throwto(c.run_task, InterruptException())
+        !isdone(c) && kill(c)
+    end
+end
+
+import RemoteEval: isdone, kill
+kill(c::Console) = remotecall_fetch(kill,c.worker_idx) 
+isdone(c::Console) = remotecall_fetch(isdone,c.worker_idx)
 
 "Wait for the running task to end and print the result in the console.
 Run from Gtk main loop."
 function write_output_to_console(user_data)
 
-    c = unsafe_pointer_to_objref(user_data)::Console
-    t = c.run_task
-
-    #yield()
-    if !istaskdone(t) #wait for task to be done
-        return Cint(true)
+    c, is_console_command = unsafe_pointer_to_objref(user_data)
+    
+    if is_console_command
+        t = c.run_task
+        !istaskdone(t) && return Cint(true)
+    else
+        !isdone(c) && return Cint(true)
+        t = remotecall_fetch(run_task,c.worker_idx)
     end
     
     try
@@ -586,12 +598,6 @@ function update_completions(c::Console,comp,dotpos,cmd,firstpart,lastpart)
     #set_position!(console.entry,endof(out))
 end
 
-function kill_current_task(c::Console)
-    try #otherwise this makes the callback fail in some versions
-        @schedule Base.throwto(c.run_task, InterruptException())
-    end
-end
-
 function init!(c::Console)
     signal_connect(console_key_press_cb, c.view, "key-press-event",
     Cint, (Ptr{Gtk.GdkEvent},), false, c)
@@ -704,7 +710,7 @@ end
 function watch_stream(rd::IO, c::Console)
     while !eof(rd) && is_running # blocks until something is available
         send_stream(rd,c.stdout_buffer)
-        sleep(0.001) # a little delay to accumulate output
+        sleep(0.01) # a little delay to accumulate output
     end
 end
 

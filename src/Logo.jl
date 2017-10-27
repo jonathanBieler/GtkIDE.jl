@@ -2,7 +2,7 @@
 
 function logo()
 
-    circle(t,r,c,opt) = layer(x=r[1]*sin(2π*t)+c[1],y=r[2]*cos(2π*t)+c[2],opt...)
+    circle(t,r,c,opt) = layer(x=r[1]*sin.(2π*t)+c[1],y=r[2]*cos.(2π*t)+c[2],opt...)
     line(t,v,c,opt) = layer(x=v[1]*t+c[1],y=v[2]*t+c[2],opt...)
 
     c0 = Colors.RGBA(0.15,0.15,0.15,0.9)
@@ -10,7 +10,7 @@ function logo()
     c2 = Colors.RGBA(0.84,0.4,0.38,0.9)
     c3 = Colors.RGBA(0.67,0.49,0.75,0.9)
 
-    xt = linspace(0,1,70)
+    xt = linspace(0,1,25)
     xt = xt.^4 ./ (0.3.^4 + xt.^4)
 
     opt  = (Geom.point,Theme(default_color=c0,highlight_width=0pt,point_size=3pt))
@@ -58,6 +58,6 @@ function logo()
         
     end
     sleep(0.1)
-    display(plot(x=xt,y=sin(2π*xt),Geom.line))
+    display(plot(x=xt,y=sin.(2π*xt),Geom.line))
 
 end

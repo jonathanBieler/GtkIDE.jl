@@ -65,7 +65,9 @@ Press `r` to reset the zoom.
 
 ### Shortcuts
 
-In the editor :
+- `Ctrl+§` Switch focus between editor and console.    
+
+In the editor:
 
 - `Ctrl+Shift+D` when the cursor is above a word will show you some info on it.
 - `Ctrl+Click`on a method will jump to its first definition.
@@ -81,6 +83,7 @@ In the editor :
 - `Ctrl+k` Delete line.
 - `Ctrl+d` Duplicate line.
 - `Ctrl+t` Toggle comment.
+- `Ctrl+g` Go to line.
 
 - `Alt+e` Move cursor to line end.
 - `Alt+a` Move cursor to line start.
@@ -91,6 +94,10 @@ In the editor :
 - `Ctrl+f` Search.
 - `Ctrl+a` Select all.
 
+In the console:
+
+- `Alt+x` Interrupt current task.
+- `Ctrl+k` Clear console.
 
 See [Actions.jl](src/Actions.jl) for all actions.
 
@@ -105,6 +112,17 @@ When editing markdown files (.md) autocompletion will display a list of English 
 from the [12Dicts Package](http://wordlist.aspell.net/12dicts/), instead of the standard Julia vocabulary.
 When pressing tab with a piece of text selected it will show you a couple of options you can
 apply to that text.
+
+### Projects
+
+A project is a path and a set of files. You can open and create projects in the project panel
+on the left.    
+
+### Misc.
+
+To gain space you can hide elements of the UI, e.g.:
+
+    `GtkIDE.visible(GtkIDE.main_window.menubar,false)`
 
 ### Issues
 
