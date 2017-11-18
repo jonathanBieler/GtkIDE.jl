@@ -17,11 +17,12 @@ opt(key::AbstractString) = opt("default",key)
 
 function init_opt()
 
-    default_settings = ConfParse(ascii(joinpath(HOMEDIR,"config","default_settings.ini")))
+    suffix = is_linux() ? "_linux" : ""
+    default_settings = ConfParse(ascii(joinpath(HOMEDIR,"config","default_settings$(suffix).ini")))
     parse_conf!(default_settings)
 
     if !isfile(joinpath(HOMEDIR,"config","user_settings.ini"))
-        cp(joinpath(HOMEDIR,"config","default_settings.ini"),joinpath(HOMEDIR,"config","user_settings.ini"))
+        cp(joinpath(HOMEDIR,"config","default_settings$(suffix).ini"),joinpath(HOMEDIR,"config","user_settings.ini"))
     end
 
 end
