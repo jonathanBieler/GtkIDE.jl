@@ -2,7 +2,6 @@
 using RemoteEval
 import Base: show, display
 
-
 show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
 function display(p::Gadfly.Plot)
     remotecall(display,1,p)

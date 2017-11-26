@@ -41,7 +41,7 @@ function __init__()
     load_tabs(editor,project)
 
     ## Ploting window
-    
+
     global const fig_ntbook = GtkNotebook()
     global const _display = Immerse._display
 
@@ -106,11 +106,11 @@ function __init__()
     Gtk.G_.position(mainPan,600)
     Gtk.G_.position(rightPan,450)
     #-
-    
+
     ## set some style
-    
+
     nbtbookcss =
-    "* tab {              
+    "* tab {
         padding:0px;
         padding-left:6px;
         padding-right:1px;
@@ -185,10 +185,10 @@ function __init__()
 
         g_timeout_add(10,print_to_console,console)
     end
-    
+
     println("Warming up, hold on...")
     sleep(0.05)
     @schedule logo()
     new_prompt(console)
-    
+
 end

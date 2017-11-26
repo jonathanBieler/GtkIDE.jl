@@ -17,6 +17,7 @@ type EditorTab <: GtkScrolledWindow
     scroll_target_line::Integer
     autocomplete_words::Array{AbstractString,1}
     label::GtkLabel
+    eval_in::Module
 
     function EditorTab(filename::AbstractString,main_window::MainWindow)
 
@@ -48,6 +49,7 @@ type EditorTab <: GtkScrolledWindow
         highlight(search_con,true)
 
         t = new(sc.handle,v,b,filename,false,search_con,nothing,nothing)
+        t.eval_in = Main
         Gtk.gobject_move_ref(t, sc)
     end
     EditorTab(main_window::MainWindow) = EditorTab("",main_window)
@@ -521,8 +523,15 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
             end
         else
             ex = parse(word)
-            v = eval(Main,ex)
+            
+            c = current_console(parent(t))
+            
+            v = remotecall_fetch(eval_symbol,c.worker_idx,ex,c.eval_in)
             v = RemoteEval.format_output(v)
+            
+            doc = remotecall_fetch(RemoteEval.get_doc,c.worker_idx,ex,c.eval_in)
+            
+            v = string(v,"\n\n",doc)
         end
 
         label = GtkLabel(v)
@@ -537,7 +546,7 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
             destroy(popup)#FIXME close on click or something
         end
     catch err
-#        warn(err)
+        warn(err)
     end
 end
 

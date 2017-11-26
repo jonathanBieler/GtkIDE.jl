@@ -41,7 +41,7 @@ end
     if typeof(main_window.project) == Project
         save(main_window.project)
     end
-    save(main_window) 
+    save(main_window)
 
     global is_running = false
     REDIRECT_STDOUT && stop_console_redirect(main_window)
@@ -88,7 +88,7 @@ end
             grab_focus(current_tab(main_window.editor).view)
         end
     end
-    
+
     return PROPAGATE
 end
 
@@ -110,10 +110,10 @@ end
 @guarded nothing function on_path_change(main_window::MainWindow,doUpdate=false)
     c_path = unsafe_string(Gtk.G_.active_text(main_window.pathCBox))
     update_pathEntry(main_window)
-    
+
     if pwd() != c_path || doUpdate
         push!(main_window.pathCBox,pwd())
-        for panel in main_window.sidepanel_ntbook 
+        for panel in main_window.sidepanel_ntbook
             on_path_change(panel)
         end
         save(main_window.project)
@@ -127,7 +127,7 @@ end
 
 function reload()
 
-    eval(GtkIDE,quote 
+    eval(GtkIDE,quote
     include(joinpath(HOMEDIR,"MenuUtils.jl"))
     include(joinpath(HOMEDIR,"PlotWindow.jl"))
     include(joinpath(HOMEDIR,"StyleAndLanguageManager.jl"))
@@ -144,7 +144,7 @@ function reload()
     include(joinpath(HOMEDIR,"SidePanels.jl"))
     include(joinpath(HOMEDIR,"Logo.jl"))
     end)
-    
+
 end
 
 ##
@@ -158,7 +158,7 @@ function restart(main_window::MainWindow,new_workspace=false)
         save(main_window.project)
 
         REDIRECT_STDOUT && stop_console_redirect(main_window)
-        
+
         new_workspace && workspace()
         destroy(main_window)
 #        gtkide()

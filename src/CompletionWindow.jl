@@ -96,7 +96,7 @@ end
 
 #FIXME dirty hack
 function remove_filename_from_methods_def(s::AbstractString)
-    ex = r"(^.*\))( at .+\.jl:[0-9]+$)" #remove the file/line number for methods)
+    ex = r"(^.*\))(.*\.jl:[0-9]+$)" #remove the file/line number for methods)
     m = match(ex,s)
     s = m == nothing ? s : m[1]
 

@@ -136,12 +136,12 @@ end
 function kill_current_task(c::Console)
     try #otherwise this makes the callback fail in some versions
         #@schedule Base.throwto(c.run_task, InterruptException())
-        !isdone(c) && kill(c)
+        !isdone(c) && interrupt_task(c)
     end
 end
 
-import RemoteEval: isdone, kill
-kill(c::Console) = remotecall_fetch(kill,c.worker_idx) 
+import RemoteEval: isdone, interrupt_task
+interrupt_task(c::Console) = remotecall_fetch(interrupt_task,c.worker_idx) 
 isdone(c::Console) = remotecall_fetch(isdone,c.worker_idx)
 
 "Wait for the running task to end and print the result in the console.
