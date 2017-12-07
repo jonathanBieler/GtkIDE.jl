@@ -15,6 +15,7 @@ using ConfParser
 using WordsUtils
 using RemoteEval
 include("Options.jl")
+include("MarkdownTextView.jl")
 
 import Gtk.GtkTextIter
 import Gadfly.Colors

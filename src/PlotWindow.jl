@@ -36,6 +36,8 @@ type Image <: GtkBox
     end
 end
 
+array_to_rgb{T<:Colors.Color}(img::Array{T,2}) = img
+
 function array_to_rgb{T<:Number}(img::Array{T,2})
     data = Array(Colors.RGB{Colors.U8}, size(img)...)
     img = img - minimum(img)
@@ -77,10 +79,10 @@ end
 function save(f::Image,filename)
     w, h = width(f.c), height(f.c)
     surf = Cairo.CairoPDFSurface(filename,w,h)
-    cr = CairoContext(surf)
-    set_source_surface(cr,f.c.backcc.surface)
-    paint(cr)
-    finish(surf)
+    cr = Cairo.CairoContext(surf)
+    Cairo.set_source_surface(cr,f.c.backcc.surface)
+    Cairo.paint(cr)
+    Cairo.finish(surf)
 end
 
 @guarded (PROPAGATE) function image_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)

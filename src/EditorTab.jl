@@ -528,25 +528,50 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
             
             v = remotecall_fetch(eval_symbol,c.worker_idx,ex,c.eval_in)
             v = RemoteEval.format_output(v)
-            
+                        
             doc = remotecall_fetch(RemoteEval.get_doc,c.worker_idx,ex,c.eval_in)
             
             v = string(v,"\n\n",doc)
         end
+        
+        sp = parent(t).main_window.style_and_language_manager.main_style
+        style = GtkSourceWidget.style(sp,"text")
+        
+        mc = MarkdownTextViews.MarkdownColors(
+            Gtk.getproperty(style,:foreground,String),
+            Gtk.getproperty(style,:background,String),
+            Gtk.getproperty(GtkSourceWidget.style(sp,"def:note"),:foreground,String),
+            Gtk.getproperty(style,:background,String),
+        )
 
-        label = GtkLabel(v)
-        popup = GtkWindow("", 2, 2, true, false) |> label
-        setproperty!(label,:margin,5)
+        view = MarkdownTextViews.MarkdownTextView(v,mc)
+        
+#        signal_connect(data_hint_window_key_press_cb,view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+        
+        popup = GtkWindow("", 800, 400, true, false) |> GtkScrolledWindow(view)
+        setproperty!(view,:margin,3)
 
         Gtk.G_.position(popup,mousepos_root[1]+10,mousepos_root[2])
         showall(popup)
 
         @schedule begin
-            sleep(2.5)
+            sleep(5)
             destroy(popup)#FIXME close on click or something
         end
     catch err
         warn(err)
+    end
+end
+
+#this doesn't work, the main view takes priority
+@guarded (INTERRUPT) function data_hint_window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+
+    textview = convert(GtkTextView, widgetptr)
+    event = convert(Gtk.GdkEvent,eventptr)
+    
+    if doing(Actions["copy"],event)
+        signal_emit(textview, "copy-clipboard", Void)
+        return INTERRUPT
     end
 end
 

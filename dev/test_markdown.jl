@@ -1,5 +1,40 @@
 ##
 
+GtkIDE.reload()
+
+##
+
+Gtk.GLib.nth
+
+#eval( Core.atdoc(:(Gtk.A.rand)) )
+
+##
+
+#    sc = Gtk.G_.style_context(t.view)
+#    push!(sc, provider, 600)
+
+
+sp = GtkIDE.main_window.style_and_language_manager.main_style
+style = GtkSourceWidget.style(sp,"text")
+
+
+mc = GtkIDE.MarkdownTextViews.MarkdownColors(
+    Gtk.getproperty(style,:foreground,String),
+    Gtk.getproperty(style,:background,String),
+    Gtk.getproperty(GtkSourceWidget.style(sp,"def:note"),:foreground,String),
+    Gtk.getproperty(style,:background,String),
+)
+
+v = GtkIDE.MarkdownTextViews.MarkdownTextView(string(@doc collect),mc)
+
+
+#GtkSourceWidget.GtkSourceStyle(
+
+w = Gtk.GtkWindow("asd",200,300) |> v
+showall(w)
+
+
+##
 s = """
 # fill *asd*
 
@@ -22,6 +57,9 @@ el = m.content[1]
 
 
 ##
+
+using Gtk
+import Gtk.GtkTextIter
 
 import Base.Markdown
 
@@ -151,9 +189,6 @@ end
 ##
 
 
-
-using Gtk
-import Gtk.GtkTextIter
 
 #buffer = GtkTextBuffer()
 #setproperty!(buffer,:text,"wesh")
