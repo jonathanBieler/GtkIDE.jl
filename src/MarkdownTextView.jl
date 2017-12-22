@@ -23,9 +23,10 @@ module MarkdownTextViews
         view::GtkTextView
         buffer::GtkTextBuffer
 
-        function MarkdownTextView(m::Markdown.MD, mc::MarkdownColors = MarkdownColors())
+        function MarkdownTextView(m::Markdown.MD, prelude::String, mc::MarkdownColors = MarkdownColors())
             
             buffer = GtkTextBuffer()
+            setproperty!(buffer,:text,prelude)  
             view = GtkTextView(buffer)
             
             GtkExtensions.style_css(view,"window, view, textview, buffer, text {
@@ -54,8 +55,9 @@ module MarkdownTextViews
             Gtk.gobject_move_ref(n, view)
         end
         
-        MarkdownTextView(txt::String) = MarkdownTextView(Base.Markdown.parse(txt))
-        MarkdownTextView(txt::String, mc::MarkdownColors) = MarkdownTextView(Base.Markdown.parse(txt),mc)
+        MarkdownTextView(m::String) = MarkdownTextView(Base.Markdown.parse(m),"")
+        MarkdownTextView(m::String,prelude::String, mc::MarkdownColors) = MarkdownTextView(Base.Markdown.parse(m),prelude,mc)
+        MarkdownTextView(m::String, mc::MarkdownColors) = MarkdownTextView(Base.Markdown.parse(m),"",mc)
 
     end
 
@@ -141,7 +143,7 @@ module MarkdownTextViews
     end
 
     function insert_MD!(buffer,m::Markdown.MD)
-        i = 1
+        i = length(buffer)+1
         for el in m.content
             i = insert_MD!(buffer,el,i)
             insert!(buffer,"\n\n")
@@ -149,8 +151,6 @@ module MarkdownTextViews
         end
     end
 
-
-    
     
 end
     

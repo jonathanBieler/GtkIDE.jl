@@ -531,7 +531,7 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
                         
             doc = remotecall_fetch(RemoteEval.get_doc,c.worker_idx,ex,c.eval_in)
             
-            v = string(v,"\n\n",doc)
+            doc = string("\n",doc)
         end
         
         sp = parent(t).main_window.style_and_language_manager.main_style
@@ -544,7 +544,7 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
             Gtk.getproperty(style,:background,String),
         )
 
-        view = MarkdownTextViews.MarkdownTextView(v,mc)
+        view = MarkdownTextViews.MarkdownTextView(doc,v,mc)
         
 #        signal_connect(data_hint_window_key_press_cb,view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
         
