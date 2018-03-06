@@ -2,11 +2,11 @@
 
 function __init__()
 
-    global is_running = true #should probably use g_main_loop_is_running or something of the sort
+    global const is_running = true #should probably use g_main_loop_is_running or something of the sort
 
     global const default_settings = init_opt()
-
-    global main_window = MainWindow()
+    
+    global const main_window = MainWindow()
 
     ## Console
 
@@ -25,7 +25,7 @@ function __init__()
 
     upgrade_project()
 
-    global project = Project(main_window,"default")
+    global const project = Project(main_window,"default")
 
     pathCBox = PathComboBox(main_window)
     statusBar = GtkStatusbar()
@@ -55,7 +55,7 @@ function __init__()
     visible(completion_window,false)
 
     ## Main layout
-    global mainPan = GtkPaned(:h)
+    global const mainPan = GtkPaned(:h)
     rightPan = GtkPaned(:v)
 
     main_window |>
@@ -165,8 +165,8 @@ function __init__()
 
     if REDIRECT_STDOUT
 
-        global stdout = STDOUT
-        global stderr = STDERR
+        global const stdout = STDOUT
+        global const stderr = STDERR
 
         read_stdout, wr = redirect_stdout()
         #read_stderr, wre = redirect_stderr()
@@ -178,7 +178,7 @@ function __init__()
             @schedule watch_stream(read_stderr,console)
         end
 
-        global watch_stdout_task = watch_stdout()
+        global const watch_stdout_task = watch_stdout()
         #global watch_stderr_task = watch_stderr()
 
         init_stdout!(main_window.console_manager,watch_stdout_task,stdout,stderr)

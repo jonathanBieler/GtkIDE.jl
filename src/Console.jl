@@ -473,8 +473,8 @@ cfunction(_callback_only_for_return, Cint, (Ptr{Console},Ptr{Gtk.GdkEvent},Conso
     return PROPAGATE
 end
 
-global console_mousepos = zeros(Int,2)
-global console_mousepos_root = zeros(Int,2)
+global const console_mousepos = zeros(Int,2)
+global const console_mousepos_root = zeros(Int,2)
 
 #FIXME replace this by the same thing at the window level ?
 #or put this as a field of the type.

@@ -517,21 +517,24 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
     try
         if extension(t.filename) == ".md"
             defs = WordsUtils.definition(lowercase(word))
-            v = ""
+            v, doc = "", ""
             for d in defs
                 v = string(v,d,"\n\n")
             end
         else
             ex = parse(word)
-            
+            ex == nothing && return
+
             c = current_console(parent(t))
             
             v = remotecall_fetch(eval_symbol,c.worker_idx,ex,c.eval_in)
             v = RemoteEval.format_output(v)
                         
             doc = remotecall_fetch(RemoteEval.get_doc,c.worker_idx,ex,c.eval_in)
-            
+             
+            v = string(v,"\n\n")
             doc = string("\n",doc)
+
         end
         
         sp = parent(t).main_window.style_and_language_manager.main_style

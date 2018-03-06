@@ -1,18 +1,18 @@
 import Gtk.GConstants.GdkModifierType, Gtk.GConstants.GdkModifierType.SHIFT
 
 @static if is_apple()
-    const PrimaryModifier = GdkModifierType.MOD2
-    const SecondaryModifer = GdkModifierType.CONTROL
+    global const PrimaryModifier = GdkModifierType.MOD2
+    global const SecondaryModifer = GdkModifierType.CONTROL
 end
 @static if is_windows()
-    const PrimaryModifier = GdkModifierType.CONTROL
-    const SecondaryModifer = GdkModifierType.MOD1 #alt key
+    global const PrimaryModifier = GdkModifierType.CONTROL
+    global const SecondaryModifer = GdkModifierType.MOD1 #alt key
 end
 @static if is_linux()
-    const PrimaryModifier = GdkModifierType.CONTROL
-    const SecondaryModifer = GdkModifierType.MOD1
+    global const PrimaryModifier = GdkModifierType.CONTROL
+    global const SecondaryModifer = GdkModifierType.MOD1
 end
-const NoModifier  = zero(typeof(PrimaryModifier))
+global const NoModifier  = zero(typeof(PrimaryModifier))
 
 type Action
     keyval::Integer

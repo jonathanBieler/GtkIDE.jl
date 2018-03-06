@@ -96,8 +96,8 @@ end
 
 if !isdefined(:watch_stdio_task)
 
-    stdout = STDOUT
-    stderr = STDERR
+    global const stdout = STDOUT
+    global const stderr = STDERR
 
     read_stdout, wr = redirect_stdout()
     #read_stderr, wre = redirect_stderr()
