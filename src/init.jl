@@ -7,8 +7,10 @@ function __init__()
     global const default_settings = init_opt()
     
     global const main_window = MainWindow()
-
+    
     ## Console
+    
+    em = ElasticManager(cookie="gtkide")
 
     console_mng = ConsoleManager(main_window)
     init!(console_mng)
@@ -188,7 +190,7 @@ function __init__()
 
     println("Warming up, hold on...")
     sleep(0.05)
-    @schedule logo()
+#    @schedule logo()
     new_prompt(console)
 
 end

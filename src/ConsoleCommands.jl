@@ -39,7 +39,7 @@ add_console_command(r"^clc$",(m,c) -> begin
     clear(c)
     nothing
 end)
-add_console_command(r"^pwd",(m,c) -> begin
+add_console_command(r"^pwd$",(m,c) -> begin
     return pwd() * "\n"
 end)
 add_console_command(r"^ls\s+(.*)",(m,c) -> begin

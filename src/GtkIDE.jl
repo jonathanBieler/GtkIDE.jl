@@ -3,15 +3,8 @@ module GtkIDE
 
 global const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
 global const REDIRECT_STDOUT = true
-using Reexport
-using Immerse
-using Gtk
-using GtkSourceWidget
-using GtkExtensions
-using GtkUtilities
-using JSON
-using Compat
-using ConfParser
+using JSON, Compat, ConfParser, Reexport, ClusterManagers
+using Gtk, GtkSourceWidget, Immerse, GtkExtensions, GtkUtilities
 using WordsUtils
 using RemoteEval
 include("Options.jl")

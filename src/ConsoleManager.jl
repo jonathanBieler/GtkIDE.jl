@@ -43,6 +43,25 @@ function add_console(main_window::MainWindow)
     c
 end
 
+function add_worker()
+
+    if is_apple()
+        run(`osascript -e 'tell application "Terminal" to do script "julia -i /Users/jbieler/.julia/v0.6/GtkIDE/src/remote_worker_startup.jl"'`)
+    end
+
+end
+
+function add_worker_cb(id)
+    info("Starting console for worker $id")
+
+    c = Console(id,main_window)
+    init!(c)
+
+    g_timeout_add(100,print_to_console,c)
+    c
+end
+
+
 @guarded (INTERRUPT) function console_mng_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     ntbook = convert(GtkNotebook, widgetptr)
