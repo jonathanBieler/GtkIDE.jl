@@ -78,7 +78,13 @@ function send_to_main_worker(stdout_buffer::IO)
     while true
         s = String(take!(stdout_buffer))
         if !isempty(s)
-            remotecall(print_to_console_remote,1,s,myid())
+            
+            remotecall_fetch(include_string,1,"""
+                eval(GtkIDE,:(
+                    print_to_console_remote("$s", $(myid()) ) 
+                ))
+            """)
+
         end
         sleep(0.01)
     end

@@ -11,5 +11,5 @@ remotecall(include_string,1,"
     ))
 ")
 
-#import Base.Distributed.myid
-#myid() = 1 #hack to allow for precompilation
+# import Base.Distributed.myid
+# myid() = 1 #hack to allow for precompilation
