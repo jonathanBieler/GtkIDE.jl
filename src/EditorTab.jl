@@ -538,7 +538,7 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
         end
         
         sp = parent(t).main_window.style_and_language_manager.main_style
-        style = GtkSourceWidget.style(sp,"text")
+        style = GtkSourceWidget.style(sp,"text")#FIXME : Duplicate Julia object creation detected for GObject
         
         mc = MarkdownTextViews.MarkdownColors(
             Gtk.getproperty(style,:foreground,String),
@@ -551,7 +551,7 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
         
 #        signal_connect(data_hint_window_key_press_cb,view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
         
-        popup = GtkWindow("", 800, 400, true, false) |> GtkScrolledWindow(view)
+        popup = GtkWindow("", 800, 400, true, true) |> GtkScrolledWindow(view)
         setproperty!(view,:margin,3)
 
         Gtk.G_.position(popup,mousepos_root[1]+10,mousepos_root[2])

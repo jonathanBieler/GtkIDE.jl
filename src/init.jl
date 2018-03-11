@@ -5,12 +5,12 @@ function __init__()
     global const is_running = true #should probably use g_main_loop_is_running or something of the sort
 
     global const default_settings = init_opt()
-    
+
     global const main_window = MainWindow()
-    
+
     ## Console
-    
-    em = ElasticManager(cookie="gtkide")
+
+    em = ElasticManager(IPv4("127.0.0.1"),9019,"gtkide")
 
     console_mng = ConsoleManager(main_window)
     init!(console_mng)

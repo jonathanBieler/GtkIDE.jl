@@ -46,7 +46,12 @@ end
 function add_worker()
 
     if is_apple()
-        run(`osascript -e 'tell application "Terminal" to do script "julia -i /Users/jbieler/.julia/v0.6/GtkIDE/src/remote_worker_startup.jl"'`)
+
+        p = joinpath(HOMEDIR,"remote_worker_startup.jl")
+        s = "tell application \"Terminal\" to do script \"julia -i \\\"$p\\\"\""
+        run(`osascript -e $s`)
+#      `"osascript -e '\`tell application '\"Terminal\"' to do script 'julia -i /Users/bieler/.julia/v0.6/GtkIDE/src/remote_worker_startup.jl'\`'"`  /GtkIDE/src/remote_worker_startup.jl'\`'"`
+#        osascript -e 'tell application "Terminal" to do script "julia -i ../remote_worker_startup.jl"'
     end
 
 end
@@ -116,7 +121,7 @@ function stop_console_redirect(main_window::MainWindow)
 #    try
 #        Base.throwto(t, InterruptException())
 #    end
-    
+
     sleep(0.1)
     redirect_stdout(out)
     #redirect_stderr(err)
