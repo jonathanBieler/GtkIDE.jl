@@ -11,8 +11,7 @@ type Console <: GtkScrolledWindow
     run_task::Task
     prompt_position::Integer
     stdout_buffer::IOBuffer
-    worker_idx::Int
-    run_worker::Channel
+    worker::TCPSocket
     history::HistoryProvider
     run_task_start_time::AbstractFloat
     main_window::MainWindow
@@ -121,7 +120,7 @@ function on_return(c::Console,cmd::String)
     (found,t) = check_console_commands(cmd,c)
 
     if !found
-        remotecall_fetch(eval_command_remotely,c.worker_idx,cmd,c.eval_in)
+        remotecall_fetch(eval_command_remotely,c.worker,cmd,c.eval_in)
     else
         c.run_task = t
     end
@@ -141,8 +140,8 @@ function kill_current_task(c::Console)
 end
 
 import RemoteEval: isdone, interrupt_task
-interrupt_task(c::Console) = remotecall_fetch(interrupt_task,c.worker_idx) 
-isdone(c::Console) = remotecall_fetch(isdone,c.worker_idx)
+interrupt_task(c::Console) = remotecall_fetch(interrupt_task,c.worker) 
+isdone(c::Console) = remotecall_fetch(isdone,c.worker)
 
 "Wait for the running task to end and print the result in the console.
 Run from Gtk main loop."
@@ -155,7 +154,7 @@ function write_output_to_console(user_data)
         !istaskdone(t) && return Cint(true)
     else
         !isdone(c) && return Cint(true)
-        t = remotecall_fetch(run_task,c.worker_idx)
+        t = remotecall_fetch(run_task,c.worker)
     end
     
     try
@@ -610,7 +609,7 @@ function init!(c::Console)
     signal_connect(console_scroll_cb, c.view, "size-allocate", Void,
     (Ptr{Gtk.GdkRectangle},), false,c)
     push!(console_manager(c),c)
-    set_tab_label_text(console_manager(c),c,"C" * string(c.worker_idx))
+    set_tab_label_text(console_manager(c),c,"C" * string(length(console_manager(c))))
 end
 
 "Run from the main Gtk loop, and print to console
@@ -669,7 +668,7 @@ end
     idx = index(ntbook,tab)
     if idx != 1#can't close the main console
         close_tab(ntbook,idx)
-        rmprocs(tab.worker_idx)
+        #rmprocs(tab.worker_idx) # FIXME
     end
     return nothing
 end
