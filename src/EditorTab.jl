@@ -527,10 +527,10 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
 
             c = current_console(parent(t))
             
-            v = remotecall_fetch(eval_symbol,c.worker_idx,ex,c.eval_in)
-            v = RemoteEval.format_output(v)
+            v = remotecall_fetch(eval_symbol,c.worker,ex,c.eval_in)
+            v = RemoteGtkIDE.format_output(v)
                         
-            doc = remotecall_fetch(RemoteEval.get_doc,c.worker_idx,ex,c.eval_in)
+            doc = remotecall_fetch(RemoteGtkIDE.get_doc,c.worker,ex,c.eval_in)
              
             v = string(v,"\n\n")
             doc = string("\n",doc)

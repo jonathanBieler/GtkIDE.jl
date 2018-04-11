@@ -12,12 +12,13 @@ type Console <: GtkScrolledWindow
     prompt_position::Integer
     stdout_buffer::IOBuffer
     worker::TCPSocket
+    worker_idx::Int
     history::HistoryProvider
     run_task_start_time::AbstractFloat
     main_window::MainWindow
     eval_in::Module
 
-    function Console(w_idx::Int,main_window::MainWindow)
+    function Console(w_idx::Int, main_window::MainWindow, worker::TCPSocket)
 
         lang = main_window.style_and_language_manager.languageDefinitions[".jl"]
 
@@ -48,29 +49,21 @@ type Console <: GtkScrolledWindow
         push!(Gtk.G_.style_context(v), main_window.style_and_language_manager.style_provider, 600)
         t = @schedule begin end
 
-        if w_idx > 1
-            eval(Main,
-            quote 
-                remotecall_wait(
-                    (HOMEDIR)->begin
-                        include(joinpath(HOMEDIR,"remote_utils.jl"))
-                    end
-                ,$w_idx
-                ,$HOMEDIR)
-            end
-            )
-        end
-
         history = setup_history(w_idx)
 
-        n = new(sc.handle,v,b,t,2,IOBuffer(),w_idx,Channel{Any}(32),history,time(),main_window,Main)
+        worker = worker == nothing ? w_idx : worker
+        
+        n = new(sc.handle,v,b,t,2,IOBuffer(),worker,w_idx,history,time(),main_window,Main)
         Gtk.gobject_move_ref(n, sc)
     end
 end
 
+worker(c::Console) = c.worker_idx == 1 ? c.worker_idx : c.worker
+
 include("ConsoleCommands.jl")
 
 import Base.write
+
 
 function write(c::Console,str::AbstractString)
     insert!(c.buffer,end_iter(c.buffer),str)
@@ -120,7 +113,7 @@ function on_return(c::Console,cmd::String)
     (found,t) = check_console_commands(cmd,c)
 
     if !found
-        remotecall_fetch(eval_command_remotely,c.worker,cmd,c.eval_in)
+        remotecall_fetch(eval_command_remotely,worker(c),cmd,c.eval_in)
     else
         c.run_task = t
     end
@@ -139,9 +132,9 @@ function kill_current_task(c::Console)
     end
 end
 
-import RemoteEval: isdone, interrupt_task
-interrupt_task(c::Console) = remotecall_fetch(interrupt_task,c.worker) 
-isdone(c::Console) = remotecall_fetch(isdone,c.worker)
+import RemoteGtkIDE: isdone, interrupt_task
+interrupt_task(c::Console) = remotecall_fetch(interrupt_task,worker(c)) 
+isdone(c::Console) = remotecall_fetch(isdone,worker(c))
 
 "Wait for the running task to end and print the result in the console.
 Run from Gtk main loop."
@@ -154,7 +147,7 @@ function write_output_to_console(user_data)
         !istaskdone(t) && return Cint(true)
     else
         !isdone(c) && return Cint(true)
-        t = remotecall_fetch(run_task,c.worker)
+        t = remotecall_fetch(run_task,worker(c))
     end
     
     try
@@ -674,7 +667,7 @@ end
 end
 
 function first_console(main_window::MainWindow)
-    c = Console(1,main_window)
+    c = Console(1,main_window,TCPSocket())
     init!(c)
     c
 end

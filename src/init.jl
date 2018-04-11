@@ -93,7 +93,7 @@ function __init__()
     console = first_console(main_window)
     #add_console()
     for i=1:length(free_workers(console_mng))
-        add_console(main_window)
+       #add_console(main_window)
     end
 
     setproperty!(statusBar,:margin,2)

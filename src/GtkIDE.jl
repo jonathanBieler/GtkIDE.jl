@@ -1,4 +1,4 @@
-__precompile__()
+#__precompile__()
 module GtkIDE
 
 global const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
@@ -13,7 +13,9 @@ using JSON
 using Compat
 using ConfParser
 using WordsUtils
-using RemoteEval
+#using RemoteEval
+using RemoteGtkIDE
+
 include("Options.jl")
 include("MarkdownTextView.jl")
 

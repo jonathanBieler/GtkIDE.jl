@@ -2,6 +2,8 @@ type ConsoleManager <: GtkNotebook
 
     handle::Ptr{Gtk.GObject}
     main_window::MainWindow
+    server::Base.TCPServer
+    port::UInt16
     watch_stdout_task::Task
     stdout
     stderr
@@ -9,8 +11,9 @@ type ConsoleManager <: GtkNotebook
     function ConsoleManager(main_window::MainWindow)
 
         ntb = GtkNotebook()
+        port, server = RemoteGtkIDE.start_server()
 
-        n = new(ntb.handle,main_window)
+        n = new(ntb.handle,main_window,server, port)
         Gtk.gobject_move_ref(n, ntb)
     end
 end
@@ -28,6 +31,35 @@ function init_stdout!(console_mng::ConsoleManager,watch_stdout_task,stdout,stder
     console_mng.stderr = stderr
 end
 
+function add_remote_console(main_window::MainWindow)
+
+    port = console_manager(main_window).port
+    id = length(console_manager(main_window)) + 1
+    p = joinpath(HOMEDIR,"remote_console_startup.jl")
+    s = "tell application \"Terminal\" to do script \"julia -i \\\"$p\\\" $port $id\""
+    run(`osascript -e $s`)
+
+end
+
+function add_remote_console_cb(id, port)
+    info("Starting console for port $port with id $id")
+
+    c = try
+        worker = connect(port)
+        c = Console(id, main_window, worker)
+        init!(c)
+        c
+    catch err
+        warn(err)
+    end
+
+    RemoteGtkIDE.remotecall_fetch(info, worker(c),"Initializing worker...")
+    #RemoteGtkIDE.remotecall_fetch(include, worker(c),joinpath(HOMEDIR,"remote_utils.jl"))
+
+    #g_timeout_add(100,print_to_console,c)
+    "done"
+end
+
 function add_console(main_window::MainWindow)
 
     free_w = free_workers(console_manager(main_window))
@@ -36,7 +68,7 @@ function add_console(main_window::MainWindow)
     else
         i = free_w[1]
     end
-    c = Console(i,main_window)
+    c = Console(i,main_window,TCPSocket())
     init!(c)
 
     g_timeout_add(100,print_to_console,c)
@@ -82,7 +114,7 @@ function free_workers(console_mng::ConsoleManager)
 
     for i=1:length(console_mng)
         c = console_mng[i]
-        push!(used_w,c.worker_idx)
+        typeof(c.worker) == Int && push!(used_w,c.worker)
     end
     setdiff(w,used_w)
 end

@@ -1,5 +1,5 @@
 #things that need to be defined on remote workers
-using RemoteEval
+#using RemoteEval
 import Base: show, display
 
 show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
