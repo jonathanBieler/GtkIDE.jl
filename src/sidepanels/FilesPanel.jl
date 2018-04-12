@@ -35,8 +35,9 @@ type FilesPanel <: GtkScrolledWindow
     end
 end
 
-
-(type_folder, type_file, type_placeholder) = (1,2,3) #FIXME: add in GtkExtensions ?
+global const type_folder = 1 
+global const type_file = 2
+global const type_placeholder = 3 #FIXME: add in GtkExtensions ?
 
 function files_tree_view(rownames)
     n  = length(rownames)

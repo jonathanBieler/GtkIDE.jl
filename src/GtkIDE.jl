@@ -1,8 +1,8 @@
 __precompile__()
 module GtkIDE
 
-const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
-const REDIRECT_STDOUT = true
+global const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
+global const REDIRECT_STDOUT = true
 using Reexport
 using Immerse
 using Gtk

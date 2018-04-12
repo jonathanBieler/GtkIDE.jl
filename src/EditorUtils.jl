@@ -28,10 +28,10 @@ getindex(s::SolidString,i::Integer) = s.c[i]
 getindex(s::SolidString,i::UnitRange) = string(s.c[i]...)
 
 # maybe not the most efficient way of doing this.
-const _word_bounardy = [' ', '\n','\t','(',')','[',']',',','\'',
+global const _word_bounardy = [' ', '\n','\t','(',')','[',']',',','\'',
                        '*','+','-','/','\\','%','{','}','#',':',
                        '&','|','?','!','"','$','=','>','<']
-const _word_bounardy_dot = [_word_bounardy; '.']#include dot in function of the context
+global const _word_bounardy_dot = [_word_bounardy; '.']#include dot in function of the context
 
 function is_word_boundary(s::Char,include_dot::Bool)
     w = include_dot ? _word_bounardy_dot : _word_bounardy
@@ -127,7 +127,6 @@ end
 select_word_backward(pos::Integer,txt::AbstractString,include_dot::Bool) =
 select_word_backward(pos,SolidString(txt,pos),include_dot)
 
-
 ######################
 ## Utility functions
 
@@ -170,7 +169,6 @@ function lstrip_idx(s::AbstractString, chars::Base.Chars=Base._default_delims)
     end
     i
 end
-
 
 get_buffer(view::GtkTextView) = getproperty(view,:buffer,GtkTextBuffer)
 cursor_position(b::GtkTextBuffer) = getproperty(b,:cursor_position,Int)
