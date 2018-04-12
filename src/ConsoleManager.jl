@@ -32,13 +32,11 @@ function init_stdout!(console_mng::ConsoleManager,watch_stdout_task,stdout,stder
 end
 
 function add_remote_console(main_window::MainWindow)
-
     port = console_manager(main_window).port
     id = length(console_manager(main_window)) + 1
     p = joinpath(HOMEDIR,"remote_console_startup.jl")
-    s = "tell application \"Terminal\" to do script \"julia -i \\\"$p\\\" $port $id\""
+    s = "tell application \"Terminal\" to do script \"julia -i --color=no \\\"$p\\\" $port $id\""
     run(`osascript -e $s`)
-
 end
 
 function add_remote_console_cb(id, port)
@@ -54,9 +52,8 @@ function add_remote_console_cb(id, port)
     end
 
     RemoteGtkIDE.remotecall_fetch(info, worker(c),"Initializing worker...")
-    #RemoteGtkIDE.remotecall_fetch(include, worker(c),joinpath(HOMEDIR,"remote_utils.jl"))
 
-    #g_timeout_add(100,print_to_console,c)
+    g_timeout_add(100,print_to_console,c)
     "done"
 end
 

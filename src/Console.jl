@@ -113,7 +113,7 @@ function on_return(c::Console,cmd::String)
     (found,t) = check_console_commands(cmd,c)
 
     if !found
-        remotecall_fetch(eval_command_remotely,worker(c),cmd,c.eval_in)
+        remotecall_fetch(RemoteGtkIDE.eval_command_remotely,worker(c),cmd,c.eval_in)
     else
         c.run_task = t
     end
@@ -132,9 +132,8 @@ function kill_current_task(c::Console)
     end
 end
 
-import RemoteGtkIDE: isdone, interrupt_task
-interrupt_task(c::Console) = remotecall_fetch(interrupt_task,worker(c)) 
-isdone(c::Console) = remotecall_fetch(isdone,worker(c))
+interrupt_task(c::Console) = remotecall_fetch(RemoteGtkIDE.interrupt_task,worker(c)) 
+isdone(c::Console) = remotecall_fetch(RemoteGtkIDE.isdone,worker(c))
 
 "Wait for the running task to end and print the result in the console.
 Run from Gtk main loop."
@@ -676,9 +675,11 @@ get_current_console(console_mng::GtkNotebook) = console_mng[index(console_mng)]
 
 #this is called by remote workers
 function print_to_console_remote(s,idx::Integer)
+    
     #print the output to the right console
     for i = 1:length(main_window.console_manager)
         c = get_tab(main_window.console_manager,i)
+        
         if c.worker_idx == idx
             write(c.stdout_buffer,s)
         end
