@@ -12,7 +12,6 @@ using GtkUtilities
 using JSON
 using Compat
 using ConfParser
-using WordsUtils
 #using RemoteEval
 using RemoteGtkIDE
 

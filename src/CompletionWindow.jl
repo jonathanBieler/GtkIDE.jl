@@ -167,8 +167,6 @@ end
 ##
 function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuffer,editor)#FIXME? Editor not defined
 
-    #if event.keyval >= keyval("0") && event.keyval <= keyval("z")
-
     event.keyval == Gtk.GdkKeySyms.Escape && return false
     event.keyval == Gtk.GdkKeySyms.Down && return false
     event.keyval == Gtk.GdkKeySyms.Up && return false
@@ -214,9 +212,7 @@ function clean_symbols(S::Array{Symbol,1})
     sort(S)
 end
 
-
 function collect_symbols(t::EditorTab)
-
     ##
     str = String(getproperty(t.buffer,:text,AbstractString))
     S = Array{Symbol}(0)

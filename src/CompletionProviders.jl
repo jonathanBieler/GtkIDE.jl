@@ -43,30 +43,6 @@
         func_names
         TupleCompletion() = new(Function[],1,"",nothing,nothing,[""],[""])
     end
-    type WordCompletion <: CompletionProvider
-        steps::Array{Function,1}
-        state::Int
-        cmd::AbstractString
-        itstart
-        itend
-        comp
-        WordCompletion() = new(Function[],1,"",nothing,nothing,[""])
-    end
-
-    function WordMenuCompletion_step1()
-        return ["search","endswith","synonyms"]
-    end
-
-    type WordMenuCompletion <: CompletionProvider
-        steps::Array{Function,1}
-        state::Int
-        cmd::AbstractString
-        last_idx::Int
-        itstart
-        itend
-        comp
-        WordMenuCompletion() = new([WordMenuCompletion_step1],1,"",1,nothing,nothing,[""])
-    end
 
 #end
 #using CompletionProviders
@@ -132,8 +108,7 @@ function get_completion_provider(view::GtkTextView,t::EditorTab)
     buffer = getbuffer(view)
     it = get_text_iter_at_cursor(buffer)
 
-    for pt in [NormalCompletion,MethodCompletion,TupleCompletion,
-               WordCompletion,WordMenuCompletion]#subtypes(CompletionProviders.CompletionProvider)
+    for pt in [NormalCompletion,MethodCompletion,TupleCompletion]#subtypes(CompletionProviders.CompletionProvider)
         p = pt()
         select_text(p,buffer,it,t) && return p
     end
@@ -274,59 +249,7 @@ function insert(p::TupleCompletion,s,buffer)
     insert!(buffer,p.itstart,s)
 end
 
-# WordCompletion
 
-function select_text(p::WordCompletion,buffer,it,t)
-
-#    println("testing WordCompletion")
-    !istextfile(t) && return false
-    hasselection(t) && return false
-#    println("testing WordCompletion,does't has selection")
-
-    (cmd,its,ite) = select_word_backward(it,buffer,false)
-    cmd = strip(cmd)
-    isempty(cmd) && return false
-
-    cmd == "" && return false
-    p.cmd = cmd
-    p.itstart = its
-    p.itend = ite
-    true
-end
-function completions(p::WordCompletion,t,idx,c::Console)
-    comp = startswith(WordsUtils.wordlist,ascii(p.cmd))
-    p.comp = comp
-end
-
-# WordMenuCompletion
-
-function select_text(p::WordMenuCompletion,buffer,it,t)
-
-    !istextfile(t) && return false
-    (found,its,ite) = selection_bounds(buffer)
-    !found && return false
-
-    cmd = text_iter_get_text(its,ite)
-    cmd = strip(cmd)
-    isempty(cmd) && return false
-
-    cmd == "" && return false
-    p.cmd = cmd
-    p.itstart = its
-    p.itend = ite
-    true
-end
-function completions(p::WordMenuCompletion,t,idx,c::Console)
-    #["search","endswith","synonyms"]
-    if idx == 1
-        comp = search(WordsUtils.wordlist,ascii(p.cmd))
-    elseif idx == 2
-        comp = endswith(WordsUtils.wordlist,ascii(p.cmd))
-    else
-        comp = WordsUtils.synonyms(p.cmd)
-    end
-    p.comp = comp
-end
 
 
 #end

@@ -174,7 +174,7 @@ get_buffer(view::GtkTextView) = getproperty(view,:buffer,GtkTextBuffer)
 cursor_position(b::GtkTextBuffer) = getproperty(b,:cursor_position,Int)
 
 get_text_iter_at_cursor(b::GtkTextBuffer) =
-GtkTextIter(b,cursor_position(b)+1) #+1 because there's a -1 in gtk.jl
+    GtkTextIter(b,cursor_position(b)+1) #+1 because there's a -1 in gtk.jl
 
 function get_current_line_text(buffer::GtkTextBuffer)
     it = get_text_iter_at_cursor(buffer)

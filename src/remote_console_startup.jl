@@ -13,17 +13,26 @@ module GtkIDEWorker
 end
 
 #ploting stuff
-using Gadfly
-import Base: show, display
+function gadfly()
 
-show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
-function display(p::Gadfly.Plot)
-    remotecall_fetch(display,GtkIDEWorker.gtkide,p)
-    nothing
+    @eval begin
+
+        RemoteGtkIDE.gadfly()
+
+        export figure
+        import Base: show, display
+
+        show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
+        function display(p::Gadfly.Plot)
+            remotecall_fetch(display,GtkIDEWorker.gtkide,p)
+            nothing
+        end
+
+        figure() = remotecall_fetch(RemoteGtkIDE.eval_command_remotely,GtkIDEWorker.gtkide,"figure()",Main)
+        figure(i::Integer) = remotecall_fetch(RemoteGtkIDE.eval_command_remotely,GtkIDEWorker.gtkide,"figure($i)",Main)
+
+    end
 end
-
-figure() = remotecall_fetch(RemoteGtkIDE.eval_command_remotely,GtkIDEWorker.gtkide,"figure()",Main)
-figure(i::Integer) = remotecall_fetch(RemoteGtkIDE.eval_command_remotely,GtkIDEWorker.gtkide,"figure($i)",Main)
 
 # finally register ourself to gtkide
 RemoteGtkIDE.remotecall_fetch(include_string, GtkIDEWorker.gtkide,"

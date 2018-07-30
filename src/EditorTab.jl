@@ -516,11 +516,7 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
 
     try
         if extension(t.filename) == ".md"
-            defs = WordsUtils.definition(lowercase(word))
-            v, doc = "", ""
-            for d in defs
-                v = string(v,d,"\n\n")
-            end
+
         else
             ex = parse(word)
             ex == nothing && return
