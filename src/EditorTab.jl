@@ -102,6 +102,7 @@ function open_in_new_tab(filename::AbstractString,editor;line=0)#FIXME type this
     open(t,t.filename)
     return t
 end
+open_in_new_tab(filename::AbstractString;line=0) = open_in_new_tab(filename,main_window.editor;line=line)#need this for console command
 
 function set_font(t::EditorTab,provider::GtkStyleProvider)
     sc = Gtk.G_.style_context(t.view)
@@ -289,8 +290,8 @@ function run_line(console::Console,t::EditorTab)
 end
 
 function run_command(c::Console,cmd::AbstractString)
-    prompt(c,cmd)
-    on_return(c,cmd)
+    GtkREPL.command(c,cmd)
+    GtkREPL.on_return(c,cmd)
 end
 
 @guarded (PROPAGATE) function editor_tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)

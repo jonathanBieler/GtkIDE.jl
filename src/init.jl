@@ -1,17 +1,36 @@
 ## globals
 
+function init_console!(v,b,main_window)
+
+    setproperty!(b,:style_scheme,main_window.style_and_language_manager.main_style)
+    
+    highlight_matching_brackets(b,true)
+    
+    show_line_numbers!(v,false)
+    auto_indent!(v,true)
+    highlight_current_line!(v, true)
+    setproperty!(v,:wrap_mode,1)
+    #setproperty!(v,:expand,true)
+
+    setproperty!(v,:tab_width,4)
+    setproperty!(v,:insert_spaces_instead_of_tabs,true)
+
+    setproperty!(v,:margin_bottom,10)
+
+    style_css(v,style_provider(main_window))
+
+end
+
 function __init__()
 
     global const is_running = true #should probably use g_main_loop_is_running or something of the sort
-
     global const default_settings = init_opt()
-    
     global const main_window = MainWindow()
 
     ## Console
 
     console_mng = ConsoleManager(main_window)
-    init!(console_mng)
+    GtkREPL.init!(console_mng)
 
     ## Editor
 
@@ -90,11 +109,12 @@ function __init__()
 
     # Console
 
-    console = first_console(main_window)
-    #add_console()
-    for i=1:length(free_workers(console_mng))
-       #add_console(main_window)
-    end
+
+    lang = main_window.style_and_language_manager.languageDefinitions[".jl"]
+    console = Console{GtkSourceView,GtkSourceBuffer}(1,main_window,TCPSocket(),(v,b)->init_console!(v,b,main_window),(lang,))
+    GtkREPL.init!(console)
+
+    @assert length(console_mng) == 1
 
     setproperty!(statusBar,:margin,2)
     GtkExtensions.text(statusBar,"Julia $VERSION")
@@ -141,9 +161,9 @@ function __init__()
     update!(projectspanel)
     add_side_panel(projectspanel,"P")
 
-
     ################
     ## Plots
+    GtkREPL.gadfly()
 
     sleep(0.01)
     figure()
@@ -172,16 +192,16 @@ function __init__()
         #read_stderr, wre = redirect_stderr()
 
         function watch_stdout()
-            @schedule watch_stream(read_stdout,console)
+            @schedule GtkREPL.watch_stream(read_stdout,console)
         end
         function watch_stderr()
-            @schedule watch_stream(read_stderr,console)
+            @schedule GtkREPL.watch_stream(read_stderr,console)
         end
 
         global const watch_stdout_task = watch_stdout()
         #global watch_stderr_task = watch_stderr()
 
-        init_stdout!(main_window.console_manager,watch_stdout_task,stdout,stderr)
+       GtkREPL.init_stdout!(main_window.console_manager,watch_stdout_task,stdout,stderr)
 
         g_timeout_add(10,print_to_console,console)
     end

@@ -3,17 +3,14 @@ module GtkIDE
 
 global const HOMEDIR = joinpath(Pkg.dir(),"GtkIDE","src")
 global const REDIRECT_STDOUT = true
-using Reexport
-using Immerse
-using Gtk
-using GtkSourceWidget
-using GtkExtensions
-using GtkUtilities
-using JSON
+
 using Compat
-using ConfParser
-#using RemoteEval
-using RemoteGtkIDE
+using Gtk, GtkSourceWidget, GtkUtilities, GtkExtensions
+using Immerse
+using GtkREPL
+using JSON, ConfParser
+
+import GtkREPL: ConsoleManager, Console, current_console, print_to_console, new_prompt, worker
 
 include("Options.jl")
 include("MarkdownTextView.jl")
@@ -23,6 +20,7 @@ import Gadfly.Colors
 import Immerse.Cairo
 
 export image, plot, figure, rprint
+
 
 # Compatitbily with 0.5
 if !isdefined(Base,:(showlimited))
@@ -36,17 +34,9 @@ if !GtkSourceWidget.SOURCE_MAP
     type GtkSourceMap end
 end
 
-#dirty hack ?
-if !isdefined(Base,:MethodList)#0.4
-    function method_filename(m)
-        tv, decls, file, line = Base.arg_decl_parts(m.defs)
-        return file,line
-    end
-else
-    function method_filename(m)
-        tv, decls, file, line = Base.arg_decl_parts(m.ms[1])
-        return file,line
-    end
+function method_filename(m)
+    tv, decls, file, line = Base.arg_decl_parts(m.ms[1])
+    return file,line
 end
 
 import Base: REPLCompletions.completions, push!, search
@@ -60,8 +50,8 @@ include("PlotWindow.jl")
 include("StyleAndLanguageManager.jl")
 include("MainWindow.jl")
 include("Project.jl")
-include("ConsoleManager.jl")
-include("CommandHistory.jl")
+#include("ConsoleManager.jl")
+#include("CommandHistory.jl")
 include("Console.jl")
 include("Refactoring.jl")
 include("Editor.jl")
@@ -72,7 +62,6 @@ include("SidePanels.jl")
 include("Logo.jl")
 
 include("init.jl")
-
 
 #__init__()
 end#module
