@@ -61,7 +61,7 @@ el = m.content[1]
 using Gtk
 import Gtk.GtkTextIter
 
-import Base.Markdown
+import Markdown
 
 
 function tag(buffer,what,i,j)

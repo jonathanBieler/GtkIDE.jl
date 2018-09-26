@@ -236,7 +236,7 @@ function collect_symbols(t::EditorTab)
                 elseif typeof(S_) == Symbol
                     push!(S, S_)
                 else
-                    warn("collect_symbols didn't return an array of Symbol:")
+                    @warn("collect_symbols didn't return an array of Symbol:")
                     @show S_
                 end
             end
@@ -299,7 +299,7 @@ end
 import Base.typeseq
 function type_close_enough(x::DataType, t::DataType)
     typeseq(x,t) && return true
-    return (x.name === t.name && !isleaftype(t) && x <: t)
+    return (x.name === t.name && !isconcretetype(t) && x <: t)
 end
 function type_close_enough(x::Union, t::DataType)
     typeseq(x,t) && return true
@@ -409,7 +409,7 @@ take a tuple as a string `(x,y)`, parse it and return the types in a tuple if de
 function tuple_to_types(tu::AbstractString,c::Console)
     args = []
     try
-        ex = parse(tu)
+        ex = Meta.parse(tu)
         if typeof(ex) != Expr
             ex = Expr(:tuple,ex)
         end

@@ -10,7 +10,7 @@ function logo()
     c2 = Colors.RGBA(0.84,0.4,0.38,0.9)
     c3 = Colors.RGBA(0.67,0.49,0.75,0.9)
 
-    xt = linspace(0,1,25)
+    xt = range(0, stop=1, length=25)
     xt = xt.^4 ./ (0.3.^4 + xt.^4)
 
     opt  = (Geom.point,Theme(default_color=c0,highlight_width=0pt,point_size=3pt))
@@ -20,7 +20,7 @@ function logo()
 
     for maxt in xt
 
-        t = collect(linspace(0,maxt,90))
+        t = collect(range(0, stop=maxt, length=90))
        
         spacing = 0.3 + maxt/15
         h = 1.6
