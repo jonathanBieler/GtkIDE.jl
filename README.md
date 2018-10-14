@@ -1,5 +1,5 @@
 # GtkIDE.jl
-GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](https://github.com/JuliaLang/julia) 0.5-0.6 written in Julia. It includes a terminal, a plotting window and an editor.
+GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](https://github.com/JuliaLang/julia) 0.7 written in Julia. It includes a terminal, a plotting window and an editor.
 
 ![screenshot](data/GtkIDE.png)
 
@@ -12,39 +12,37 @@ Demo [video](https://www.youtube.com/watch?v=AbzNUNfwSGc).
     ```julia
      Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")
      Pkg.clone("https://github.com/jonathanBieler/GtkExtensions.jl.git")
-     Pkg.clone("https://github.com/jonathanBieler/WordsUtils.jl.git")
-     Pkg.clone("https://github.com/jonathanBieler/RemoteEval.jl.git")
-     Pkg.checkout("Gtk")
+     Pkg.clone("https://github.com/jonathanBieler/GtkMarkdownTextView.jl.git")
+     Pkg.clone("https://github.com/jonathanBieler/GtkTextUtils.jl.git")
+     Pkg.clone("https://github.com/jonathanBieler/JuliaWordsUtils.jl.git")
+     Pkg.clone("https://github.com/jonathanBieler/RemoteGtkREPL.jl.git")
+     Pkg.clone("https://github.com/jonathanBieler/GtkREPL.jl.git")
+     Pkg.clone("https://github.com/jonathanBieler/GtkIDE.jl.git")
      ```
 
-2. Install the package
-
-    `Pkg.clone("https://github.com/jonathanBieler/GtkIDE.jl.git")`
-    
-3. Start julia with no colors, and run it
+3. Start julia with no colors, and use the package
 
     ```
     ... julia --color=no
     using GtkIDE
     ```
-    
+
 ## Usage
- 
+
 **Warning:** make sure to backup or commit your work before editing files, as this editor is
-still somewhat experimental. 
+still somewhat experimental.
 
 ### Opening files
 
-Use cd, ls, pwd to navigate in the console, and type `edit filename` to open a file. 
+Use cd, ls, pwd to navigate in the console, and type `edit filename` to open a file.
 If `filename` does not exists it will be created instead. You can also use the files panel on the left.
 
 See [ConsoleCommands.jl](src/ConsoleCommands.jl) for a list of console commands.
 
 ### Running code
 
-Each console is associated with a Julia worker. The first worker runs GtkIDE, so running 
-computations that use all the CPU on it will freeze the application. Additional workers/consoles can be
-added by calling `GtkIDE.add_console(GtkIDE.main_window)` on the first worker, or via the right-click activated menu.
+Each console is associated with a Julia worker. The first worker runs GtkIDE, so running
+computations that use all the CPU on it will freeze the application. Additional workers/consoles can be via the right-click activated menu.
 
 - `F5`: Include the current file
 - `Ctrl+Return`: Run selected code, or run code between two `## ' (like Matlab's code sections).
@@ -60,7 +58,7 @@ You can create new figures by typing `figure()` into the console (see Immerse do
 Immerse uses [Gadfly.jl](https://github.com/dcjones/Gadfly.jl) to create plots.
 
 Since displaying images is slow in Gadly there is also an `Image` widget available.
-Use `image(randexp(500,500))` to display a matrix. Zooming on images is handled by Immerse. 
+Use `image(randexp(500,500))` to display a matrix. Zooming on images is handled by Immerse.
 Press `r` to reset the zoom.
 
 ### Shortcuts
@@ -105,13 +103,6 @@ See [Actions.jl](src/Actions.jl) for all actions.
 
 You can create a function for a selected piece of code by pressing `Ctrl+e` and typing the name of the function. GtkIDE will try to guess
 the parameters but will fail to do so in some situations.
-
-### Editing text
-
-When editing markdown files (.md) autocompletion will display a list of English words
-from the [12Dicts Package](http://wordlist.aspell.net/12dicts/), instead of the standard Julia vocabulary.
-When pressing tab with a piece of text selected it will show you a couple of options you can
-apply to that text.
 
 ### Projects
 
