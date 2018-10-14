@@ -4,7 +4,7 @@ include("EditorTab.jl")
 
 "     Editor <: GtkNotebook
 "
-type Editor <: GtkNotebook
+mutable struct Editor <: GtkNotebook
 
     handle::Ptr{Gtk.GObject}
     sourcemap::Gtk.GtkWidget
@@ -13,8 +13,8 @@ type Editor <: GtkNotebook
 
     function Editor(main_window::MainWindow)
         ntbook = GtkNotebook()
-        setproperty!(ntbook,:scrollable, true)
-        setproperty!(ntbook,:enable_popup, false)
+        set_gtk_property!(ntbook,:scrollable, true)
+        set_gtk_property!(ntbook,:enable_popup, false)
 
         if GtkSourceWidget.SOURCE_MAP #old linux libraries don't have GtkSourceMap
             sourcemap = GtkSourceMap()
@@ -65,7 +65,7 @@ end
 
 #this could be in the constructor but it doesn't work for some reason
 function init!(editor::Editor,search_window::SearchWindow)
-    signal_connect(ntbook_switch_page_cb,editor,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
+    signal_connect(ntbook_switch_page_cb,editor,"switch-page", Nothing, (Ptr{Gtk.GtkWidget},Int32), false)
     signal_connect(ntbook_motion_notify_event_cb,editor,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
     editor.search_window = search_window
 end
@@ -166,11 +166,11 @@ function create_tab_menu(container, tab)
 
 
 #
-#    signal_connect(close_tab_cb, closeTabItem, "activate", Void,(),false,tab)
-#    signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Void,(),false,tab)
-#    signal_connect(close_tabs_right_cb, closeTabsRight, "activate", Void,(),false,tab)
-#    signal_connect(close_all_tabs_cb, closeAllTabs, "activate", Void,(),false,tab)
-#    signal_connect(reveal_in_tree_view, revealInTreeItem, "activate", Void,(),false,tab)
+#    signal_connect(close_tab_cb, closeTabItem, "activate", Nothing,(),false,tab)
+#    signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Nothing,(),false,tab)
+#    signal_connect(close_tabs_right_cb, closeTabsRight, "activate", Nothing,(),false,tab)
+#    signal_connect(close_all_tabs_cb, closeAllTabs, "activate", Nothing,(),false,tab)
+#    signal_connect(reveal_in_tree_view, revealInTreeItem, "activate", Nothing,(),false,tab)
 
     menu = buildmenu([
             MenuItem("Close Tab",close_tab_cb),
@@ -190,7 +190,7 @@ function create_tab_menu(container, tab)
         if typeof(editor[i]) == EditorTab
             s = GtkMenuItem(basename(editor[i].filename))
             push!(menu,s)
-            signal_connect(switch_tab_cb, s, "activate", Void,(),false,(i,editor))
+            signal_connect(switch_tab_cb, s, "activate", Nothing,(),false,(i,editor))
         end
     end
 
@@ -218,7 +218,7 @@ function get_tab_widget(tab, filename)
     push!(event_box,layout)
     signal_connect(tab_button_press_event_cb, event_box, "button-press-event",Cint, (Ptr{Gtk.GdkEvent},), false,tab)
     lbl = GtkLabel(basename(filename))
-    setproperty!(lbl,:name, "filename_label")
+    set_gtk_property!(lbl,:name, "filename_label")
     btn = GtkButton("X")
 
     style_css(btn,"button {
@@ -226,9 +226,9 @@ function get_tab_widget(tab, filename)
           margin: 0px;
           margin-left:1px;
           }")
-    setproperty!(btn,:relief,2)
+    set_gtk_property!(btn,:relief,2)
 
-    signal_connect(close_tab_cb, btn, "clicked", Void,(),false,tab)
+    signal_connect(close_tab_cb, btn, "clicked", Nothing,(),false,tab)
 
     push!(layout,lbl)
     push!(layout,btn)
@@ -241,7 +241,7 @@ function open(t::EditorTab, filename::AbstractString)
     try
         if isfile(filename)
             f = Base.open(filename)
-            set_text!(t,readstring(f))
+            set_text!(t,read(f,String))
             t.modified = false
             modified(t,t.modified)
         else
@@ -279,12 +279,12 @@ function add_tab(filename::AbstractString,editor::Editor)
     signal_connect(editor_tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t)
     signal_connect(editor_tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false,editor)
     signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,editor)
-    signal_connect(tab_buffer_changed_cb,t.buffer,"changed", Void, (), false,t)
+    signal_connect(tab_buffer_changed_cb,t.buffer,"changed", Nothing, (), false,t)
 
 #    signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint,
-#    (Ptr{Void},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}), false)
+#    (Ptr{Nothing},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}), false)
 
-    signal_connect(tab_adj_changed_cb, getproperty(t.view,:vadjustment,GtkAdjustment) , "changed", Void, (), false,t)
+    signal_connect(tab_adj_changed_cb, get_gtk_property(t.view,:vadjustment,GtkAdjustment) , "changed", Nothing, (), false,t)
 
     return t
 end
@@ -310,7 +310,7 @@ function load_tabs(editor::Editor,project::Project)
     end
 
     if length(editor)==0
-        open_in_new_tab(joinpath(Pkg.dir(),"GtkIDE","README.md"),editor)
+        open_in_new_tab(joinpath(HOMEDIR,"..","README.md"),editor)
     elseif ntbook_idx <= length(editor)
         index(editor,ntbook_idx)
     end

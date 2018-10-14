@@ -3,7 +3,7 @@
 
 A single text file inside the `Editor`.
 The main fields are the GtkSourceView (view) and the GtkSourceBuffer (buffer)."
-type EditorTab <: GtkScrolledWindow
+mutable struct EditorTab <: GtkScrolledWindow
 
     handle::Ptr{Gtk.GObject}
     view::GtkSourceView
@@ -30,7 +30,7 @@ type EditorTab <: GtkScrolledWindow
 
         b = GtkSourceBuffer(lang)
 
-        setproperty!(b,:style_scheme,main_window.style_and_language_manager.main_style)
+        set_gtk_property!(b,:style_scheme,main_window.style_and_language_manager.main_style)
         v = GtkSourceView(b)
 
         highlight_matching_brackets(b,true)
@@ -38,9 +38,9 @@ type EditorTab <: GtkScrolledWindow
         show_line_numbers!(v,opt("Editor","show_line_numbers"))
 	    auto_indent!(v,true)
         highlight_current_line!(v, true)
-        setproperty!(v,:wrap_mode,opt("Editor","wrap_mode"))
-        setproperty!(v,:tab_width,opt("Editor","tab_width"))
-        setproperty!(v,:insert_spaces_instead_of_tabs,true)
+        set_gtk_property!(v,:wrap_mode,opt("Editor","wrap_mode"))
+        set_gtk_property!(v,:tab_width,opt("Editor","tab_width"))
+        set_gtk_property!(v,:insert_spaces_instead_of_tabs,true)
 
         sc = GtkScrolledWindow()
         push!(sc,v)
@@ -56,12 +56,12 @@ type EditorTab <: GtkScrolledWindow
 end
 
 function set_text!(t::EditorTab,text::AbstractString)
-    setproperty!(t.buffer,:text,text)
+    set_gtk_property!(t.buffer,:text,text)
 end
-get_text(t::EditorTab) = getproperty(t.buffer,:text,AbstractString)
+get_text(t::EditorTab) = get_gtk_property(t.buffer,:text,AbstractString)
 
 import GtkExtensions.getbuffer
-getbuffer(textview::GtkTextView) = getproperty(textview,:buffer,GtkSourceBuffer)
+getbuffer(textview::GtkTextView) = get_gtk_property(textview,:buffer,GtkSourceBuffer)
 
 include("CompletionWindow.jl")
 include("SearchWindow.jl")
@@ -156,9 +156,9 @@ function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not d
     word = get_word_under_mouse_cursor(view)
 
     try
-        ex = parse(word)
+        ex = Meta.parse(word)
 
-        v = eval(Main,ex)
+        v = Core.eval(Main,ex)
         v = typeof(v) <: Function ? methods(v) : v
 
         file, line = method_filename(v)
@@ -193,8 +193,8 @@ end
 
 function line_to_adj_value(buffer::GtkTextBuffer,adj::GtkAdjustment,l::Integer)
     tot = line_count(buffer)
-    scaling = getproperty(adj,:upper,AbstractFloat) #-
-              #getproperty(adj,:page_size,AbstractFloat)
+    scaling = get_gtk_property(adj,:upper,AbstractFloat) #-
+              #get_gtk_property(adj,:page_size,AbstractFloat)
 
     return l/tot * scaling
 end
@@ -215,7 +215,7 @@ end
 
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
-    buffer = getproperty(textview,:buffer,GtkTextBuffer)
+    buffer = get_gtk_property(textview,:buffer,GtkTextBuffer)
     editor = user_data
 
     if event.event_type == Gtk.GdkEventType.DOUBLE_BUTTON_PRESS
@@ -261,7 +261,7 @@ function completion_mode(buffer,it,t)
     (:none,cmd,nothing,nothing)
 end
 
-function replace_text{T<:GtkTextIters}(buffer::GtkTextBuffer,itstart::T,itend::T,str::AbstractString)
+function replace_text(buffer::GtkTextBuffer,itstart::T,itend::T,str::AbstractString) where {T<:GtkTextIters}
     pos = offset(itstart)+1
     splice!(buffer,itstart:itend)
     insert!(buffer,GtkTextIter(buffer,pos),str)
@@ -364,11 +364,11 @@ end
             (txt, its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer))
             selection_bounds(buffer,its,ite)
         end
-        signal_emit(textview, "copy-clipboard", Void)
+        signal_emit(textview, "copy-clipboard", Nothing)
         return INTERRUPT
     end
     if doing(Actions["paste"],event)
-        signal_emit(textview, "paste-clipboard", Void)
+        signal_emit(textview, "paste-clipboard", Nothing)
         return INTERRUPT
     end
     if doing(Actions["cut"],event)
@@ -377,7 +377,7 @@ end
             (txt, its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer))
             selection_bounds(buffer,its,ite)
         end
-        signal_emit(textview, "cut-clipboard", Void)
+        signal_emit(textview, "cut-clipboard", Nothing)
 
         return INTERRUPT
     end
@@ -414,7 +414,7 @@ end
         (found,itstart,itend) = selection_bounds(buffer)
         if found
             itstart = text_iter_line_start(nonmutable(buffer,itstart))#FIXME need a mutable version
-            !getproperty(itend,:ends_line,Bool) && text_iter_forward_to_line_end(itend)
+            !get_gtk_property(itend,:ends_line,Bool) && text_iter_forward_to_line_end(itend)
             splice!(buffer,itstart-1:itend)
         else
             (cmd, itstart, itend) = get_current_line_text(buffer)
@@ -496,7 +496,7 @@ function run_code(console::Console,t::EditorTab)
         if found
             cmd = text_iter_get_text(it_start,it_end)
         else
-            cmd = getproperty(t.buffer,:text,AbstractString)
+            cmd = get_gtk_property(t.buffer,:text,AbstractString)
         end
     end
     run_command(console,cmd)
@@ -505,7 +505,7 @@ end
 function get_word_under_mouse_cursor(textview::GtkTextView)
     (x,y) = text_view_window_to_buffer_coords(textview,mousepos[1],mousepos[2])
     iter_end = get_iter_at_position(textview,x,y)
-    buffer = getproperty(textview,:buffer,GtkTextBuffer)
+    buffer = get_gtk_property(textview,:buffer,GtkTextBuffer)
     (word,itstart,itend) = select_word(iter_end,buffer,false)
 
     return word
@@ -519,15 +519,15 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
         if extension(t.filename) == ".md"
 
         else
-            ex = parse(word)
+            ex = Meta.parse(word)
             ex == nothing && return
 
             c = current_console(parent(t))
             
-            v = remotecall_fetch(eval_symbol,c.worker,ex,c.eval_in)
-            v = RemoteGtkIDE.format_output(v)
+            v = remotecall_fetch(GtkREPL.eval_symbol,worker(c),ex,c.eval_in)
+            v = GtkREPL.RemoteGtkREPL.format_output(v)
                         
-            doc = remotecall_fetch(RemoteGtkIDE.get_doc,c.worker,ex,c.eval_in)
+            doc = remotecall_fetch(GtkREPL.RemoteGtkREPL.get_doc,worker(c),ex,c.eval_in)
              
             v = string(v,"\n\n")
             doc = string("\n",doc)
@@ -537,24 +537,24 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
         sp = parent(t).main_window.style_and_language_manager.main_style
         style = GtkSourceWidget.style(sp,"text")
         
-        mc = MarkdownTextViews.MarkdownColors(
-            Gtk.getproperty(style,:foreground,String),
-            Gtk.getproperty(style,:background,String),
-            Gtk.getproperty(GtkSourceWidget.style(sp,"def:note"),:foreground,String),
-            Gtk.getproperty(style,:background,String),
+        mc = MarkdownColors(
+            Gtk.get_gtk_property(style,:foreground,String),
+            Gtk.get_gtk_property(style,:background,String),
+            Gtk.get_gtk_property(GtkSourceWidget.style(sp,"def:note"),:foreground,String),
+            Gtk.get_gtk_property(style,:background,String),
         )
 
-        view = MarkdownTextViews.MarkdownTextView(doc,v,mc)
+        view = MarkdownTextView(doc,v,mc)
         
 #        signal_connect(data_hint_window_key_press_cb,view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
         
         popup = GtkWindow("", 800, 400, true, false) |> GtkScrolledWindow(view)
-        setproperty!(view,:margin,3)
+        set_gtk_property!(view,:margin,3)
 
         Gtk.G_.position(popup,mousepos_root[1]+10,mousepos_root[2])
         showall(popup)
 
-        @schedule begin
+        @async begin
             sleep(5)
             destroy(popup)#FIXME close on click or something
         end
@@ -570,13 +570,13 @@ end
     event = convert(Gtk.GdkEvent,eventptr)
     
     if doing(Actions["copy"],event)
-        signal_emit(textview, "copy-clipboard", Void)
+        signal_emit(textview, "copy-clipboard", Nothing)
         return INTERRUPT
     end
 end
 
-value(adj::GtkAdjustment) = getproperty(adj,:value,AbstractFloat)
-value(adj::GtkAdjustment,v::AbstractFloat) = setproperty!(adj,:value,v)
+value(adj::GtkAdjustment) = get_gtk_property(adj,:value,AbstractFloat)
+value(adj::GtkAdjustment,v::AbstractFloat) = set_gtk_property!(adj,:value,v)
 
 # maybe I should replace this by a task that check for the
 # end of loading and then call a function
@@ -607,9 +607,9 @@ end
 
 function scroll_to_line(t::EditorTab,l::Integer)
 
-    adj = getproperty(t,:vadjustment,GtkAdjustment)
+    adj = get_gtk_property(t,:vadjustment,GtkAdjustment)
     v = line_to_adj_value(get_buffer(t.view),adj,l)
-    v = max(0,v - getproperty(adj,:step_increment,AbstractFloat))
+    v = max(0,v - get_gtk_property(adj,:step_increment,AbstractFloat))
     value(adj,v)
 end
 
@@ -628,7 +628,7 @@ function modified(t::EditorTab,v::Bool)
 
     s = v ? f * "*" : f
 
-    setproperty!(t.label,:label,s)
+    set_gtk_property!(t.label,:label,s)
 end
 
 function tab_buffer_changed_cb(widgetptr::Ptr,user_data)
@@ -670,7 +670,7 @@ function input_dialog(message::AbstractString, entry_default::AbstractString, bu
     
     showall(widget)
     resp = run(widget)
-    entry_text = getproperty(entry, :text, String)
+    entry_text = get_gtk_property(entry, :text, String)
     destroy(widget)
     return resp, entry_text
 end

@@ -1,7 +1,7 @@
 ## save window size, pan positions, etc
 ## create folder if necessary
 
-type Project
+mutable struct Project
     name::String
     path::String
     files::Array{String,1}
@@ -9,7 +9,7 @@ type Project
     ntbook_idx::Integer
     main_window::MainWindow
 
-    Project(main_window::MainWindow,name::String) = new(name,"",Array{String}(0),Array{Float64}(0),1,main_window)
+    Project(main_window::MainWindow,name::String) = new(name,"",String[],Float64[],1,main_window)
 end
 
 #let's not serialize main_window
@@ -24,16 +24,16 @@ JSON.lower(w::Project) = Dict(
 function update!(w::Project)
     editor = _editor(w.main_window)
     w.path = pwd()
-    w.files = Array{String}(0)
-    w.scroll_position = Array{Float64}(0)
+    w.files = String[]
+    w.scroll_position = Float64[]
     w.ntbook_idx = get_current_page_idx(editor)
 
     for i=1:length(editor)
         t = get_tab(editor,i)
         if typeof(t) == EditorTab && t.filename != ""#in case we want to have something else in the editor
 
-            adj = getproperty(t,:vadjustment, GtkAdjustment)
-            push!(w.scroll_position,getproperty(adj,:value,AbstractFloat))
+            adj = get_gtk_property(t,:vadjustment, GtkAdjustment)
+            push!(w.scroll_position,get_gtk_property(adj,:value,AbstractFloat))
 
             push!(w.files,t.filename)
         end

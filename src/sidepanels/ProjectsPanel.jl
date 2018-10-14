@@ -1,4 +1,4 @@
-type ProjectsPanel <: GtkScrolledWindow
+mutable struct ProjectsPanel <: GtkScrolledWindow
 
     handle::Ptr{Gtk.GObject}
     list::GtkTreeStore
@@ -18,12 +18,12 @@ type ProjectsPanel <: GtkScrolledWindow
         push!(bbox,add_button,rm_button)
 
         sc = GtkScrolledWindow()
-        setproperty!(sc,:vexpand,true)
-        setproperty!(sc,:hscrollbar_policy,1)
+        set_gtk_property!(sc,:vexpand,true)
+        set_gtk_property!(sc,:hscrollbar_policy,1)
         push!(sc,tv)
 
         push!(vbox,bbox,sc)
-        setproperty!(bbox,:layout_style, Gtk.GConstants.GtkButtonBoxStyle.GTK_BUTTONBOX_START)
+        set_gtk_property!(bbox,:layout_style, Gtk.GConstants.GtkButtonBoxStyle.GTK_BUTTONBOX_START)
         
         t = new(vbox.handle,list,tv,add_button,main_window)
 
@@ -32,8 +32,8 @@ type ProjectsPanel <: GtkScrolledWindow
         signal_connect(projectspanel_treeview_keypress_cb,tv, "key-press-event",
                        Cint, (Ptr{Gtk.GdkEvent},), false,t)
         
-        signal_connect(projectspanel_add_button_clicked_cb, add_button, "clicked", Void, (), false, t)
-        signal_connect(projectspanel_rm_button_clicked_cb, rm_button, "clicked", Void, (), false, t)
+        signal_connect(projectspanel_add_button_clicked_cb, add_button, "clicked", Nothing, (), false, t)
+        signal_connect(projectspanel_rm_button_clicked_cb, rm_button, "clicked", Nothing, (), false, t)
 
         Gtk.gobject_move_ref(t,vbox)
     end

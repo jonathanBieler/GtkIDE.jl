@@ -1,6 +1,6 @@
 include("CompletionProviders.jl")
 
-type CompletionWindow <: GtkWindow #FIXME not the right container?
+mutable struct CompletionWindow <: GtkWindow #FIXME not the right container?
 
     handle::Ptr{Gtk.GObject}
     view::GtkSourceView
@@ -17,18 +17,18 @@ type CompletionWindow <: GtkWindow #FIXME not the right container?
     function CompletionWindow(main_window::MainWindow)
 
         buffer = GtkSourceBuffer()
-        setproperty!(buffer,:text,"")
+        set_gtk_property!(buffer,:text,"")
         Gtk.create_tag(buffer, "selected",font="Bold")
 
         textview = GtkSourceView()
-        setproperty!(textview,:buffer, buffer)
-        setproperty!(textview,:editable, false)
-        setproperty!(textview,:can_focus, false)
-        setproperty!(textview,:hexpand, true)
-        setproperty!(textview,:wrap_mode,0)
+        set_gtk_property!(textview,:buffer, buffer)
+        set_gtk_property!(textview,:editable, false)
+        set_gtk_property!(textview,:can_focus, false)
+        set_gtk_property!(textview,:hexpand, true)
+        set_gtk_property!(textview,:wrap_mode,0)
 
         completion_window = GtkWindow("",1,1,true,false)
-        #setproperty!(completion_window,:height_request, 100)
+        #set_gtk_property!(completion_window,:height_request, 100)
         push!(completion_window,textview)
         showall(completion_window)
 
@@ -52,7 +52,7 @@ import  Base.Multimedia.display
 #            pos_end = length(str)+1
 #        end
 #    end
-#    setproperty!(w.buffer,:text,str)
+#    set_gtk_property!(w.buffer,:text,str)
 #    Gtk.apply_tag(w.buffer, "selected", Gtk.GtkTextIter(w.buffer,pos_start), Gtk.GtkTextIter(w.buffer,pos_end) )
 #end
 
@@ -70,7 +70,7 @@ function display(w::CompletionWindow)
             pos_end = length(str)+1
         end
     end
-    setproperty!(w.buffer,:text,str)
+    set_gtk_property!(w.buffer,:text,str)
     Gtk.apply_tag(w.buffer, "selected", Gtk.GtkTextIter(w.buffer,pos_start), Gtk.GtkTextIter(w.buffer,pos_end) )
 end
 #
@@ -100,7 +100,7 @@ function remove_filename_from_methods_def(s::AbstractString)
     m = match(ex,s)
     s = m == nothing ? s : m[1]
 
-    ex = r"(^.*\))( at none:[0-9]+$)"
+    ex = r"(^.*\))(.*?at none:[0-9]+$)"
     m = match(ex,s)
     s = m == nothing ? s : m[1]
 
@@ -214,22 +214,22 @@ end
 
 function collect_symbols(t::EditorTab)
     ##
-    str = String(getproperty(t.buffer,:text,AbstractString))
-    S = Array{Symbol}(0)
+    str = String(get_gtk_property(t.buffer,:text,AbstractString))
+    S = Symbol[]
 
     #no searchall :'(
-    pos = Array{Integer}(0)
+    pos = Int[]
     del = '\n'
-    i = start(str)
+    i = firstindex(str)
     for j=1:length(str)
         str[i] == del && push!(pos,i)
         i = nextind(str,i)
     end
 
-    i = start(str)
-    while !done(str,i)#thanks Lint.jl
+    i = firstindex(str)
+    while !(i > ncodeunits(str))#thanks Lint.jl
         try
-            (ex,i) = parse(str,i)
+            (ex,i) = Meta.parse(str,i)
             if ex != nothing
                 S_ = collect_symbols(ex)
                 if typeof(S_) == Array{Symbol,1}
@@ -255,7 +255,7 @@ function collect_symbols(t::EditorTab)
 end
 
 function collect_symbols(ex::Expr)
-    S = Array{Symbol}(0)
+    S = Symbol[]
     for i=1:length(ex.args)
         s  = collect_symbols(ex.args[i])
         if typeof(s) == Symbol
@@ -273,25 +273,17 @@ collect_symbols(other) = :nothing
 
 ##
 function complete_additional_symbols(str,S)
-    comp = Array{String}(0)
+    comp = String[]
     for s in S
         startswith(s,str) && push!(comp,s)
     end
     comp
 end
 
-function completions_in_module(cmd,c::Console)
-
-    prefix = string(c.eval_in,".")
-    (comp,dotpos) = remotecall_fetch(completions,worker(c),prefix * cmd, endof(prefix * cmd))
-    dotpos -= endof(prefix)
-    comp,dotpos
-end
-
 function extcompletions(cmd,S,c::Console)
 
     #(comp,dotpos) = completions(cmd, endof(cmd))
-    comp,dotpos = completions_in_module(cmd,c)
+    comp,dotpos = GtkREPL.completions_in_module(cmd,c)
     comp2 = complete_additional_symbols(cmd,S)
 
     for c in comp2

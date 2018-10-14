@@ -1,4 +1,4 @@
-type WorkspacePanel <: GtkScrolledWindow
+mutable struct WorkspacePanel <: GtkScrolledWindow
 
     handle::Ptr{Gtk.GObject}
     list::GtkTreeStore
@@ -25,6 +25,7 @@ end
 function var_type(s::Symbol, mod)
     try
         return string(typeof(getfield(mod,s)))
+    catch err
     end
     ""
 end
@@ -36,14 +37,14 @@ end
 function update!(w::WorkspacePanel)
 
     mod = current_console(w.main_window).eval_in
-    n = sort!(names(mod,true))
+    n = sort!(names(mod,all=true))
     t = map(s->var_type(s,mod),n)
     n = map(string,n)
 
     idx = (t .!= "Module") .& map(s->!startswith(s,"#"),n)
     n,t = n[idx], t[idx]
     
-    M = sortrows([t n])#FIXME use tree view sorting?
+    M = sortslices([t n], dims=1)#FIXME use tree view sorting?
     n = M[:,2]
     t = M[:,1]
 

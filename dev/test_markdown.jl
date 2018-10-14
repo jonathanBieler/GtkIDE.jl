@@ -19,10 +19,10 @@ style = GtkSourceWidget.style(sp,"text")
 
 
 mc = GtkIDE.MarkdownTextViews.MarkdownColors(
-    Gtk.getproperty(style,:foreground,String),
-    Gtk.getproperty(style,:background,String),
-    Gtk.getproperty(GtkSourceWidget.style(sp,"def:note"),:foreground,String),
-    Gtk.getproperty(style,:background,String),
+    Gtk.get_gtk_property(style,:foreground,String),
+    Gtk.get_gtk_property(style,:background,String),
+    Gtk.get_gtk_property(GtkSourceWidget.style(sp,"def:note"),:foreground,String),
+    Gtk.get_gtk_property(style,:background,String),
 )
 
 v = GtkIDE.MarkdownTextViews.MarkdownTextView(string(@doc collect),mc)
@@ -154,7 +154,7 @@ function insert_MD!(buffer,m::Markdown.MD)
     end
 end
 
-type MarkdownTextView <: GtkTextView
+mutable struct MarkdownTextView <: GtkTextView
 
     handle::Ptr{Gtk.GObject}
     view::GtkTextView
@@ -166,9 +166,9 @@ type MarkdownTextView <: GtkTextView
         
         view = GtkTextView(buffer)
 
-        setproperty!(view,:margin_left,1)
-        setproperty!(view,:monospace,true)
-        setproperty!(view,:wrap_mode,true)
+        set_gtk_property!(view,:margin_left,1)
+        set_gtk_property!(view,:monospace,true)
+        set_gtk_property!(view,:wrap_mode,true)
 
         Gtk.create_tag(buffer, "normal", font="13")
         Gtk.create_tag(buffer, "h1", font="Bold 15")
@@ -191,7 +191,7 @@ end
 
 
 #buffer = GtkTextBuffer()
-#setproperty!(buffer,:text,"wesh")
+#set_gtk_property!(buffer,:text,"wesh")
 
 view = MarkdownTextView(m)
 

@@ -17,7 +17,7 @@ opt(key::AbstractString) = opt("default",key)
 
 function init_opt()
 
-    suffix = is_linux() ? "_linux" : ""
+    suffix = Sys.islinux() ? "_linux" : ""
     default_settings = ConfParse(ascii(joinpath(HOMEDIR,"config","default_settings$(suffix).ini")))
     parse_conf!(default_settings)
 

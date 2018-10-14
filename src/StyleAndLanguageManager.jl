@@ -1,4 +1,4 @@
-type StyleAndLanguageManager
+mutable struct StyleAndLanguageManager
     languageDefinitions::Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}
     main_style::GtkSourceWidget.GtkSourceStyleScheme
     fontsize
@@ -10,7 +10,7 @@ type StyleAndLanguageManager
         #FIXME this should be in GtkSourceWidget
         sourceStyleManager = GtkSourceStyleSchemeManager()
         GtkSourceWidget.set_search_path(sourceStyleManager,
-          Any[Pkg.dir() * "/GtkSourceWidget/share/gtksourceview-3.0/styles/",C_NULL])
+          Any[joinpath(pkgdir(GtkSourceWidget),"share/gtksourceview-3.0/styles/"),C_NULL])
 
         languageDefinitions = Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}()
         sourceLanguageManager = GtkSourceWidget.sourceLanguageManager
@@ -18,7 +18,7 @@ type StyleAndLanguageManager
         languageDefinitions[".jl"] = GtkSourceWidget.language(sourceLanguageManager,"julia")
         languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager,"markdown")
 
-        @static if is_windows()
+        if Sys.iswindows()
             main_style = style_scheme(sourceStyleManager,"visualcode")
             fontsize = opt("fontsize")
             fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
@@ -26,7 +26,7 @@ type StyleAndLanguageManager
                 font-size: $(fontsize)pt;
             }"""
         end
-        @static if is_apple()
+        if Sys.isapple()
             main_style = style_scheme(sourceStyleManager,"visualcode")
             fontsize = opt("fontsize")
             fontCss =  "button, entry, window, sourceview, textview {
@@ -35,7 +35,7 @@ type StyleAndLanguageManager
             }"
         end
 
-        @static if is_linux()
+        if Sys.islinux()
             main_style = style_scheme(sourceStyleManager,"visualcode")
             fontsize = opt("fontsize")-1
             fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {

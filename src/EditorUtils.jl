@@ -3,17 +3,17 @@ extension(f::AbstractString) = splitext(f)[2]
 ######################
 ## WORD BREAKING
 
-immutable SolidString
+struct SolidString
     c::Array{Char,1}
     function SolidString(s::AbstractString,l::Integer)
         l > length(s) && error("Offset larger than string length.")
 
-        c = Array{Char}(0)
-        i = start(s)
+        c = Char[]
+        i = firstindex(s)
         count = 0
-        while !done(s,i) && count < l
+        while !(i > ncodeunits(s)) && count < l
             push!(c,s[i])
-            (k,i) = next(s,i)
+            (k,i) = iterate(s,i)
             count +=1
         end
         new(c)
@@ -140,8 +140,8 @@ function select_tuple(it::GtkTextIter,buffer::GtkTextBuffer)
     end
     txt = txt[1:pos]
 
-    i = rsearch(txt,'(')
-    i == 0 && return (false,nothing,nothing)
+    i = findlast(isequal('('), txt)
+    i == nothing && return (false,nothing,nothing)
 
     its = GtkTextIter(buffer, i + offset(line_start))
     return (true,txt[i:pos],its)
@@ -170,8 +170,8 @@ function lstrip_idx(s::AbstractString, chars::Base.Chars=Base._default_delims)
     i
 end
 
-get_buffer(view::GtkTextView) = getproperty(view,:buffer,GtkTextBuffer)
-cursor_position(b::GtkTextBuffer) = getproperty(b,:cursor_position,Int)
+get_buffer(view::GtkTextView) = get_gtk_property(view,:buffer,GtkTextBuffer)
+cursor_position(b::GtkTextBuffer) = get_gtk_property(b,:cursor_position,Int)
 
 get_text_iter_at_cursor(b::GtkTextBuffer) =
     GtkTextIter(b,cursor_position(b)+1) #+1 because there's a -1 in gtk.jl
@@ -183,11 +183,11 @@ end
 function get_line_text(buffer::GtkTextBuffer,it::GtkTextIter)
 
     itstart, itend = mutable(it), mutable(it)
-    li = getproperty(itstart,:line,Integer)
+    li = get_gtk_property(itstart,:line,Integer)
 
     text_iter_backward_line(itstart)#seems there's no skip to line start
-    li != getproperty(itstart,:line,Integer) && skip(itstart,1,:line)#for fist line
-    !getproperty(itend,:ends_line,Bool) && text_iter_forward_to_line_end(itend)
+    li != get_gtk_property(itstart,:line,Integer) && skip(itstart,1,:line)#for fist line
+    !get_gtk_property(itend,:ends_line,Bool) && text_iter_forward_to_line_end(itend)
 
     return (text_iter_get_text(itstart, itend), itstart, itend)
 end
@@ -218,13 +218,6 @@ function move_cursor_to_sentence_end(buffer::GtkTextBuffer)
     it = mutable( get_text_iter_at_cursor(buffer) )
     text_iter_forward_sentence_end(it)
     text_buffer_place_cursor(buffer,it)
-end
-
-function toggle_wrap_mode(v::GtkTextView)
-    wm = getproperty(v,:wrap_mode,Int)
-    wm = convert(Bool,wm)
-    setproperty!(v,:wrap_mode,!wm)
-    nothing
 end
 
 function select_on_ctrl_shift(direction,buffer::GtkSourceBuffer)

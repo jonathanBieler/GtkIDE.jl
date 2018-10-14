@@ -1,4 +1,4 @@
-type HistoryProvider
+mutable struct HistoryProvider
     history::Array{AbstractString,1}
     filename::AbstractString
     cur_idx::Int

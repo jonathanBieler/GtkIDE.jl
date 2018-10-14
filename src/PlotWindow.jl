@@ -1,4 +1,4 @@
-type Image <: GtkBox
+mutable struct Image <: GtkBox
 
     handle::Ptr{Gtk.GObject}
     data
@@ -8,11 +8,11 @@ type Image <: GtkBox
 
         data = array_to_rgb(img)
         c = GtkCanvas()
-        setproperty!(c,:expand,true)
+        set_gtk_property!(c,:expand,true)
 
         @guarded Gtk.ShortNames.draw(c) do widget
             xview, yview = guidata[widget, :xview], guidata[widget, :yview]
-            set_coordinates(Cairo.getgc(widget), xview, yview)
+            set_coordinates(getgc(widget), xview, yview)
 
             roi = data[floor(Int,xview.min):ceil(Int,xview.max),
                        floor(Int,yview.min):ceil(Int,yview.max)]
@@ -36,10 +36,10 @@ type Image <: GtkBox
     end
 end
 
-array_to_rgb{T<:Colors.Color}(img::Array{T,2}) = img
+array_to_rgb(img::Array{T,2}) where {T<:Colors.Color} = img
 
-function array_to_rgb{T<:Number}(img::Array{T,2})
-    data = Array(Colors.RGB{Colors.U8}, size(img)...)
+function array_to_rgb(img::Array{T,2}) where {T<:Number}
+    data = Array{Colors.RGB24}(size(img)...)
     img = img - minimum(img)
     img = img / maximum(img)
     for i in eachindex(img)
@@ -47,9 +47,9 @@ function array_to_rgb{T<:Number}(img::Array{T,2})
     end
     data
 end
-function array_to_rgb{T<:Number}(img::Array{T,3})
+function array_to_rgb(img::Array{T,3}) where {T<:Number}
     size(img,3) != 3 && error("The size of the third dimension needs to be equal to 3 (RGB).")
-    data = Array(Colors.RGB{Colors.U8}, size(img)...)
+    data = Array{Colors.RGB24}(size(img)...)
     img = img - minimum(img)
     img = img / maximum(img)
     for i = 1:size(img,1)
@@ -131,7 +131,7 @@ function Immerse.figure(;name::AbstractString="Figure $(Immerse.nextfig(Immerse.
     i = Immerse.nextfig(Immerse._display)
     f = Immerse.Figure()
     #Gtk.on_signal_destroy((x...)->Immerse.dropfig(Immerse._display,i), f)
-    signal_connect(Immerse.on_figure_destroy, f, "destroy", Void, (), false, (i, Immerse._display))
+    signal_connect(Immerse.on_figure_destroy, f, "destroy", Nothing, (), false, (i, Immerse._display))
 
     idx = length(fig_ntbook)+1
     insert!(fig_ntbook,idx,f,name)

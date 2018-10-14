@@ -10,7 +10,7 @@ function give_me_a_treeview(n,rownames)
 
     tv = GtkTreeView(GtkTreeModel(list))
 
-    cols = Array{GtkTreeViewColumn}(0)
+    cols = GtkTreeViewColumn[]
 
     for i=1:n
         r1 = GtkCellRendererText()

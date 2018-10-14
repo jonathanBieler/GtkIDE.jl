@@ -10,7 +10,7 @@ Commands that are first executed in the console before Julia code.
 - `open name` : open name with default application (e.g. `open .` opens the current directory).
 - `mkdir dirname` : make a new directory.
 "
-type ConsoleCommand
+mutable struct ConsoleCommand
 	r::Regex
 	f::Function
 	completion_context::Symbol
@@ -40,7 +40,7 @@ add_console_command(r"^clc$",(m,c) -> begin
     nothing
 end)
 add_console_command(r"^pwd$",(m,c) -> begin
-    return pwd() * "\n"
+    return remotecall_fetch(pwd,worker(c)) * "\n"
 end)
 add_console_command(r"^ls\s+(.*)",(m,c) -> begin
 	try
@@ -96,10 +96,10 @@ end)
 add_console_command(r"^open (.*)",(m,c) -> begin
 	try
         v = m.captures[1]
-        @static if is_windows()
+        if Sys.iswindows()
             run(`cmd /c start "$v" `)
         end
-        @static if is_apple()
+        if Sys.isapple()
             run(`open $v`)
         end
 	catch err
@@ -154,7 +154,7 @@ function check_console_commands(cmd::AbstractString,c::Console)
     for co in console_commands
         m = match(co.r,cmd)
         if m != nothing
-            return (true, @schedule begin co.f(m,c) end)
+            return (true, @async begin co.f(m,c) end)
         end
     end
     return (false, nothing)

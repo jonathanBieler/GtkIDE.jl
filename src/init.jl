@@ -2,20 +2,20 @@
 
 function init_console!(v,b,main_window)
 
-    setproperty!(b,:style_scheme,main_window.style_and_language_manager.main_style)
+    set_gtk_property!(b,:style_scheme,main_window.style_and_language_manager.main_style)
     
     highlight_matching_brackets(b,true)
     
     show_line_numbers!(v,false)
     auto_indent!(v,true)
     highlight_current_line!(v, true)
-    setproperty!(v,:wrap_mode,1)
-    #setproperty!(v,:expand,true)
+    set_gtk_property!(v,:wrap_mode,1)
+    #set_gtk_property!(v,:expand,true)
 
-    setproperty!(v,:tab_width,4)
-    setproperty!(v,:insert_spaces_instead_of_tabs,true)
+    set_gtk_property!(v,:tab_width,4)
+    set_gtk_property!(v,:insert_spaces_instead_of_tabs,true)
 
-    setproperty!(v,:margin_bottom,10)
+    set_gtk_property!(v,:margin_bottom,10)
 
     style_css(v,style_provider(main_window))
 
@@ -54,6 +54,7 @@ function __init__()
     global const sidepanel_ntbook = GtkNotebook()
 
     init!(main_window,editor,console_mng,pathCBox,statusBar,project,menubar,sidepanel_ntbook)
+    GtkREPL.set_main_window(main_window) 
 
     load(project)
     cd(project.path)
@@ -66,7 +67,7 @@ function __init__()
 
     #FIXME need init!
     signal_connect(fig_ntbook_key_press_cb,fig_ntbook, "key-press-event",Cint, (Ptr{Gtk.GdkEvent},), false)
-    signal_connect(fig_ntbook_switch_page_cb,fig_ntbook,"switch-page", Void, (Ptr{Gtk.GtkWidget},Int32), false)
+    signal_connect(fig_ntbook_switch_page_cb,fig_ntbook,"switch-page", Nothing, (Ptr{Gtk.GtkWidget},Int32), false)
 
     ## completion window
 
@@ -116,13 +117,13 @@ function __init__()
 
     @assert length(console_mng) == 1
 
-    setproperty!(statusBar,:margin,2)
+    set_gtk_property!(statusBar,:margin,2)
     GtkExtensions.text(statusBar,"Julia $VERSION")
     Gtk.G_.position(sidePan,160)
 
-    setproperty!(editor,:vexpand,true)
-    setproperty!(editorBox,:expand,editor,true)
-    setproperty!(mainPan,:margin,0)
+    set_gtk_property!(editor,:vexpand,true)
+    set_gtk_property!(editorBox,:expand,editor,true)
+    set_gtk_property!(mainPan,:margin,0)
     Gtk.G_.position(mainPan,600)
     Gtk.G_.position(rightPan,450)
     #-
@@ -142,7 +143,7 @@ function __init__()
     style_css(fig_ntbook,nbtbookcss)
     style_css(sidepanel_ntbook,nbtbookcss)
 
-    setproperty!(topBarBox,:hexpand,true)
+    set_gtk_property!(topBarBox,:hexpand,true)
 
     ################
     # Side Panels
@@ -171,8 +172,8 @@ function __init__()
 
     init!(pathCBox)#need on_path_change to be defined
 
-    signal_connect(sidePanelButton_clicked_cb, sidePanelButton, "clicked", Void, (), false)
-    signal_connect(editorButtonclicked_cb, editorButton, "clicked", Void, (), false)
+    signal_connect(sidePanelButton_clicked_cb, sidePanelButton, "clicked", Nothing, (), false)
+    signal_connect(editorButtonclicked_cb, editorButton, "clicked", Nothing, (), false)
 
     showall(main_window)
     visible(search_window,false)
@@ -192,10 +193,10 @@ function __init__()
         #read_stderr, wre = redirect_stderr()
 
         function watch_stdout()
-            @schedule GtkREPL.watch_stream(read_stdout,console)
+            @async GtkREPL.watch_stream(read_stdout,console)
         end
         function watch_stderr()
-            @schedule GtkREPL.watch_stream(read_stderr,console)
+            @async GtkREPL.watch_stream(read_stderr,console)
         end
 
         global const watch_stdout_task = watch_stdout()
@@ -208,7 +209,7 @@ function __init__()
 
     println("Warming up, hold on...")
     sleep(0.05)
-    #@schedule logo()
+    #@async logo()
     new_prompt(console)
 
 end

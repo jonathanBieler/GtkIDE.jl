@@ -1,66 +1,53 @@
-
-#include(joinpath(Pkg.dir(),"GtkIDE","src","GtkIDE.jl"))
-
-###############
-## NON-GUI
-
-d =  ["g","ge","get","get(","α","","","α","αw","αw_","αw_1",""]
-txt_ = "get(α +αw_1)"
-for k = 1:length(d)
-    txt = SolidString(txt_,k)
-    i,j = select_word_backward(k,txt,false)
-    @assert txt[i:j] == d[k]
-end
-
 ###############
 ## EDITOR
 
+main_window = GtkIDE.main_window
 editor = main_window.editor
-console = current_console(main_window)
+console = GtkIDE.current_console(main_window)
 
-cd(joinpath(Pkg.dir(),"GtkIDE"))
-update_pathEntry(main_window.pathCBox)
+cd(joinpath(GtkIDE.HOMEDIR,".."))
+GtkIDE.update_pathEntry(main_window.pathCBox)
 
 sleep_time = 0.2
 sleep(0.5)#time for loading
-open_in_new_tab(joinpath("test","testfile.jl"),main_window.editor)
+GtkIDE.open_in_new_tab(joinpath("test","testfile.jl"),main_window.editor)
 sleep(0.5)#time for loading
 
 
-t = current_tab(editor)::EditorTab
+t = GtkIDE.current_tab(editor)
 b = t.buffer
 #some helper functions
-function goto_line(buffer::GtkTextBuffer,line::Integer)
-    it = mutable( GtkTextIter(buffer,1) )
-    setproperty!(it,:line,line-1)
-    text_buffer_place_cursor(buffer,it)
+function goto_line(buffer::GtkIDE.GtkTextBuffer,line::Integer)
+    it = GtkIDE.mutable( GtkIDE.GtkTextIter(buffer,1) )
+    GtkIDE.set_gtk_property!(it,:line,line-1)
+    GtkIDE.text_buffer_place_cursor(buffer,it)
 end
-function to_line_end(buffer::GtkTextBuffer)
-    it = mutable( get_text_iter_at_cursor(buffer) )
-    text_iter_forward_to_line_end(it)
-    text_buffer_place_cursor(buffer,it)
+function to_line_end(buffer::GtkIDE.GtkTextBuffer)
+    it = GtkIDE.mutable( GtkIDE.get_text_iter_at_cursor(buffer) )
+    GtkIDE.text_iter_forward_to_line_end(it)
+    GtkIDE.text_buffer_place_cursor(buffer,it)
 end
 function _test_completion_232_(x::Int64, y::Float64)
 end
 
 goto_line(b,1)
     sleep(sleep_time)
-run_line(console, t)
+GtkIDE.run_line(console, t)
     sleep(sleep_time)
 
 @assert x == 2
 
 goto_line(b,2)
 to_line_end(b)
-editor_autocomplete(t.view,t)
+GtkIDE.init_autocomplete(t.view,t)
 sleep(0.1)
 
-(txt,its,ite) = get_line_text(b, get_text_iter_at_cursor(b) )
+(txt,its,ite) = GtkIDE.get_line_text(b, GtkIDE.get_text_iter_at_cursor(b) )
 
 @assert txt == "_test_completion_232_"
 
 sleep(sleep_time)
-t = current_tab(editor)
+t = GtkIDE.current_tab(editor)
 t.modified = false
 close_tab(editor)
 

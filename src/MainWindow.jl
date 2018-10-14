@@ -1,4 +1,4 @@
-type MainWindow <: GtkWindow
+mutable struct MainWindow <: GtkWindow
 
     handle::Ptr{Gtk.GObject}
     style_and_language_manager::StyleAndLanguageManager
@@ -66,7 +66,7 @@ end
     mod = get_default_mod_mask()
 
     if doing(Action("r",PrimaryModifier),event)
-        #@schedule begin
+        #@async begin
             #crashes if we are still in the callback
             #sleep(0.2)
 #            eval(Main,:(restart()))
@@ -82,7 +82,7 @@ end
 
     if doing(Actions["console_editor_switch"], event)
         c = current_console(main_window.console_manager).view
-        if !getproperty(c,:has_focus,Bool)
+        if !get_gtk_property(c,:has_focus,Bool)
             grab_focus(c)
         else
             grab_focus(current_tab(main_window.editor).view)
@@ -128,13 +128,10 @@ end
 function reload()
 
     eval(GtkIDE,quote
-    include(joinpath(HOMEDIR,"MenuUtils.jl"))
     include(joinpath(HOMEDIR,"PlotWindow.jl"))
     include(joinpath(HOMEDIR,"StyleAndLanguageManager.jl"))
     include(joinpath(HOMEDIR,"MainWindow.jl"))
     include(joinpath(HOMEDIR,"Project.jl"))
-    include(joinpath(HOMEDIR,"ConsoleManager.jl"))
-    include(joinpath(HOMEDIR,"CommandHistory.jl"))
     include(joinpath(HOMEDIR,"Console.jl"))
     include(joinpath(HOMEDIR,"Refactoring.jl"))
     include(joinpath(HOMEDIR,"Editor.jl"))
@@ -143,8 +140,8 @@ function reload()
     include(joinpath(HOMEDIR,"MainMenu.jl"))
     include(joinpath(HOMEDIR,"SidePanels.jl"))
     include(joinpath(HOMEDIR,"Logo.jl"))
-    include(joinpath(HOMEDIR,"MarkdownTextView.jl"))
     end)
+    GtkREPL.reload()
 
 end
 
@@ -174,7 +171,7 @@ function restart(main_window::MainWindow,new_workspace=false)
 end
 
 function run_tests()
-    include( joinpath(Pkg.dir(),"GtkIDE","test","runtests.jl") )
+    include( joinpath(HOMEDIR,"..","test","runtests.jl") )
 end
 
 

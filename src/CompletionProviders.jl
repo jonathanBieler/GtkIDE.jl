@@ -8,10 +8,10 @@
 
     @compat abstract type CompletionProvider end
 
-    type NoCompletion <: CompletionProvider
+    mutable struct NoCompletion <: CompletionProvider
     end
 
-    type NormalCompletion <: CompletionProvider
+    mutable struct NormalCompletion <: CompletionProvider
         steps::Array{Function,1}
         state::Int
         cmd::AbstractString
@@ -22,7 +22,7 @@
         NormalCompletion() = new(Function[],1,"",nothing,nothing,[""],-1:0)
     end
 
-    type MethodCompletion <: CompletionProvider
+    mutable struct MethodCompletion <: CompletionProvider
         steps::Array{Function,1}
         state::Int
         cmd::AbstractString
@@ -33,7 +33,7 @@
         MethodCompletion() = new(Function[],1,"",nothing,nothing,[""],-1:0)
     end
 
-    type TupleCompletion <: CompletionProvider
+    mutable struct TupleCompletion <: CompletionProvider
         steps::Array{Function,1}
         state::Int
         cmd::AbstractString
@@ -62,10 +62,10 @@ function init_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
     end
     
     it = get_text_iter_at_cursor(buffer)
-
+    
     p = get_completion_provider(view,t)
     typeof(p) == NoCompletion && @goto exit
-
+    
     if p.state <= length(p.steps)
         p.comp = p.steps[p.state]()
         p.state += 1
@@ -200,10 +200,16 @@ function select_text(p::MethodCompletion,buffer,it,t)
     true
 end
 function completions(p::MethodCompletion,t,idx,c::Console)
-    comp,dotpos = completions(p.cmd, endof(p.cmd))
+    # for some reason completion removes the first module when completing methods,
+    # so I take note of it here and add it back at the end
+    mods = split(p.cmd,'.')
+    prefix = length(mods) > 2 ? mods[1] : ""
+
+    comp,dotpos = GtkREPL.completions_in_module(p.cmd,c)
+    dotpos += lastindex(prefix)-1
+    comp = [prefix != "" ? string(prefix, '.', c) : c for c in comp]
+
     p.comp = comp
-    cmd = p.cmd[1:end-1]
-    _comp,dotpos = completions(cmd, endof(cmd)) #bug with julia dotpos ?
     p.dotpos = dotpos
 end
 

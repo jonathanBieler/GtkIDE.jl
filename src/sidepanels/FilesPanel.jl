@@ -1,10 +1,10 @@
-type FilePathDialog
+mutable struct FilePathDialog
   dialog::GtkDialog
   signal_insert_id::Culong
   signal_delete_id::Culong
 end
 
-type FilesPanel <: GtkScrolledWindow
+mutable struct FilesPanel <: GtkScrolledWindow
     handle::Ptr{Gtk.GObject}
     list::GtkTreeStore
     tree_view::GtkTreeView
@@ -44,8 +44,8 @@ function files_tree_view(rownames)
     t = (Gtk.GdkPixbuf,AbstractString, AbstractString, Bool, Int)
     list = GtkTreeStore(t...)
     tv = GtkTreeView(GtkTreeModel(list))
-    setproperty!(tv,"level-indentation",4)
-    cols = Array{GtkTreeViewColumn}(0)
+    set_gtk_property!(tv,"level-indentation",4)
+    cols = GtkTreeViewColumn[]
 
     r1 = GtkCellRendererPixbuf()
     c1 = GtkTreeViewColumn(rownames[1], r1, Dict([("pixbuf",0)]))
@@ -68,7 +68,7 @@ function FilePathDialog(form_builder)
     Gtk.GAccessor.transient_for(w,main_window)#TODO global
     Gtk.GAccessor.modal(w,true)
     btn_create_file = GAccessor.object(form_builder,"btnCreateFile")
-    signal_connect(close_file_path_dialog,btn_create_file, "clicked", Void, (), false,w)
+    signal_connect(close_file_path_dialog,btn_create_file, "clicked", Nothing, (), false,w)
     return FilePathDialog(w,0,0)
 
 end
@@ -104,34 +104,34 @@ function filespanel_context_menu_create(t::FilesPanel)
     (copyFullPathItem = GtkMenuItem("Copy Full Path"))
 
     #FIXME disable until the dialog bugs are fixed
-    setproperty!(newFileItem,:sensitive,false)
-    setproperty!(newFolderItem,:sensitive,false)
-    setproperty!(deleteItem,:sensitive,false)
-    setproperty!(renameItem,:sensitive,false)
-    setproperty!(copyItem,:sensitive,false)
-    setproperty!(pasteItem,:sensitive,false)
-    setproperty!(cutItem,:sensitive,false)
+    set_gtk_property!(newFileItem,:sensitive,false)
+    set_gtk_property!(newFolderItem,:sensitive,false)
+    set_gtk_property!(deleteItem,:sensitive,false)
+    set_gtk_property!(renameItem,:sensitive,false)
+    set_gtk_property!(copyItem,:sensitive,false)
+    set_gtk_property!(pasteItem,:sensitive,false)
+    set_gtk_property!(cutItem,:sensitive,false)
 
     signal_connect(filespanel_changeDirectoryItem_activate_cb,
-    changeDirectoryItem, "activate",Void, (),false,t)
+    changeDirectoryItem, "activate",Nothing, (),false,t)
     signal_connect(filespanel_addToPathItem_activate_cb, addToPathItem,
-    "activate",Void, (),false,t)
+    "activate",Nothing, (),false,t)
     signal_connect(filespanel_newFileItem_activate_cb, newFileItem,
-    "activate",Void, (),false,t)
+    "activate",Nothing, (),false,t)
     signal_connect(filespanel_newFolderItem_activate_cb, newFolderItem,
-    "activate",Void, (),false,t)
+    "activate",Nothing, (),false,t)
     signal_connect(filespanel_deleteItem_activate_cb, deleteItem,
-    "activate",Void, (),false,t)
+    "activate",Nothing, (),false,t)
     signal_connect(filespanel_renameItem_activate_cb, renameItem,
-    "activate",Void, (),false,t)
+    "activate",Nothing, (),false,t)
     signal_connect(filespanel_copyItem_activate_cb, copyItem,
-    "activate",Void, (),false,t)
+    "activate",Nothing, (),false,t)
     signal_connect(filespanel_cutItem_activate_cb, cutItem,
-    "activate",Void, (),false,t)
+    "activate",Nothing, (),false,t)
     signal_connect(filespanel_pasteItem_activate_cb, pasteItem,
-    "activate",Void, (),false,t)
+    "activate",Nothing, (),false,t)
     signal_connect(filespanel_copyFullPathItem_activate_cb, copyFullPathItem,
-    "activate",Void, (),false,t)
+    "activate",Nothing, (),false,t)
     return menu
 end
 
@@ -199,6 +199,8 @@ function populate_folder(w::GtkTreeStore,folder::GtkTreeIter)
                     add_file(w,path,el,folder)
                 end
             end
+        catch err
+            @warn "error in populate_folder: " err
         end
     end
 end
@@ -314,7 +316,7 @@ function path_dialog_create_file(filespanel)
     te_filename = GAccessor.object(filespanel.form_builder,"filename")
     #TODO check overwrite
     iterator = nearest_folder_from_current_iterator(filespanel)
-    filename = getproperty(te_filename, :text, AbstractString)
+    filename = get_gtk_property(te_filename, :text, AbstractString)
     touch(filename)
     update!(filespanel.list, filename, iterator)
     open_in_new_tab(filename, _editor(filespanel.main_window) )
@@ -326,7 +328,7 @@ function path_dialog_create_directory(filespanel)
     te_filename = GAccessor.object(filespanel.form_builder,"filename")
     iterator = nearest_folder_from_current_iterator(filespanel)
     #TODO check overwrite
-    filename = getproperty(te_filename, :text, AbstractString)
+    filename = get_gtk_property(te_filename, :text, AbstractString)
     mkdir(filename)
 
     update!(filespanel.list,filename,iterator)
@@ -339,7 +341,7 @@ function path_dialog_rename_file(filespanel)
     #TODO check overwrite
 
     current_path =  Gtk.getindex(filespanel.list,filespanel.current_iterator,3)
-    filename = getproperty(te_filename, :text, AbstractString)
+    filename = get_gtk_property(te_filename, :text, AbstractString)
     mv(current_path,filename)
 
     update!(filespanel.list, filename,copy_up(GtkTreeModel(filespanel.list),filespanel.current_iterator))
@@ -379,22 +381,22 @@ end
     return nothing
 end
 
-#FIXME return type ?
+#FIXME return mutable struct ?
 @guarded function configure_text_entry_fixed_content(te, fixed, nonfixed="")
-    setproperty!(te, :text,"");
-    setproperty!(te, :text,string(fixed,nonfixed));
+    set_gtk_property!(te, :text,"");
+    set_gtk_property!(te, :text,string(fixed,nonfixed));
     te = buffer(te)
     id_signal_insert = Culong(0)
     id_signal_delete = Culong(0)
     id_signal_insert = signal_connect(path_dialog_filename_inserted_text,
         te,
         "inserted-text",
-        Void,
+        Nothing,
         (Cuint,Cstring,Cuint),false,(fixed,id_signal_delete))
     id_signal_delete = signal_connect(path_dialog_filename_deleted_text,
         te,
         "deleted-text",
-        Void,
+        Nothing,
         (Cuint,Cuint),false,(fixed,id_signal_insert))
     return (id_signal_insert, id_signal_delete)
 end
@@ -423,7 +425,7 @@ end
 
 function file_path_dialog_set_button_caption(filespanel, caption::AbstractString)
     btn_create_file = GAccessor.object(filespanel.form_builder,"btnCreateFile")
-    setproperty!(btn_create_file,:label,caption)
+    set_gtk_property!(btn_create_file,:label,caption)
 end
 
 @guarded (PROPAGATE) function filespanel_treeview_row_expanded_cb(treeviewptr::Ptr,
