@@ -21,9 +21,9 @@ mutable struct StyleAndLanguageManager
         if Sys.iswindows()
             main_style = style_scheme(sourceStyleManager,"visualcode")
             fontsize = opt("fontsize")
-            fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
+            fontCss =  """button, entry, window, sourceview, textview  {
                 font-family: Consolas, Courier, monospace;
-                font-size: $(fontsize)pt;
+                font-size: $(fontsize)px;
             }"""
         end
         if Sys.isapple()
@@ -31,7 +31,7 @@ mutable struct StyleAndLanguageManager
             fontsize = opt("fontsize")
             fontCss =  "button, entry, window, sourceview, textview {
                 font-family: Monaco, Consolas, Courier, monospace;
-                font-size: $(fontsize)pt;
+                font-size: $(fontsize)px;
             }"
         end
 
@@ -40,7 +40,7 @@ mutable struct StyleAndLanguageManager
             fontsize = opt("fontsize")-1
             fontCss =  """GtkButton, GtkEntry, GtkWindow, GtkSourceView, GtkTextView {
                 font-family: Consolas, Courier, monospace;
-                font-size: $(fontsize)pt;
+                font-size: $(fontsize)px;
             }"""
         end
 
