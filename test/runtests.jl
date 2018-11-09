@@ -6,7 +6,7 @@ editor = main_window.editor
 console = GtkIDE.current_console(main_window)
 
 cd(joinpath(GtkIDE.HOMEDIR,".."))
-GtkIDE.update_pathEntry(main_window.pathCBox)
+GtkIDE.update_pathEntry(main_window.pathCBox,pwd())
 
 sleep_time = 0.2
 sleep(0.5)#time for loading

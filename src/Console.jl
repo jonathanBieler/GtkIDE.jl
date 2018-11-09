@@ -25,3 +25,14 @@ function add_remote_console_cb(id, port)
     remotecall_fetch(println, worker(c),"Worker connected")
     "done"
 end
+
+#hook into GtkREPL `on_command_done`
+function on_command_done(main_window::MainWindow, console)
+    on_path_change(main_window)
+    update!(workspacepanel)
+end
+
+#here the index in the notebook isn't updated yet, so it's important to pass `console`
+GtkREPL.on_console_mng_switch_page(cm::ConsoleManager,console::Console) = begin
+    on_path_change(cm.main_window,false,console)
+end

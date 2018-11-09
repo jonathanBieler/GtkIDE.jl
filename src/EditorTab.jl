@@ -25,7 +25,7 @@ mutable struct EditorTab <: GtkScrolledWindow
         lang = haskey(languageDefinitions,extension(filename)) ?
         languageDefinitions[extension(filename)] : languageDefinitions[".jl"]
 
-        filename = isabspath(filename) ? filename : joinpath(pwd(),filename)
+        filename = isabspath(filename) ? filename : joinpath(pwd(),filename)#FIXME pwd should be called on worker
         filename = normpath(filename)
 
         b = GtkSourceBuffer(lang)
@@ -148,7 +148,37 @@ hasselection(t::EditorTab) = hasselection(t.buffer)
 
 function selected_text(t::EditorTab)
     (found,it_start,it_end) = selection_bounds(t.buffer)
-    return found ? text_iter_get_text(it_start,it_end) : ""
+    return found ? (it_start:it_end).text[String] : ""
+end
+
+
+"""
+    Opens file at line or switch to it if already opened.
+"""
+function open_tab(file, editor; line=0)
+
+    file = normpath(file)
+    if ispath(file)
+        #first look in existing tabs if the file is already open
+        for i = 1:length(editor)
+            n = editor[i]
+            if typeof(n) == EditorTab && n.filename == file
+
+                set_current_page_idx(editor,i)
+                if line != 0
+                    it = GtkTextIter(n.buffer,line,1)
+                    scroll_to_iter(n.view, it)
+                    text_buffer_place_cursor(n.buffer,it)
+                end
+                grab_focus(n.view)
+                return true
+            end
+        end
+        #otherwise open it
+        t = open_in_new_tab(file,editor,line=line)
+
+        return true
+    end
 end
 
 function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not defined at this point
@@ -164,29 +194,10 @@ function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not d
         file, line = method_filename(v)
         file = string(file)
         file = ispath(file) ? file : joinpath( joinpath(splitdir(JULIA_HOME)[1],"share/julia/base"), file)
-        file = normpath(file)
-        if ispath(file)
-            #first look in existing tabs if the file is already open
-            for i = 1:length(editor)
-                n = editor[i]
-                if typeof(n) == EditorTab && n.filename == file
 
-                    set_current_page_idx(editor,i)
-                    it = GtkTextIter(n.buffer,line,1)
-                    scroll_to_iter(n.view, it)
-                    text_buffer_place_cursor(n.buffer,it)
-                    grab_focus(n.view)
-
-                    return true
-                end
-            end
-#            otherwise open it
-            t = open_in_new_tab(file,editor,line=line)
-
-            return true
-        end
-    catch
-
+        open_tab(file, editor; line=line)
+    catch err
+        warn(err)
     end
     return false
 end
@@ -240,7 +251,7 @@ function completion_mode(buffer,it,t)
     if istextfile(t)
         (found,its,ite) = selection_bounds(t.buffer)
         if found
-            return (:text_selection,text_iter_get_text(its,ite),its,ite)
+            return (:text_selection,(its:ite).text[String],its,ite)
         end
         if cmd == ""
             return (:none,cmd,nothing,nothing)
@@ -449,7 +460,7 @@ end
 
 function editor_extract_method(buffer::GtkTextBuffer)
     (found,itstart,itend) = selection_bounds(buffer)
-    body = found ? text_iter_get_text(itstart,itend) : ""
+    body = found ? (itstart:itend).text[String] : ""
     body == "" && return PROPAGATE
     
     insert_offset = offset(itstart)
@@ -494,7 +505,7 @@ function run_code(console::Console,t::EditorTab)
     if cmd == ""
         (found,it_start,it_end) = get_cell(t.buffer)
         if found
-            cmd = text_iter_get_text(it_start,it_end)
+            cmd = (it_start:it_end).text[String]
         else
             cmd = get_gtk_property(t.buffer,:text,AbstractString)
         end
@@ -546,33 +557,38 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
 
         view = MarkdownTextView(doc,v,mc)
         
-#        signal_connect(data_hint_window_key_press_cb,view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-        
-        popup = GtkWindow("", 800, 400, true, false) |> GtkScrolledWindow(view)
+        popup = GtkWindow("", 800, 400, true, true) |> GtkScrolledWindow(view)
         set_gtk_property!(view,:margin,3)
+        signal_connect(data_hint_window_key_press_cb, popup, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+        signal_connect(data_hint_window_focus_out_cb, popup, "focus-out-event", Cint, (Ptr{Gtk.GdkEvent},), false)
 
         Gtk.G_.position(popup,mousepos_root[1]+10,mousepos_root[2])
         showall(popup)
 
-        @async begin
-            sleep(5)
-            destroy(popup)#FIXME close on click or something
-        end
     catch err
         warn(err)
     end
 end
 
-#this doesn't work, the main view takes priority
-@guarded (INTERRUPT) function data_hint_window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+@guarded (INTERRUPT) function data_hint_window_focus_out_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+    w = convert(GtkWindow, widgetptr)
+    destroy(w)
+    return INTERRUPT
+end
 
-    textview = convert(GtkTextView, widgetptr)
+#    if doing(Actions["copy"],event)
+#        signal_emit(textview, "copy-clipboard", Nothing)
+#        return INTERRUPT
+#    end
+
+@guarded (INTERRUPT) function data_hint_window_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+    w = convert(GtkWindow, widgetptr)
     event = convert(Gtk.GdkEvent,eventptr)
     
-    if doing(Actions["copy"],event)
-        signal_emit(textview, "copy-clipboard", Nothing)
-        return INTERRUPT
+    if doing(Action(Gtk.GdkKeySyms.Escape, NoModifier),event)
+        destroy(w)
     end
+    return PROPAGATE
 end
 
 value(adj::GtkAdjustment) = get_gtk_property(adj,:value,AbstractFloat)

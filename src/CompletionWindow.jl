@@ -390,7 +390,7 @@ end
 
 function methods_with_tuple(t::Tuple)
     meths = Method[]
-    mainmod = current_module()
+    mainmod = @__MODULE__
     # find modules in Main
     for nm in names(mainmod)
         if isdefined(mainmod,nm)

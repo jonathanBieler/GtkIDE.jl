@@ -44,7 +44,7 @@ end
     save(main_window)
 
     global is_running = false
-    REDIRECT_STDOUT && stop_console_redirect(main_window)
+    #REDIRECT_STDOUT && stop_console_redirect(main_window)
 
     return PROPAGATE
 end
@@ -103,36 +103,41 @@ function editorButtonclicked_cb(widgetptr::Ptr, user_data)
 end
 
 function toggle_sidepanel()
-    visible(sidepanel_ntbook,!visible(sidepanel_ntbook))
+    visibility = !visible(sidepanel_ntbook)
+    visible(sidepanel_ntbook,visibility)
+    for panel in sidepanel_ntbook
+        visible(panel,visibility)
+        visible(panel) && update!(panel)#Panels can opt out of updating while hidden, so update them when revealed
+    end
 end
 
 # Not ideal, it always refresh when using the pathdisplay
-@guarded nothing function on_path_change(main_window::MainWindow,doUpdate=false)
+@guarded nothing function on_path_change(main_window::MainWindow, doUpdate=false, console=current_console(main_window))
     c_path = unsafe_string(Gtk.G_.active_text(main_window.pathCBox))
-    update_pathEntry(main_window)
+    path = pwd(console)
+    
+    update_pathEntry(main_window,path)
 
-    if pwd() != c_path || doUpdate
-        push!(main_window.pathCBox,pwd())
+    if path != c_path || doUpdate
+        push!(main_window.pathCBox,path)
         for panel in main_window.sidepanel_ntbook
-            on_path_change(panel)
+            on_path_change(panel, path)
         end
         save(main_window.project)
     end
     nothing
 end
 
-function on_commands_return(main_window::MainWindow)
-    update!(workspacepanel)
-end
-
 function reload()
 
-    eval(GtkIDE,quote
+    GtkREPL.reload()
+    Core.eval(GtkIDE, quote
     include(joinpath(HOMEDIR,"PlotWindow.jl"))
     include(joinpath(HOMEDIR,"StyleAndLanguageManager.jl"))
     include(joinpath(HOMEDIR,"MainWindow.jl"))
     include(joinpath(HOMEDIR,"Project.jl"))
     include(joinpath(HOMEDIR,"Console.jl"))
+    include(joinpath(HOMEDIR,"ConsoleCommands.jl"))
     include(joinpath(HOMEDIR,"Refactoring.jl"))
     include(joinpath(HOMEDIR,"Editor.jl"))
     include(joinpath(HOMEDIR,"NtbookUtils.jl"))
@@ -141,7 +146,6 @@ function reload()
     include(joinpath(HOMEDIR,"SidePanels.jl"))
     include(joinpath(HOMEDIR,"Logo.jl"))
     end)
-    GtkREPL.reload()
 
 end
 

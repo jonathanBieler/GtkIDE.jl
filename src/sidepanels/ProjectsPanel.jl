@@ -103,8 +103,7 @@ end
     return nothing
 end
 
-function on_path_change(w::ProjectsPanel)
-   
+function on_path_change(w::ProjectsPanel, path)
 end
 
 function load(w::ProjectsPanel,treeview::GtkTreeView,list::GtkTreeStore)

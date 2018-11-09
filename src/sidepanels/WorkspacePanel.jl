@@ -1,5 +1,4 @@
 mutable struct WorkspacePanel <: GtkScrolledWindow
-
     handle::Ptr{Gtk.GObject}
     list::GtkTreeStore
     tree_view::GtkTreeView
@@ -7,7 +6,7 @@ mutable struct WorkspacePanel <: GtkScrolledWindow
 
     function WorkspacePanel(main_window::MainWindow)
 
-        (tv,list,cols) = give_me_a_treeview(2,["Name","Type"])
+        (tv,list,cols) = give_me_a_treeview(2,["Name","Summary"])
 
         sc = GtkScrolledWindow()
         push!(sc,tv)
@@ -22,31 +21,34 @@ mutable struct WorkspacePanel <: GtkScrolledWindow
     end
 end
 
-function var_type(s::Symbol, mod)
+function var_info(s::Symbol, mod)
     try
-        return string(typeof(getfield(mod,s)))
+        #return string(typeof(getfield(mod,s))) #FIXME: call on worker
+        return summary(Core.eval(mod,s))
     catch err
     end
     ""
 end
 
-function on_path_change(w::WorkspacePanel)
+function on_path_change(w::WorkspacePanel, path)
     
 end
 
 function update!(w::WorkspacePanel)
 
+    !visible(w) && return nothing #updating is a bit costly
+
     mod = current_console(w.main_window).eval_in
     n = sort!(names(mod,all=true))
-    t = map(s->var_type(s,mod),n)
+    t = map(s->var_info(s,mod),n)
     n = map(string,n)
 
     idx = (t .!= "Module") .& map(s->!startswith(s,"#"),n)
     n,t = n[idx], t[idx]
     
-    M = sortslices([t n], dims=1)#FIXME use tree view sorting?
-    n = M[:,2]
-    t = M[:,1]
+    #M = sortslices([t n n], dims=1)#FIXME use tree view sorting?
+    #n = M[:,2]
+    #t = M[:,1]
 
     #sel_val = selected(w.tree_view,w.list)
     empty!(w.list)
@@ -60,8 +62,8 @@ end
 function open_variable(treeview::GtkTreeView,list::GtkTreeStore,main_window::MainWindow)
     v = selected(treeview, list)
     if v != nothing
-        prompt(current_console(main_window),v[1])
-        on_return(current_console(main_window),v[1])
+        GtkREPL.command(current_console(main_window),v[1])
+        GtkREPL.on_return(current_console(main_window),v[1])
     end
 end
 

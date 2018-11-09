@@ -158,11 +158,11 @@ function text_iter_line_start(it::GtkTextIter)
     return GtkTextIter(b, offset(line_start) + i)
 end
 
-function lstrip_idx(s::AbstractString, chars::Base.Chars=Base._default_delims)
+function lstrip_idx(s::AbstractString)
     i = start(s)
     while !done(s,i)
         c, j = next(s,i)
-        if !(c in chars)
+        if !isspace(c)
             return i
         end
         i = j
@@ -189,23 +189,23 @@ function get_line_text(buffer::GtkTextBuffer,it::GtkTextIter)
     li != get_gtk_property(itstart,:line,Integer) && skip(itstart,1,:line)#for fist line
     !get_gtk_property(itend,:ends_line,Bool) && text_iter_forward_to_line_end(itend)
 
-    return (text_iter_get_text(itstart, itend), itstart, itend)
+    return ((itstart:itend).text[String], itstart, itend)
 end
 
 function get_text_right_of_cursor(buffer::GtkTextBuffer)
     it = mutable(get_text_iter_at_cursor(buffer))
-    return text_iter_get_text(it,it+1)
+    return (it:(it+1)).text[String]
 end
 function get_text_left_of_cursor(buffer::GtkTextBuffer)
     it = mutable(get_text_iter_at_cursor(buffer))
-    return text_iter_get_text(it-1,it)
+    return ((it-1):it).text[String]
 end
 
-get_text_left_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it-1,it)
-get_text_right_of_iter(it::MutableGtkTextIter) = text_iter_get_text(it,it+1)
+get_text_left_of_iter(it::MutableGtkTextIter) = ((it-1):it).text[String]
+get_text_right_of_iter(it::MutableGtkTextIter) = (it:(it+1)).text[String]
 
-get_text_left_of_iter(it::GtkTextIter) = text_iter_get_text(mutable(it)-1,mutable(it))
-get_text_right_of_iter(it::GtkTextIter) = text_iter_get_text(mutable(it),mutable(it)+1)
+get_text_left_of_iter(it::GtkTextIter) = ((mutable(it)-1):mutable(it)).text[String]
+get_text_right_of_iter(it::GtkTextIter) = (mutable(it):(mutable(it)+1)).text[String]
 
 nlines(it_start,it_end) = abs(line(it_end)-line(it_start))+1
 

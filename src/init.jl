@@ -23,9 +23,9 @@ end
 
 function __init__()
 
-    global const is_running = true #should probably use g_main_loop_is_running or something of the sort
-    global const default_settings = init_opt()
-    global const main_window = MainWindow()
+    global is_running = true #should probably use g_main_loop_is_running or something of the sort
+    global default_settings = init_opt()
+    global main_window = MainWindow()
 
     ## Console
 
@@ -44,14 +44,14 @@ function __init__()
 
     upgrade_project()
 
-    global const project = Project(main_window,"default")
+    global project = Project(main_window,"default")
 
     pathCBox = PathComboBox(main_window)
     statusBar = GtkStatusbar()
 
     menubar = MainMenu(main_window)
 
-    global const sidepanel_ntbook = GtkNotebook()
+    global sidepanel_ntbook = GtkNotebook()
 
     init!(main_window,editor,console_mng,pathCBox,statusBar,project,menubar,sidepanel_ntbook)
     GtkREPL.set_main_window(main_window) 
@@ -62,8 +62,8 @@ function __init__()
 
     ## Ploting window
 
-    global const fig_ntbook = GtkNotebook()
-    global const _display = Immerse._display
+    global fig_ntbook = GtkNotebook()
+    global _display = Immerse._display
 
     #FIXME need init!
     signal_connect(fig_ntbook_key_press_cb,fig_ntbook, "key-press-event",Cint, (Ptr{Gtk.GdkEvent},), false)
@@ -71,11 +71,11 @@ function __init__()
 
     ## completion window
 
-    global const completion_window = CompletionWindow(main_window)
+    global completion_window = CompletionWindow(main_window)
     visible(completion_window,false)
 
     ## Main layout
-    global const mainPan = GtkPaned(:h)
+    global mainPan = GtkPaned(:h)
     rightPan = GtkPaned(:v)
 
     main_window |>
@@ -86,7 +86,7 @@ function __init__()
                  pathCBox   |>
                 (editorButton = GtkButton("F2"))
             ) |>
-            (global const sidePan = GtkPaned(:h)) |>
+            (global sidePan = GtkPaned(:h)) |>
             statusBar
         )
 
@@ -118,7 +118,7 @@ function __init__()
     @assert length(console_mng) == 1
 
     set_gtk_property!(statusBar,:margin,2)
-    GtkExtensions.text(statusBar,"Julia $VERSION")
+    push!(statusBar,"main","Julia $VERSION")
     Gtk.G_.position(sidePan,160)
 
     set_gtk_property!(editor,:vexpand,true)
@@ -148,17 +148,17 @@ function __init__()
     ################
     # Side Panels
 
-    global const filespanel = FilesPanel(main_window)
-    update!(filespanel)
+    global filespanel = FilesPanel(main_window)
+    update!(filespanel, pwd())
     add_side_panel(filespanel,"F")
 
-    global const workspacepanel = WorkspacePanel(main_window)
+    global workspacepanel = WorkspacePanel(main_window)
     update!(workspacepanel)
     add_side_panel(workspacepanel,"W")
 
     ##
 
-    global const projectspanel = ProjectsPanel(main_window)
+    global projectspanel = ProjectsPanel(main_window)
     update!(projectspanel)
     add_side_panel(projectspanel,"P")
 
@@ -186,8 +186,8 @@ function __init__()
 
     if REDIRECT_STDOUT
 
-        global const stdout = STDOUT
-        global const stderr = STDERR
+        global stdout = STDOUT
+        global stderr = STDERR
 
         read_stdout, wr = redirect_stdout()
         #read_stderr, wre = redirect_stderr()
@@ -199,7 +199,7 @@ function __init__()
             @async GtkREPL.watch_stream(read_stderr,console)
         end
 
-        global const watch_stdout_task = watch_stdout()
+        global watch_stdout_task = watch_stdout()
         #global watch_stderr_task = watch_stderr()
 
        GtkREPL.init_stdout!(main_window.console_manager,watch_stdout_task,stdout,stderr)

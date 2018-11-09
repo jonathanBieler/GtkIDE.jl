@@ -154,7 +154,7 @@ function replace_forward(t::EditorTab,entry::GtkEntry,search_window::SearchWindo
         ite = text_buffer_get_iter_at_mark(t.buffer,t.search_mark_end)
 
         #if it doesn't match, we search forward
-        if text_iter_get_text(its,ite)!= search_text
+        if (its:ite).text[String] != search_text
             do_search = true
         end
     else

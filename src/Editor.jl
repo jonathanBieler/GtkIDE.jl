@@ -39,7 +39,7 @@ end
 
 function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, user_data)
 
-    editor = convert(GtkNotebook,widgetptr)
+    editor = convert(GtkNotebook, widgetptr)
     page = convert(Gtk.GtkWidget, pageptr)
 
     if typeof(page) == EditorTab && GtkSourceWidget.SOURCE_MAP

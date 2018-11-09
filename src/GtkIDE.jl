@@ -13,13 +13,17 @@ using JSON, ConfParser
 using Distributed, REPL, InteractiveUtils, Sockets, Markdown
 
 import GtkREPL: ConsoleManager, Console, current_console, print_to_console, new_prompt,
-worker, add_remote_console_cb
+worker, add_remote_console_cb, ConsoleCommand, on_command_done
 
 include("Options.jl")
 
-import Gtk.GtkTextIter
+import Gtk: GtkTextIter, get_default_mod_mask
 import Gadfly.Colors
 import Immerse.Cairo
+
+import REPL: REPLCompletions.completions
+import Base: push!, search
+import Cairo.text
 
 export image, plot, figure, rprint
 export GtkREPL #This gets called by remote consoles
@@ -34,9 +38,6 @@ function method_filename(m)
     return file,line
 end
 
-import Base: REPLCompletions.completions, push!, search
-import Cairo.text
-
 #export add_console, figure
 
 #Order matters
@@ -45,6 +46,7 @@ include("StyleAndLanguageManager.jl")
 include("MainWindow.jl")
 include("Project.jl")
 include("Console.jl")
+include("ConsoleCommands.jl")
 include("Refactoring.jl")
 include("Editor.jl")
 include("NtbookUtils.jl")

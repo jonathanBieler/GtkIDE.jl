@@ -170,13 +170,14 @@ function add_file(list::GtkTreeStore,path::AbstractString,filename::AbstractStri
     return push!(list,create_treestore_file_item(path,filename),parent)
 end
 function insert_file(list::GtkTreeStore,path::AbstractString,filename::AbstractString, iter)
-  return insert!(list,iter,create_treestore_file_item(path,filename), how=:sibling, where=:before)
+    return insert!(list,iter,create_treestore_file_item(path,filename), how=:sibling, where=:before)
 end
 function create_treestore_folder_item(path::AbstractString)
   pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"folder",24,1,0)
   return (pixbuf,basename(path),path,false,type_folder )
 end
 function add_folder(list::GtkTreeStore,path::AbstractString, parent=nothing)
+    @info 1
     return push!(list,create_treestore_folder_item(path),parent)
 end
 function insert_folder(list::GtkTreeStore,path::AbstractString, iter)
@@ -255,9 +256,9 @@ function update!(w::GtkTreeStore, p::AbstractString, parent=nothing)
     end
 end
 
-function update!(w::FilesPanel)
+function update!(w::FilesPanel, path = pwd(current_console(w.main_window)))
     empty!(w.list)
-    update!(w.list,pwd())
+    update!(w.list,path)
     expand_root(w.tree_view)
 end
 
@@ -540,7 +541,7 @@ end
         end
         try
             cd(current_path)
-            on_path_change(filespanel.main_window)
+            on_path_change(filespanel.main_window, current_path)
         catch err
         end
     end
@@ -556,7 +557,7 @@ end
         push!(LOAD_PATH,current_path)
         try
             cd(current_path)
-            on_path_change(filespanel.main_window)
+            on_path_change(filespanel.main_window, current_path)
         catch err
         end
     end
@@ -631,8 +632,8 @@ end
 end
 
 #this is called from MainWindow
-function on_path_change(filespanel::FilesPanel)
-    update!(filespanel)
+function on_path_change(filespanel::FilesPanel, path)
+    update!(filespanel, path)
 end
 
 # Callback called from Gtk main loop to update the panel
