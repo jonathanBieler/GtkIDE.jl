@@ -31,7 +31,7 @@ function doing(a::Action, event::Gtk.GdkEvent)
 
     mod = get_default_mod_mask()
     #on os x, the command key is also the meta key
-    @static if is_apple()
+    if Sys.isapple()
         if a.state == NoModifier && event.state == NoModifier
              return event.keyval == a.keyval
         end

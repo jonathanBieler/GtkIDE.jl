@@ -1,4 +1,3 @@
-
 function opt(block::AbstractString,key::AbstractString)
     conf = ConfParse(ascii(joinpath(HOMEDIR,"config","user_settings.ini")))
     parse_conf!(conf)
@@ -9,12 +8,11 @@ function opt(block::AbstractString,key::AbstractString)
     catch
         r = retrieve(default_settings, ascii(lowercase(block)), ascii(lowercase(key)))
     end
-    parse(r)
+    Meta.parse(r)
 end
 opt(key::AbstractString) = opt("default",key)
 
 # runtime
-
 function init_opt()
 
     suffix = Sys.islinux() ? "_linux" : ""

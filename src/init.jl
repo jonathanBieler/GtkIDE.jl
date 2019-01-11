@@ -29,7 +29,7 @@ function __init__()
 
     ## Console
 
-    console_mng = ConsoleManager(main_window)
+    console_mng = ConsoleManager(main_window,GtkIDE)
     GtkREPL.init!(console_mng)
 
     ## Editor
@@ -186,8 +186,8 @@ function __init__()
 
     if REDIRECT_STDOUT
 
-        global stdout = STDOUT
-        global stderr = STDERR
+        global stdout_ = stdout
+        global stderr_ = stderr
 
         read_stdout, wr = redirect_stdout()
         #read_stderr, wre = redirect_stderr()
@@ -202,7 +202,7 @@ function __init__()
         global watch_stdout_task = watch_stdout()
         #global watch_stderr_task = watch_stderr()
 
-       GtkREPL.init_stdout!(main_window.console_manager,watch_stdout_task,stdout,stderr)
+       GtkREPL.init_stdout!(main_window.console_manager,watch_stdout_task,stdout_,stderr_)
 
         g_timeout_add(10,print_to_console,console)
     end
