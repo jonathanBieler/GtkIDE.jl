@@ -159,15 +159,12 @@ function text_iter_line_start(it::GtkTextIter)
 end
 
 function lstrip_idx(s::AbstractString)
-    i = start(s)
-    while !done(s,i)
-        c, j = next(s,i)
-        if !isspace(c)
-            return i
-        end
-        i = j
+    j = firstindex(s)
+    for (i, c) in pairs(s)
+        !isspace(c) && return j
+        j = i
     end
-    i
+    firstindex(s)
 end
 
 get_buffer(view::GtkTextView) = get_gtk_property(view,:buffer,GtkTextBuffer)

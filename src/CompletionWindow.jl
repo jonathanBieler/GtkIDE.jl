@@ -127,7 +127,6 @@ function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer,t)
         if visible(completion_window)
 
             on_return(completion_window,buffer,t)
-
             propagate = false
         end
     else

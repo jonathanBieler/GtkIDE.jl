@@ -177,7 +177,6 @@ function create_treestore_folder_item(path::AbstractString)
   return (pixbuf,basename(path),path,false,type_folder )
 end
 function add_folder(list::GtkTreeStore,path::AbstractString, parent=nothing)
-    @info 1
     return push!(list,create_treestore_folder_item(path),parent)
 end
 function insert_folder(list::GtkTreeStore,path::AbstractString, iter)

@@ -1,5 +1,5 @@
 # GtkIDE.jl
-GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](https://github.com/JuliaLang/julia) 0.7 written in Julia. It includes a terminal, a plotting window and an editor.
+GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](https://github.com/JuliaLang/julia) 0.7-1.0 written in Julia. It includes a terminal, a plotting window and an editor.
 
 ![screenshot](data/GtkIDE.png)
 
@@ -31,6 +31,8 @@ Demo [video](https://www.youtube.com/watch?v=AbzNUNfwSGc).
 
 **Warning:** make sure to backup or commit your work before editing files, as this editor is
 still somewhat experimental.
+
+Use your terminal for package management instead of GktIDE console.
 
 ### Opening files
 
@@ -118,5 +120,7 @@ To gain space you can hide elements of the UI, e.g.:
 ### Issues
 
 - Prints and error outputs are a bit buggy.
+- No stdin.
+- Evaluating in sub-modules doesn't work.
 - Random crashes.
 - Too many issues to list.

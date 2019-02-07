@@ -206,7 +206,7 @@ function completions(p::MethodCompletion,t,idx,c::Console)
     prefix = length(mods) > 2 ? mods[1] : ""
 
     comp,dotpos = GtkREPL.completions_in_module(p.cmd,c)
-    dotpos += lastindex(prefix)-1
+    dotpos = dotpos .+ (lastindex(prefix)-1)
     comp = [prefix != "" ? string(prefix, '.', c) : c for c in comp]
 
     p.comp = comp
