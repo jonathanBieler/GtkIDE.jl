@@ -10,6 +10,7 @@ Demo [video](https://www.youtube.com/watch?v=AbzNUNfwSGc).
 1. Install the dependencies:
 
     ```julia
+     using Pkg
      Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")
      Pkg.clone("https://github.com/jonathanBieler/GtkExtensions.jl.git")
      Pkg.clone("https://github.com/jonathanBieler/GtkMarkdownTextView.jl.git")
