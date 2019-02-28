@@ -82,8 +82,8 @@ function save(t::EditorTab)
             t.autocomplete_words = collect_symbols(t)
         end
     catch err
-        warn("Error while saving $(t.filename)")
-        warn(err)
+        @warn "Error while saving $(t.filename)"
+        @warn err
     end
 end
 
@@ -176,9 +176,11 @@ function open_tab(file, editor; line=0)
         end
         #otherwise open it
         t = open_in_new_tab(file,editor,line=line)
-
-        return true
+    else
+        #create new file
+        t = open_in_new_tab(file,editor,line=line)
     end
+    return true
 end
 
 function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not defined at this point
@@ -197,7 +199,7 @@ function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not d
 
         open_tab(file, editor; line=line)
     catch err
-        warn(err)
+        @warn err
     end
     return false
 end
@@ -362,7 +364,7 @@ end
     end
     if doing(Actions["runfile"], event)
         cmd = "include(\"$(t.filename)\")"
-        cmd = replace(cmd,"\\", "/")
+        cmd = replace(cmd,"\\" => "/")
         run_command(console,cmd)
     end
     if event.keyval == Gtk.GdkKeySyms.Escape
@@ -439,7 +441,7 @@ end
     if doing(Actions["goto_line"],event)
         ok,v = input_dialog("Line number","1",(("Cancel",0),("Ok",1)),editor.main_window)
         if ok == 1
-            v = parse(v)
+            v = Meta.parse(v)
             if typeof(v) <: Integer
                 scroll_to_line(t,v)
             else
@@ -566,7 +568,7 @@ function show_data_hint(textview::GtkTextView,t::EditorTab)
         showall(popup)
 
     catch err
-        warn(err)
+        @warn err
     end
 end
 

@@ -1,5 +1,5 @@
 ## make sure antialiasing is working on windows
-@static if is_windows()
+if Sys.iswindows()
     warn("Patching Gtk's settings.ini")
     s = Pkg.dir() * "\\WinRPM\\deps\\usr\\x86_64-w64-mingw32\\sys-root\\mingw\\etc\\gtk-3.0\\"
     if isdir(s) && !isfile(s * "settings.ini")

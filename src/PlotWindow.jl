@@ -39,9 +39,9 @@ end
 array_to_rgb(img::Array{T,2}) where {T<:Colors.Color} = img
 
 function array_to_rgb(img::Array{T,2}) where {T<:Number}
-    data = Array{Colors.RGB24}(size(img)...)
-    img = img - minimum(img)
-    img = img / maximum(img)
+    data = Array{Colors.RGB24}(undef,size(img)...)
+    img = img .- minimum(img)
+    img = img ./ maximum(img)
     for i in eachindex(img)
         data[i] = Colors.RGB(img[i],img[i],img[i])
     end
@@ -49,9 +49,9 @@ function array_to_rgb(img::Array{T,2}) where {T<:Number}
 end
 function array_to_rgb(img::Array{T,3}) where {T<:Number}
     size(img,3) != 3 && error("The size of the third dimension needs to be equal to 3 (RGB).")
-    data = Array{Colors.RGB24}(size(img)...)
-    img = img - minimum(img)
-    img = img / maximum(img)
+    data = Array{Colors.RGB24}(undef,size(img)...)
+    img = img .- minimum(img)
+    img = img ./ maximum(img)
     for i = 1:size(img,1)
         for j = 1:size(img,2)
             data[i,j] = Colors.RGB(img[i,j,1],img[i,j,2],img[i,j,3])
@@ -61,7 +61,7 @@ function array_to_rgb(img::Array{T,3}) where {T<:Number}
 end
 
 function image(img)
-    i = Image(flipdim(img,1))
+    i = Image(reverse(img,dims=1))
     f = get_tab(fig_ntbook,get_current_page_idx(fig_ntbook))
     if typeof(f) == Image
         idx = get_current_page_idx(fig_ntbook)
