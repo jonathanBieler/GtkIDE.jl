@@ -10,7 +10,7 @@ using Gtk, GtkSourceWidget, GtkUtilities, GtkExtensions, GtkMarkdownTextView
 using Immerse
 using GtkREPL
 using JSON, ConfParser
-using Distributed, REPL, InteractiveUtils, Sockets, Markdown
+using Distributed, REPL, InteractiveUtils, Sockets, Markdown, Pkg
 
 import GtkREPL: ConsoleManager, Console, current_console, print_to_console, new_prompt,
 worker, add_remote_console_cb, ConsoleCommand, on_command_done
@@ -26,7 +26,7 @@ import Base: push!, search
 import Cairo.text
 
 export image, plot, figure, rprint
-export GtkREPL #This gets called by remote consoles
+export GtkREPL, Pkg #This gets called by remote consoles
 
 if !GtkSourceWidget.SOURCE_MAP
     macro GtkSourceMap() end
