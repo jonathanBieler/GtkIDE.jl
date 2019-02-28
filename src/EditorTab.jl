@@ -195,7 +195,7 @@ function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not d
 
         file, line = method_filename(v)
         file = string(file)
-        file = ispath(file) ? file : joinpath( joinpath(splitdir(JULIA_HOME)[1],"share/julia/base"), file)
+        file = ispath(file) ? file : joinpath( joinpath(splitdir(Sys.BINDIR)[1],"share/julia/base"), file)
 
         open_tab(file, editor; line=line)
     catch err

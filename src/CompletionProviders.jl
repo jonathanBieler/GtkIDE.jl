@@ -6,7 +6,7 @@
 #     export NoCompletion, NormalCompletion, MethodCompletion, TupleCompletion, CompletionProvider,
 #     WordCompletion, WordMenuCompletion,WordMenuCompletion_step1
 
-    @compat abstract type CompletionProvider end
+    abstract type CompletionProvider end
 
     mutable struct NoCompletion <: CompletionProvider
     end

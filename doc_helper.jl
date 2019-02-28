@@ -1,9 +1,9 @@
-for n in names(Actions,true)
+for n in names(Actions, all=true)
     v = eval(Actions,n)
     if typeof(v) == Action
     
         docont = false
-        for i in names(GdkKeySyms,true)
+        for i in names(GdkKeySyms, all=true)
             vk = eval(GdkKeySyms,i)
             if typeof(vk) <: Integer
                 if v.keyval == vk

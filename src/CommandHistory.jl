@@ -60,7 +60,7 @@ function parse_history(h::HistoryProvider)
     lines = readlines(f)
     close(f)
 
-    out = Array{String}(0)
+    out = Array{String}(undef, 0)
     current_command = ""
     for line in lines
         if match(r"^# _history_entry_",line) != nothing
@@ -76,7 +76,7 @@ end
 
 function search(h::HistoryProvider,prefix::AbstractString)
 
-    idx = Array{Int}(0)
+    idx = Array{Int}(undef, 0)
     for i = length(h.history):-1:1
         startswith(h.history[i],prefix) && push!(idx,i)
     end
