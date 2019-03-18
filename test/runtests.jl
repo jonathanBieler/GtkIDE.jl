@@ -1,5 +1,10 @@
+using GtkIDE
+using Test
+
 ###############
 ## EDITOR
+
+@testset "Editor" begin
 
 main_window = GtkIDE.main_window
 editor = main_window.editor
@@ -12,7 +17,6 @@ sleep_time = 0.2
 sleep(0.5)#time for loading
 GtkIDE.open_in_new_tab(joinpath("test","testfile.jl"),main_window.editor)
 sleep(0.5)#time for loading
-
 
 t = GtkIDE.current_tab(editor)
 b = t.buffer
@@ -35,7 +39,7 @@ goto_line(b,1)
 GtkIDE.run_line(console, t)
     sleep(sleep_time)
 
-@assert x == 2
+@test x == 2
 
 goto_line(b,2)
 to_line_end(b)
@@ -44,15 +48,19 @@ sleep(0.1)
 
 (txt,its,ite) = GtkIDE.get_line_text(b, GtkIDE.get_text_iter_at_cursor(b) )
 
-@assert txt == "_test_completion_232_"
+@test txt == "_test_completion_232_"
 
 sleep(sleep_time)
 t = GtkIDE.current_tab(editor)
 t.modified = false
 close_tab(editor)
 
+end
+
 ###############
 ## CONSOLE
+
+@testset "Console" begin
 
 console = current_console(main_window)
 
@@ -89,7 +97,7 @@ prompt(console,"x = 3")
     sleep(sleep_time)
 emit_keypress(console.view)
     sleep(sleep_time)
-@assert x == 3
+@test x == 3
 
 prompt(console,"_test_completion_")
 cmd = prompt(console)
@@ -97,7 +105,7 @@ cmd = prompt(console)
 autocomplete(console,cmd, length(cmd))
     sleep(sleep_time)
 
-@assert prompt(console) == "_test_completion_232_"
+@test prompt(console) == "_test_completion_232_"
 
 cmd = prompt(console)
 prompt(console, cmd * "(")
@@ -106,11 +114,13 @@ cmd = prompt(console)
 autocomplete(console,cmd, length(cmd))
     sleep(sleep_time)
 
-@assert prompt(console) == "_test_completion_232_(x::Int64, y::Float64)"
+@test prompt(console) == "_test_completion_232_(x::Int64, y::Float64)"
 
 prompt(console,"clc")
     sleep(sleep_time)
 emit_keypress(console.view)
     sleep(sleep_time)
+
+end
 
 ##

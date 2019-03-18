@@ -19,3 +19,4 @@ Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/JuliaWordsUtils.jl.gi
 Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/GtkTextUtils.jl.git", rev="master"))
 Pkg.add(PackageSpec(url="https://github.com/JuliaGtk/GtkSourceWidget.jl", rev="master"))
 Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/GtkREPL.jl.git", rev="master"))
+Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/GtkMarkdownTextView.jl.git", rev="master"))

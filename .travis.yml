@@ -28,6 +28,7 @@ script:
           Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/GtkTextUtils.jl.git", rev="master"));
           Pkg.add(PackageSpec(url="https://github.com/JuliaGtk/GtkSourceWidget.jl", rev="master"));
           Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/GtkREPL.jl.git", rev="master"));
+          Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/GtkMarkdownTextView.jl.git", rev="master"));
           Pkg.clone(pwd());
           Pkg.build("GtkIDE");
           Pkg.test("GtkIDE"; coverage=true)'
