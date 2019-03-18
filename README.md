@@ -1,4 +1,10 @@
 # GtkIDE.jl
+
+[![Build Status](https://travis-ci.org/jonathanBieler/GtkIDE.jl.svg?branch=master)](https://travis-ci.org/jonathanBieler/GtkIDE.jl)
+
+[![Coverage Status](https://coveralls.io/repos/jonathanBieler/GtkIDE.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/jonathanBieler/GtkIDE.jl?branch=master)
+
+
 GtkIDE.jl is a [Gtk-based](https://github.com/JuliaLang/Gtk.jl) IDE for [Julia](https://github.com/JuliaLang/julia) 0.7-1.0 written in Julia. It includes a terminal, a plotting window and an editor.
 
 ![screenshot](data/GtkIDE.png)
