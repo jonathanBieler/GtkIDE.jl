@@ -1,8 +1,13 @@
 using GtkIDE
-using Test
+using Test, Gtk
 
 ###############
 ## EDITOR
+
+sleep_time = 0.5
+
+function _test_completion_232_(x::Int64, y::Float64)
+end
 
 @testset "Editor" begin
 
@@ -13,10 +18,9 @@ console = GtkIDE.current_console(main_window)
 cd(joinpath(GtkIDE.HOMEDIR,".."))
 GtkIDE.update_pathEntry(main_window.pathCBox,pwd())
 
-sleep_time = 0.2
-sleep(0.5)#time for loading
+sleep(sleep_time)#time for loading
 GtkIDE.open_in_new_tab(joinpath("test","testfile.jl"),main_window.editor)
-sleep(0.5)#time for loading
+sleep(sleep_time)#time for loading
 
 t = GtkIDE.current_tab(editor)
 b = t.buffer
@@ -31,8 +35,6 @@ function to_line_end(buffer::GtkIDE.GtkTextBuffer)
     GtkIDE.text_iter_forward_to_line_end(it)
     GtkIDE.text_buffer_place_cursor(buffer,it)
 end
-function _test_completion_232_(x::Int64, y::Float64)
-end
 
 goto_line(b,1)
     sleep(sleep_time)
@@ -44,7 +46,7 @@ GtkIDE.run_line(console, t)
 goto_line(b,2)
 to_line_end(b)
 GtkIDE.init_autocomplete(t.view,t)
-sleep(0.1)
+sleep(0.5)
 
 (txt,its,ite) = GtkIDE.get_line_text(b, GtkIDE.get_text_iter_at_cursor(b) )
 
@@ -53,7 +55,7 @@ sleep(0.1)
 sleep(sleep_time)
 t = GtkIDE.current_tab(editor)
 t.modified = false
-close_tab(editor)
+GtkIDE.close_tab(editor)
 
 end
 
@@ -62,10 +64,12 @@ end
 
 @testset "Console" begin
 
-console = current_console(main_window)
+import GtkIDE.GtkREPL.command
+
+main_window = GtkIDE.main_window
+console = GtkIDE.current_console(main_window)
 
 #stress test printing
-
 function printtest(k)
     for i=1:5
         @show k
@@ -75,7 +79,7 @@ function printtest(k)
 end
 
 for i=1:3
-    t = @async printtest(i)
+    global t = @async printtest(i)
 end
 
 wait(t)
@@ -93,30 +97,31 @@ function emit_keypress(w)
     signal_emit(w, "key-press-event", Bool, keyevent)
 end
 
-prompt(console,"x = 3")
+command(console,"x = 3")
     sleep(sleep_time)
 emit_keypress(console.view)
     sleep(sleep_time)
 @test x == 3
 
-prompt(console,"_test_completion_")
-cmd = prompt(console)
+command(console,"_test_completion_")
+    sleep(sleep_time)   
+cmd = command(console)
     sleep(sleep_time)
-autocomplete(console,cmd, length(cmd))
-    sleep(sleep_time)
-
-@test prompt(console) == "_test_completion_232_"
-
-cmd = prompt(console)
-prompt(console, cmd * "(")
-cmd = prompt(console)
-    sleep(sleep_time)
-autocomplete(console,cmd, length(cmd))
+GtkIDE.GtkREPL.autocomplete(console,cmd, length(cmd))
     sleep(sleep_time)
 
-@test prompt(console) == "_test_completion_232_(x::Int64, y::Float64)"
+@test command(console) == "_test_completion_232_"
 
-prompt(console,"clc")
+cmd = command(console)
+command(console, cmd * "(")
+cmd = command(console)
+    sleep(sleep_time)
+GtkIDE.GtkREPL.autocomplete(console,cmd, length(cmd))
+    sleep(sleep_time)
+
+@test startswith(command(console), "_test_completion_232_(x::Int64, y::Float64)")
+
+command(console,"clc")
     sleep(sleep_time)
 emit_keypress(console.view)
     sleep(sleep_time)
