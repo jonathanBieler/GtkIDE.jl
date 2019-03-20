@@ -17,7 +17,7 @@ Demo [video](https://www.youtube.com/watch?v=AbzNUNfwSGc).
 
     ```julia
      using Pkg
-     Pkg.clone("https://github.com/jonathanBieler/GtkSourceWidget.jl.git")
+     Pkg.clone("https://github.com/JuliaGtk/GtkSourceWidget.jl.git")
      Pkg.clone("https://github.com/jonathanBieler/GtkExtensions.jl.git")
      Pkg.clone("https://github.com/jonathanBieler/GtkMarkdownTextView.jl.git")
      Pkg.clone("https://github.com/jonathanBieler/JuliaWordsUtils.jl.git")
@@ -27,10 +27,10 @@ Demo [video](https://www.youtube.com/watch?v=AbzNUNfwSGc).
      Pkg.clone("https://github.com/jonathanBieler/GtkIDE.jl.git")
      ```
 
-3. Start julia with no colors, and use the package
+3. Start julia and use the package
 
     ```
-    ... julia --color=no
+    ... julia 
     using GtkIDE
     ```
 
