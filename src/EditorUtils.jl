@@ -21,7 +21,7 @@ struct SolidString
     SolidString(s::AbstractString) = SolidString(s,length(s))
 end
 
-import Base: length, getindex, endof
+import Base: length, getindex
 length(s::SolidString) = length(s.c)
 endof(s::SolidString) = length(s)
 getindex(s::SolidString,i::Integer) = s.c[i]

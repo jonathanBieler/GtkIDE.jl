@@ -296,7 +296,6 @@ end
 ########################
 ## Tuple completion
 
-import Base.typeseq
 function type_close_enough(x::DataType, t::DataType)
     typeseq(x,t) && return true
     return (x.name === t.name && !isconcretetype(t) && x <: t)
