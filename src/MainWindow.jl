@@ -145,6 +145,8 @@ function reload()
     include(joinpath(HOMEDIR,"MainMenu.jl"))
     include(joinpath(HOMEDIR,"SidePanels.jl"))
     include(joinpath(HOMEDIR,"Logo.jl"))
+    init_console_commands()
+    nothing
     end)
 
 end

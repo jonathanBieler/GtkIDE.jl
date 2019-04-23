@@ -31,6 +31,7 @@ function __init__()
 
     console_mng = ConsoleManager(main_window,GtkIDE)
     GtkREPL.init!(console_mng)
+    init_console_commands()#insert console commands into GtkREPL
 
     ## Editor
 

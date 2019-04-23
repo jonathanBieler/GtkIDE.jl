@@ -19,7 +19,7 @@ include("Options.jl")
 
 import Gtk: GtkTextIter, get_default_mod_mask
 import Gadfly.Colors
-import Immerse.Cairo
+import Immerse: Cairo, Compose
 
 import REPL: REPLCompletions.completions
 import Base: push!, search

@@ -124,6 +124,12 @@ end
 
 Base.show(io::IO,p::Gadfly.Plot) = write(io,"Gadfly.Plot(...)")
 
+# # I'm not sure why but I need to call display here
+function Base.show(io::IO, cc::Compose.Context) 
+    display(cc)
+    write(io, "Compose.Context(...)")
+end 
+
 function Immerse.figure(;name::AbstractString="Figure $(Immerse.nextfig(Immerse._display))",
                  width::Integer=400,    # TODO: make configurable
                  height::Integer=400)

@@ -43,6 +43,17 @@
         func_names
         TupleCompletion() = new(Function[],1,"",nothing,nothing,[""],[""])
     end
+    
+    mutable struct PathCompletion <: CompletionProvider
+        steps::Array{Function,1}
+        state::Int
+        cmd::AbstractString
+        itstart
+        itend
+        comp
+        dotpos
+        PathCompletion() = new(Function[],1,"",nothing,nothing,[""],-1:0)
+    end
 
 #end
 #using CompletionProviders
@@ -63,7 +74,7 @@ function init_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
     
     it = get_text_iter_at_cursor(buffer)
     
-    p = get_completion_provider(view,t)
+    p = get_completion_provider(console,view,t)
     typeof(p) == NoCompletion && @goto exit
     
     if p.state <= length(p.steps)
@@ -104,13 +115,13 @@ function init_completion_window(view,p::CompletionProvider)
     showall(completion_window)
 end
 
-function get_completion_provider(view::GtkTextView,t::EditorTab)
+function get_completion_provider(console::Console,view::GtkTextView,t::EditorTab)
     buffer = getbuffer(view)
     it = get_text_iter_at_cursor(buffer)
 
-    for pt in [NormalCompletion,MethodCompletion,TupleCompletion]#subtypes(CompletionProviders.CompletionProvider)
+    for pt in [PathCompletion,NormalCompletion,MethodCompletion,TupleCompletion]#subtypes(CompletionProviders.CompletionProvider)
         p = pt()
-        select_text(p,buffer,it,t) && return p
+        select_text(p,console,buffer,it,t) && return p
     end
     return NoCompletion()
 end
@@ -120,7 +131,7 @@ end
 function test_completion_providers()
     t = get_current_tab()
     view = t.view
-    p = get_completion_provider(view,t)
+    p = get_completion_provider(console,view,t)
 
     typeof(p) == NoCompletion
 
@@ -134,10 +145,6 @@ end
 
 #p = test_completion_providers()
 
-#&(2,1)
-
-#p
-
 ## Default behavior
 
 function formatcompletion(p::CompletionProvider,idx::Int)
@@ -150,7 +157,7 @@ end
 #####################
 # Normal completion
 
-function select_text(p::NormalCompletion,buffer,it,t)
+function select_text(p::NormalCompletion,console,buffer,it,t)
 
     istextfile(t) && return false
 
@@ -158,7 +165,7 @@ function select_text(p::NormalCompletion,buffer,it,t)
     cmd = strip(cmd)
     isempty(cmd) && return false
     cmd[end] == '(' && return false #trying to complete a method
-
+    
     cmd == "" && return false
     p.cmd = cmd
     p.itstart = its
@@ -187,7 +194,7 @@ end
 #####################
 #Methods completion
 
-function select_text(p::MethodCompletion,buffer,it,t)
+function select_text(p::MethodCompletion,console,buffer,it,t)
     istextfile(t) && return false
 
     (cmd,its,ite) = select_word_backward(it,buffer,false)
@@ -227,7 +234,7 @@ end
 #####################
 #Tuple completion
 
-function select_text(p::TupleCompletion,buffer,it,t)
+function select_text(p::TupleCompletion,console,buffer,it,t)
     istextfile(t) && return false
 
     (found,tu,itstart) = select_tuple(it, buffer)
@@ -255,7 +262,53 @@ function insert(p::TupleCompletion,s,buffer)
     insert!(buffer,p.itstart,s)
 end
 
+#####################
+# PathCompletion
 
+function formatcompletion(p::PathCompletion,idx::Int)
+    dotpos = p.dotpos.start
+    cmd = p.cmd[2:end]#remove the leading "
+    prefix = dotpos > 1 ? cmd[1:dotpos-1] : ""
+    
+    '"' * prefix * p.comp[idx]
+end
+
+function select_text(p::PathCompletion,console,buffer,it,t)
+    istextfile(t) && return false
+
+    (cmd, its, ite) = get_current_line_text(buffer)
+    ite = mutable(get_text_iter_at_cursor(buffer))
+    cmd = (its:ite).text[String]
+    
+    cmd == "" && return false
+    idx = findlast(c->c=='"',cmd)
+    
+    idx == nothing && return false
+    idx == length(cmd) && return false 
+    its += idx-1
+    cmd = cmd[idx:end]
+    
+    #check if it's a folder
+    cmd_s = strip(cmd[2:end])
+    comp, dotpos = remotecall_fetch(REPL.REPLCompletions.complete_path, GtkIDE.worker(console), cmd_s, lastindex(cmd_s))
+    #if not continue with normal completion
+    isempty(comp) && return false
+    
+    p.cmd = cmd
+    p.itstart = its
+    p.itend = ite
+    true
+end
+
+function completions(p::PathCompletion,t,idx,c::Console)
+    cmd = p.cmd
+    cmd = strip(cmd[2:end])#remove the leading "
+    comp, dotpos = remotecall_fetch(REPL.REPLCompletions.complete_path, worker(c), cmd, lastindex(cmd))
+    comp = [c.path for c in comp]
+ 
+    p.dotpos = dotpos
+    p.comp = comp
+end
 
 
 #end

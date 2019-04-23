@@ -140,7 +140,7 @@ function on_return(w::CompletionWindow,buffer,t)
     c = current_console(w.main_window)
 
     #check if we are still in the right mode, and update iterators
-    if !select_text(p,buffer,get_text_iter_at_cursor(buffer),t)
+    if !select_text(p,c,buffer,get_text_iter_at_cursor(buffer),t)
         visible(completion_window,false)
         return
     end
@@ -346,8 +346,7 @@ function methods_with_tuple(t::Tuple, d::Method, meths = Method[])
         for i = 1:length(x)
 
             if !(t[i] <: x[i]) ||
-            (x[i] == Any && t[i] != Any) ||
-            (x[i] == ANY && t[i] != ANY)
+            (x[i] == Any && t[i] != Any)
                 m = false
                 break
             end
@@ -388,7 +387,7 @@ end
 
 function methods_with_tuple(t::Tuple)
     meths = Method[]
-    mainmod = @__MODULE__
+    mainmod = Main
     # find modules in Main
     for nm in names(mainmod)
         if isdefined(mainmod,nm)
@@ -415,19 +414,19 @@ function tuple_to_types(tu::AbstractString,c::Console)
 
         for a in ex.args
             try
-                v = remotecall_fetch(eval,c.worker_idx,c.eval_in,a)
+                v = remotecall_fetch(Core.eval,c.worker_idx,c.eval_in,a)
                 if typeof(v) <: Union{Type,TypeVar}
                     push!(args,v)
                 else
                     push!(args,typeof(v))
                 end
             catch err
-                warn(err)
+                @warn err
                 return ()
             end
         end
     catch err
-        warn(err)
+        @warn err
     end
     tuple(args...)
 end
