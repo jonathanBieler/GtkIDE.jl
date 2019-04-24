@@ -8,18 +8,19 @@ mutable struct EditorTab <: GtkScrolledWindow
     handle::Ptr{Gtk.GObject}
     view::GtkSourceView
     buffer::GtkSourceBuffer
-    filename::AbstractString
+    filename::String
+    texthash::UInt64
     modified::Bool
     search_context::GtkSourceSearchContext
     search_mark_start
     search_mark_end
-    scroll_target::AbstractFloat
-    scroll_target_line::Integer
-    autocomplete_words::Array{AbstractString,1}
+    scroll_target::Float64
+    scroll_target_line::Int
+    autocomplete_words::Array{String,1}
     label::GtkLabel
     eval_in::Module
 
-    function EditorTab(filename::AbstractString,main_window::MainWindow)
+    function EditorTab(filename::String, main_window::MainWindow)
 
         languageDefinitions = main_window.style_and_language_manager.languageDefinitions
         lang = haskey(languageDefinitions,extension(filename)) ?
@@ -48,36 +49,56 @@ mutable struct EditorTab <: GtkScrolledWindow
         search_con = GtkSourceSearchContext(b,_editor(main_window).search_window.search_settings)
         highlight(search_con,true)
 
-        t = new(sc.handle,v,b,filename,false,search_con,nothing,nothing)
+        t = new(sc.handle,v,b,filename,0,false,search_con,nothing,nothing)
         t.eval_in = Main
         Gtk.gobject_move_ref(t, sc)
     end
     EditorTab(main_window::MainWindow) = EditorTab("",main_window)
 end
 
-function set_text!(t::EditorTab,text::AbstractString)
+function set_text!(t::EditorTab, text::String)
     set_gtk_property!(t.buffer,:text,text)
 end
-get_text(t::EditorTab) = get_gtk_property(t.buffer,:text,AbstractString)
+get_text(t::EditorTab) = get_gtk_property(t.buffer,:text,String)
 
 import GtkExtensions.getbuffer
-getbuffer(textview::GtkTextView) = get_gtk_property(textview,:buffer,GtkSourceBuffer)
+getbuffer(textview::GtkTextView) = get_gtk_property(textview, :buffer, GtkSourceBuffer)
 
 include("CompletionWindow.jl")
 include("SearchWindow.jl")
 
+function check_texthash(t::EditorTab, editor)
+    try
+        f = Base.open(t.filename, "r")
+        text = read(f, String)
+        if hash(text) != t.texthash
+            ok = ask_dialog("File has been modified by external program, save anyway?", editor.main_window)
+            !ok && return false
+        end
+        close(f)
+    catch err
+        @warn "Error while saving $(t.filename)"
+        @warn err
+    end
+    true
+end
+
 function save(t::EditorTab)
+
+    editor = parent(t)
 
     if basename(t.filename) == ""
         save_as(t)
         return
     end
+    !check_texthash(t, editor) && return
     try
-        f = Base.open(t.filename,"w")
-        write(f,get_text(t))
-        #println("saved $(t.filename)")
+        f = Base.open(t.filename, "w")
+        text = get_text(t)
+        write(f, text)
         close(f)
-        modified(t,false)
+        t.texthash = hash(text)
+        modified(t, false)
         if extension(t.filename) == ".jl"
             t.autocomplete_words = collect_symbols(t)
         end
@@ -96,15 +117,15 @@ function save_as(t::EditorTab)
     save(t)
 end
 
-function open_in_new_tab(filename::AbstractString,editor;line=0)#FIXME type this, but Editor not defined at this point
-    t = add_tab(filename,editor)
+function open_in_new_tab(filename::String, editor; line=0)#FIXME type this, but Editor not defined at this point
+    t = add_tab(filename, editor)
     t.scroll_target_line = max(0,line-1)
-    open(t,t.filename)
+    open(t, t.filename)
     return t
 end
-open_in_new_tab(filename::AbstractString;line=0) = open_in_new_tab(filename,main_window.editor;line=line)#need this for console command
+open_in_new_tab(filename::String; line=0) = open_in_new_tab(filename,main_window.editor;line=line)#need this for console command
 
-function set_font(t::EditorTab,provider::GtkStyleProvider)
+function set_font(t::EditorTab, provider::GtkStyleProvider)
     sc = Gtk.G_.style_context(t.view)
     push!(sc, provider, 600)
 end
@@ -183,7 +204,7 @@ function open_tab(file, editor; line=0)
     return true
 end
 
-function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not defined at this point
+function open_method(view::GtkTextView, editor)#FIXME type this, but Editor not defined at this point
 
     word = get_word_under_mouse_cursor(view)
 
@@ -204,7 +225,7 @@ function open_method(view::GtkTextView,editor)#FIXME type this, but Editor not d
     return false
 end
 
-function line_to_adj_value(buffer::GtkTextBuffer,adj::GtkAdjustment,l::Integer)
+function line_to_adj_value(buffer::GtkTextBuffer, adj::GtkAdjustment, l::Integer)
     tot = line_count(buffer)
     scaling = get_gtk_property(adj,:upper,AbstractFloat) #-
               #get_gtk_property(adj,:page_size,AbstractFloat)
@@ -214,7 +235,7 @@ end
 
 #clicks
 
-function select_word_double_click(textview::GtkTextView,buffer::GtkTextBuffer,x::Integer,y::Integer)
+function select_word_double_click(textview::GtkTextView, buffer::GtkTextBuffer, x::Integer, y::Integer)
 
     (x,y) = text_view_window_to_buffer_coords(textview,x,y)
     iter_end = get_iter_at_position(textview,x,y)
@@ -245,7 +266,7 @@ end
     return PROPAGATE
 end
 
-function completion_mode(buffer,it,t)
+function completion_mode(buffer, it, t)
 
     (cmd,its,ite) = select_word_backward(it,buffer,false)
     cmd = strip(cmd)
@@ -274,7 +295,7 @@ function completion_mode(buffer,it,t)
     (:none,cmd,nothing,nothing)
 end
 
-function replace_text(buffer::GtkTextBuffer,itstart::T,itend::T,str::AbstractString) where {T<:GtkTextIters}
+function replace_text(buffer::GtkTextBuffer, itstart::T, itend::T, str::String) where {T<:GtkTextIters}
     pos = offset(itstart)+1
     splice!(buffer,itstart:itend)
     insert!(buffer,GtkTextIter(buffer,pos),str)
@@ -292,7 +313,7 @@ function get_cursor_absolute_position(view::GtkTextView)
     return (x+ox, y+oy+r1.height,r1.height)
 end
 
-function run_line(console::Console,t::EditorTab)
+function run_line(console::Console, t::EditorTab)
 
     cmd = selected_text(t)
     if cmd == ""
@@ -302,7 +323,7 @@ function run_line(console::Console,t::EditorTab)
     run_command(console,cmd)
 end
 
-function run_command(c::Console,cmd::AbstractString)
+function run_command(c::Console, cmd)
     GtkREPL.command(c,cmd)
     GtkREPL.on_return(c,cmd)
 end
@@ -502,14 +523,14 @@ function toggle_comment(buffer::GtkTextBuffer,it::GtkTextIter)
     end
 end
 
-function run_code(console::Console,t::EditorTab)
+function run_code(console::Console, t::EditorTab)
     cmd = selected_text(t)
     if cmd == ""
         (found,it_start,it_end) = get_cell(t.buffer)
         if found
             cmd = (it_start:it_end).text[String]
         else
-            cmd = get_gtk_property(t.buffer,:text,AbstractString)
+            cmd = get_gtk_property(t.buffer,:text,String)
         end
     end
     run_command(console,cmd)
@@ -524,7 +545,7 @@ function get_word_under_mouse_cursor(textview::GtkTextView)
     return word
 end
 
-function show_data_hint(textview::GtkTextView,t::EditorTab)
+function show_data_hint(textview::GtkTextView, t::EditorTab)
 
     word = get_word_under_mouse_cursor(textview)
 
@@ -623,7 +644,7 @@ function tab_adj_changed_cb(adjptr::Ptr, user_data)
     return nothing
 end
 
-function scroll_to_line(t::EditorTab,l::Integer)
+function scroll_to_line(t::EditorTab, l::Integer)
 
     adj = get_gtk_property(t,:vadjustment,GtkAdjustment)
     v = line_to_adj_value(get_buffer(t.view),adj,l)
@@ -631,7 +652,7 @@ function scroll_to_line(t::EditorTab,l::Integer)
     value(adj,v)
 end
 
-function tab_extend_selection_cb(widgetptr::Ptr,granularityptr::Ptr,locationptr::Ptr,it_startptr::Ptr,it_endptr::Ptr,user_data)
+function tab_extend_selection_cb(widgetptr::Ptr, granularityptr::Ptr, locationptr::Ptr, it_startptr::Ptr, it_endptr::Ptr, user_data)
 
     view = convert(GtkTextView,widgetptr)
     location = convert(GtkTextView,locationptr)
@@ -639,7 +660,7 @@ function tab_extend_selection_cb(widgetptr::Ptr,granularityptr::Ptr,locationptr:
     return convert(Cint,false)
 end
 
-function modified(t::EditorTab,v::Bool)
+function modified(t::EditorTab, v::Bool)
     t.modified = v
     f = basename(t.filename)
     f = f == "" ? "Untitled" : f
@@ -649,7 +670,7 @@ function modified(t::EditorTab,v::Bool)
     set_gtk_property!(t.label,:label,s)
 end
 
-function tab_buffer_changed_cb(widgetptr::Ptr,user_data)
+function tab_buffer_changed_cb(widgetptr::Ptr, user_data)
     t = user_data
     modified(t,true)
 
@@ -676,7 +697,7 @@ end
 
 #FIXME put this into Gtk.jl ?
 import Gtk.input_dialog
-function input_dialog(message::AbstractString, entry_default::AbstractString, buttons = (("Cancel", 0), ("Accept", 1)), parent = GtkNullContainer())
+function input_dialog(message::String, entry_default::String, buttons = (("Cancel", 0), ("Accept", 1)), parent = GtkNullContainer())
     widget = GtkMessageDialog(message, buttons, Gtk.GtkDialogFlags.DESTROY_WITH_PARENT, Gtk.GtkMessageType.INFO, parent)
     
     box = Gtk.content_area(widget)

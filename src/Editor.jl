@@ -65,15 +65,20 @@ end
 
 #this could be in the constructor but it doesn't work for some reason
 function init!(editor::Editor,search_window::SearchWindow)
-    signal_connect(ntbook_switch_page_cb,editor,"switch-page", Nothing, (Ptr{Gtk.GtkWidget},Int32), false)
-    signal_connect(ntbook_motion_notify_event_cb,editor,"motion-notify-event",Cint, (Ptr{Gtk.GdkEvent},), false)
+    signal_connect(ntbook_switch_page_cb, editor, "switch-page", Nothing, (Ptr{Gtk.GtkWidget},Int32), false)
+    signal_connect(ntbook_motion_notify_event_cb, editor, "motion-notify-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     editor.search_window = search_window
 end
 
-function set_dir_to_file_path_cb(btn::Ptr,tab)
+function set_dir_to_file_path_cb(btn::Ptr, tab)
     editor = parent(tab)::Editor
     cd(dirname(tab.filename))
     on_path_change(editor.main_window)
+    return nothing
+end
+
+function copy_path_cb(btn::Ptr, tab)
+    clipboard(tab.filename)
     return nothing
 end
 
@@ -155,31 +160,15 @@ function create_tab_menu(container, tab)
 
     editor = parent(tab)::Editor
 
-#    menu =  GtkMenu() |>
-#    (closeTabItem = GtkMenuItem("Close Tab")) |>
-#    (closeOthersTabsItem = GtkMenuItem("Close Others Tabs")) |>
-#    (closeTabsRight = GtkMenuItem("Close Tabs to the Right ")) |>
-#    (closeAllTabs = GtkMenuItem("Close All Tabs")) |>
-#    GtkSeparatorMenuItem() |>
-#    (revealInTreeItem = GtkMenuItem("Reveal in Tree View")) |>
-#    (GtkSeparatorMenuItem())
-
-
-#
-#    signal_connect(close_tab_cb, closeTabItem, "activate", Nothing,(),false,tab)
-#    signal_connect(close_other_tabs_cb, closeOthersTabsItem, "activate", Nothing,(),false,tab)
-#    signal_connect(close_tabs_right_cb, closeTabsRight, "activate", Nothing,(),false,tab)
-#    signal_connect(close_all_tabs_cb, closeAllTabs, "activate", Nothing,(),false,tab)
-#    signal_connect(reveal_in_tree_view, revealInTreeItem, "activate", Nothing,(),false,tab)
-
     menu = buildmenu([
-            MenuItem("Close Tab",close_tab_cb),
-            MenuItem("Close Others Tabs",close_other_tabs_cb),
-            MenuItem("Close Tabs to the Right",close_tabs_right_cb),
-            MenuItem("Close All Tabs",close_all_tabs_cb),
+            MenuItem("Close Tab", close_tab_cb),
+            MenuItem("Close Others Tabs", close_other_tabs_cb),
+            MenuItem("Close Tabs to the Right", close_tabs_right_cb),
+            MenuItem("Close All Tabs", close_all_tabs_cb),
             GtkSeparatorMenuItem,
-            MenuItem("Reveal in Tree View",reveal_in_tree_view),
-            MenuItem("Set Directory to File Path",set_dir_to_file_path_cb),
+            MenuItem("Copy Path", copy_path_cb),
+            MenuItem("Reveal in Tree View", reveal_in_tree_view),
+            MenuItem("Set Directory to File Path", set_dir_to_file_path_cb),
             GtkSeparatorMenuItem
             ],
             tab
@@ -190,7 +179,7 @@ function create_tab_menu(container, tab)
         if typeof(editor[i]) == EditorTab
             s = GtkMenuItem(basename(editor[i].filename))
             push!(menu,s)
-            signal_connect(switch_tab_cb, s, "activate", Nothing,(),false,(i,editor))
+            signal_connect(switch_tab_cb, s, "activate", Nothing, (), false, (i,editor))
         end
     end
 
@@ -241,18 +230,21 @@ function open(t::EditorTab, filename::AbstractString)
     try
         if isfile(filename)
             f = Base.open(filename)
-            set_text!(t,read(f,String))
+            text = read(f, String)
+            set_text!(t, text)
             t.modified = false
-            modified(t,t.modified)
+            modified(t, t.modified)
         else
             f = Base.open(filename,"w")
+            set_text!(t, "")
             t.modified = true
         end
+        t.texthash = hash(text)
         t.filename = filename
         reset_undomanager(t.buffer)#otherwise we can undo loading the file...
         close(f)
     catch err
-        @show err
+        @warn err
     end
     update!(project)
 end
@@ -276,10 +268,10 @@ function add_tab(filename::AbstractString,editor::Editor)
     style_css(t.view,style_provider(editor.main_window))
 
     #we need to use the view here to capture all the keystrokes
-    signal_connect(editor_tab_key_press_cb,t.view, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,t)
-    signal_connect(editor_tab_key_release_cb,t.view, "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false,editor)
-    signal_connect(tab_button_press_cb,t.view, "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false,editor)
-    signal_connect(tab_buffer_changed_cb,t.buffer,"changed", Nothing, (), false,t)
+    signal_connect(editor_tab_key_press_cb,   t.view,   "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false, t)
+    signal_connect(editor_tab_key_release_cb, t.view,   "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false, editor)
+    signal_connect(tab_button_press_cb,       t.view,   "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false, editor)
+    signal_connect(tab_buffer_changed_cb,     t.buffer, "changed", Nothing, (), false,t)
 
 #    signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint,
 #    (Ptr{Nothing},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}), false)

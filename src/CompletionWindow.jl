@@ -133,6 +133,7 @@ function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer,t)
     end
     return propagate
 end
+
 ##
 
 function on_return(w::CompletionWindow,buffer,t)
