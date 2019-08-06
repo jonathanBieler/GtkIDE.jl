@@ -136,12 +136,12 @@ function select_tuple(it::GtkTextIter,buffer::GtkTextBuffer)
     pos = offset(it) - offset(line_start) #position of cursor in txt
 
     if pos <= 1 || length(txt) < 2 || pos > length(txt)
-        return (false,nothing,nothing)
+        return (false, nothing, nothing)
     end
     txt = txt[1:pos]
 
     i = findlast(isequal('('), txt)
-    i == nothing && return (false,nothing,nothing)
+    i == nothing && return (false, nothing, nothing)
 
     its = GtkTextIter(buffer, i + offset(line_start))
     return (true,txt[i:pos],its)

@@ -64,7 +64,7 @@ function ntbook_motion_notify_event_cb(widget::Ptr,  eventptr::Ptr, user_data)
 end
 
 #this could be in the constructor but it doesn't work for some reason
-function init!(editor::Editor,search_window::SearchWindow)
+function init!(editor::Editor, search_window::SearchWindow)
     signal_connect(ntbook_switch_page_cb, editor, "switch-page", Nothing, (Ptr{Gtk.GtkWidget},Int32), false)
     signal_connect(ntbook_motion_notify_event_cb, editor, "motion-notify-event", Cint, (Ptr{Gtk.GdkEvent},), false)
     editor.search_window = search_window
@@ -82,7 +82,7 @@ function copy_path_cb(btn::Ptr, tab)
     return nothing
 end
 
-function close_tab(editor::Editor,idx::Int)
+function close_tab(editor::Editor, idx::Int)
     if editor[idx].modified
         ok = ask_dialog("Unsaved changed, close anyway?",editor.main_window)
         !ok && return
@@ -99,7 +99,7 @@ function close_tab_cb(btn::Ptr, tab)
     return nothing
 end
 
-function close_other_tabs_cb(btn::Ptr,tab)
+function close_other_tabs_cb(btn::Ptr, tab)
     editor = parent(tab)::Editor
     while Gtk.GAccessor.n_pages(editor) > 1
         if get_tab(editor,1) == tab
@@ -111,7 +111,7 @@ function close_other_tabs_cb(btn::Ptr,tab)
     save_project(editor)
     return nothing
 end
-function close_tabs_right_cb(btn::Ptr,tab)
+function close_tabs_right_cb(btn::Ptr, tab)
     editor = parent(tab)::Editor
     idx = Gtk.pagenumber(editor,tab) +1
     while (Gtk.GAccessor.n_pages(editor) > idx)
@@ -120,7 +120,7 @@ function close_tabs_right_cb(btn::Ptr,tab)
     save_project(editor)
     return nothing
 end
-function close_all_tabs_cb(btn::Ptr,tab)
+function close_all_tabs_cb(btn::Ptr, tab)
     editor = parent(tab)::Editor
     while (Gtk.GAccessor.n_pages(editor) > 0)
         close_tab(editor,1)
@@ -187,7 +187,7 @@ function create_tab_menu(container, tab)
     return menu
 end
 
-@guarded (PROPAGATE) function tab_button_press_event_cb(event_box_ptr::Ptr,eventptr::Ptr, tab)
+@guarded (PROPAGATE) function tab_button_press_event_cb(event_box_ptr::Ptr, eventptr::Ptr, tab)
     event_box = convert(GtkEventBox, event_box_ptr)
     event     = convert(Gtk.GdkEvent,eventptr)
 
@@ -236,8 +236,10 @@ function open(t::EditorTab, filename::AbstractString)
             modified(t, t.modified)
         else
             f = Base.open(filename,"w")
-            set_text!(t, "")
+            text = ""
+            set_text!(t, text)
             t.modified = true
+            modified(t, t.modified)
         end
         t.texthash = hash(text)
         t.filename = filename
@@ -249,7 +251,7 @@ function open(t::EditorTab, filename::AbstractString)
     update!(project)
 end
 
-function add_tab(filename::AbstractString,editor::Editor)
+function add_tab(filename::AbstractString, editor::Editor)
 
     t = EditorTab(filename,editor.main_window);
     t.scroll_target = 0.
@@ -268,10 +270,10 @@ function add_tab(filename::AbstractString,editor::Editor)
     style_css(t.view,style_provider(editor.main_window))
 
     #we need to use the view here to capture all the keystrokes
-    signal_connect(editor_tab_key_press_cb,   t.view,   "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false, t)
-    signal_connect(editor_tab_key_release_cb, t.view,   "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false, editor)
-    signal_connect(tab_button_press_cb,       t.view,   "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false, editor)
-    signal_connect(tab_buffer_changed_cb,     t.buffer, "changed", Nothing, (), false,t)
+    signal_connect(editor_tab_key_press_cb, t.view,   "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false, t)
+    signal_connect(editor_key_release_cb,   t.view,   "key-release-event", Cint, (Ptr{Gtk.GdkEvent},), false, editor)
+    signal_connect(tab_button_press_cb,     t.view,   "button-press-event", Cint, (Ptr{Gtk.GdkEvent},), false, editor)
+    signal_connect(tab_buffer_changed_cb,   t.buffer, "changed", Nothing, (), false,t)
 
 #    signal_connect(tab_extend_selection_cb,t.view, "extend-selection", Cint,
 #    (Ptr{Nothing},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter},Ptr{Gtk.GtkTextIter}), false)
@@ -289,7 +291,7 @@ function openfile_dialog(editor::Editor)
     end
 end
 
-function load_tabs(editor::Editor,project::Project)
+function load_tabs(editor::Editor, project::Project)
 
     #project get modified later
     files = project.files

@@ -54,12 +54,23 @@
         dotpos
         PathCompletion() = new(Function[],1,"",nothing,nothing,[""],-1:0)
     end
+    
+    mutable struct HistoryCompletion <: CompletionProvider
+        steps::Array{Function,1}
+        state::Int
+        cmd::AbstractString
+        itstart
+        itend
+        comp
+        dotpos
+        HistoryCompletion() = new(Function[],1,"",nothing,nothing,[""],-1:0)
+    end
 
 #end
 #using CompletionProviders
 ##
 
-function init_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
+function init_autocomplete(view::GtkTextView, t::EditorTab, replace=true; key=:tab)
 
     buffer = getbuffer(view)
     editor = parent(t)::Editor
@@ -67,14 +78,11 @@ function init_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
     
     #let's not autocomplete multiple lines
     (found,it_start,it_end) = selection_bounds(buffer)
-    nline = 0 
     if found 
         nlines(it_start, it_end) > 1 && @goto exit
     end
     
-    it = get_text_iter_at_cursor(buffer)
-    
-    p = get_completion_provider(console,view,t)
+    p = get_completion_provider(console, view, t, key)
     typeof(p) == NoCompletion && @goto exit
     
     if p.state <= length(p.steps)
@@ -86,9 +94,9 @@ function init_autocomplete(view::GtkTextView,t::EditorTab,replace=true)
     isempty(p.comp) && @goto exit
 
     if length(p.comp) == 1 && replace
-        insert(p,formatcompletion(p,1),buffer)
+        insert(p, formatcompletion(p,1), buffer)
     else
-        init_completion_window(view,p)
+        init_completion_window(view,p; mode = key)
     end
 
     return INTERRUPT
@@ -100,26 +108,14 @@ end
 
 ##
 
-
-
-function init_completion_window(view,p::CompletionProvider)
-    completion_window.provider = p
-    completion_window.content = p.comp
-    completion_window.idx = 1
-    display(completion_window)
-
-    (x,y,h) = get_cursor_absolute_position(view)
-    Gtk.G_.position(completion_window,x+h,y)
-    visible(completion_window,true)
-
-    showall(completion_window)
-end
-
-function get_completion_provider(console::Console,view::GtkTextView,t::EditorTab)
+function get_completion_provider(console::Console, view::GtkTextView, t::EditorTab, key=:tab)
     buffer = getbuffer(view)
     it = get_text_iter_at_cursor(buffer)
 
-    for pt in [PathCompletion,NormalCompletion,MethodCompletion,TupleCompletion]#subtypes(CompletionProviders.CompletionProvider)
+    #change providers depending on which key we used
+    pts = key == :tab ? [PathCompletion, NormalCompletion, MethodCompletion, TupleCompletion] : [HistoryCompletion]
+
+    for pt in pts
         p = pt()
         select_text(p,console,buffer,it,t) && return p
     end
@@ -147,7 +143,7 @@ end
 
 ## Default behavior
 
-function formatcompletion(p::CompletionProvider,idx::Int)
+function formatcompletion(p::CompletionProvider, idx::Int)
     p.comp[idx]
 end
 function insert(p::CompletionProvider,s,buffer)
@@ -157,7 +153,7 @@ end
 #####################
 # Normal completion
 
-function select_text(p::NormalCompletion,console,buffer,it,t)
+function select_text(p::NormalCompletion, console, buffer, it, t)
 
     istextfile(t) && return false
 
@@ -172,7 +168,7 @@ function select_text(p::NormalCompletion,console,buffer,it,t)
     p.itend = ite
     true
 end
-function completions(p::NormalCompletion,t,idx,c::Console)
+function completions(p::NormalCompletion, t, idx, c::Console)
     if !isdefined(t,:autocomplete_words)
         t.autocomplete_words = [""]
     end
@@ -181,13 +177,13 @@ function completions(p::NormalCompletion,t,idx,c::Console)
     p.dotpos = dotpos
 end
 
-function formatcompletion(p::NormalCompletion,idx::Int)
+function formatcompletion(p::NormalCompletion, idx::Int)
     dotpos = p.dotpos.start
     prefix = dotpos > 1 ? p.cmd[1:dotpos-1] : ""
     prefix * p.comp[idx]
 end
 
-function insert(p::NormalCompletion,s,buffer)
+function insert(p::NormalCompletion, s, buffer)
     replace_text(buffer,p.itstart,p.itend,s)
 end
 
@@ -206,6 +202,7 @@ function select_text(p::MethodCompletion,console,buffer,it,t)
     p.itend = ite
     true
 end
+
 function completions(p::MethodCompletion,t,idx,c::Console)
     # for some reason completion removes the first module when completing methods,
     # so I take note of it here and add it back at the end
@@ -245,6 +242,7 @@ function select_text(p::TupleCompletion,console,buffer,it,t)
     p.itend = itstart
     true
 end
+
 function completions(p::TupleCompletion,t,idx,c::Console)
 
     args = tuple_to_types(p.cmd,c)
@@ -255,9 +253,11 @@ function completions(p::TupleCompletion,t,idx,c::Console)
     p.comp = comp
     p.func_names = func_names
 end
+
 function formatcompletion(p::TupleCompletion,idx::Int)
     p.func_names[idx]
 end
+
 function insert(p::TupleCompletion,s,buffer)
     insert!(buffer,p.itstart,s)
 end
@@ -310,6 +310,37 @@ function completions(p::PathCompletion,t,idx,c::Console)
     p.comp = comp
 end
 
+#####################
+# HistoryCompletion
+
+function select_text(p::HistoryCompletion, console, buffer, it, t)
+
+    istextfile(t) && return false
+
+    (found, its, ite) = selection_bounds(buffer)
+    if found 
+        cmd = (its:ite).text[String]
+    else
+        (cmd,its,ite) = select_word_backward(it, buffer, false)
+    end
+    cmd = strip(cmd)
+    isempty(cmd) && return false
+    
+    cmd == "" && return false
+    p.cmd = cmd
+    p.itstart = its
+    p.itend = ite
+    true
+end
+
+function completions(p::HistoryCompletion, t, idx, c::Console)
+    
+    cmd = strip(p.cmd)
+    idx = GtkREPL.search(c.history, cmd)
+
+    p.dotpos = -1
+    p.comp = unique(c.history.history[idx])
+end
 
 #end
 

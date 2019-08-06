@@ -266,35 +266,6 @@ end
     return PROPAGATE
 end
 
-function completion_mode(buffer, it, t)
-
-    (cmd,its,ite) = select_word_backward(it,buffer,false)
-    cmd = strip(cmd)
-
-    if istextfile(t)
-        (found,its,ite) = selection_bounds(t.buffer)
-        if found
-            return (:text_selection,(its:ite).text[String],its,ite)
-        end
-        if cmd == ""
-            return (:none,cmd,nothing,nothing)
-        else
-            return (:text,cmd,its,ite)
-        end
-    else
-        if cmd == ""
-            if get_text_left_of_cursor(buffer) == ")"
-                (found,tu,its) = select_tuple(it, buffer)
-                found && return (:tuple,cmd,its,its)
-            else
-                return (:none,cmd,nothing,nothing)
-            end
-        end
-        return (:normal,cmd,its,ite)
-    end
-    (:none,cmd,nothing,nothing)
-end
-
 function replace_text(buffer::GtkTextBuffer, itstart::T, itend::T, str::String) where {T<:GtkTextIters}
     pos = offset(itstart)+1
     splice!(buffer,itstart:itend)
@@ -328,13 +299,13 @@ function run_command(c::Console, cmd)
     GtkREPL.on_return(c,cmd)
 end
 
-@guarded (PROPAGATE) function editor_tab_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
+@guarded (PROPAGATE) function editor_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getbuffer(textview)
     editor = user_data
-
+    
     !update_completion_window_release(event,buffer,editor) && return convert(Cint,true)
 
     return PROPAGATE
@@ -372,7 +343,12 @@ end
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
         if !visible(completion_window)
-            return init_autocomplete(textview,t)
+            return init_autocomplete(textview, t; key=:tab)
+        end
+    end
+    if event.keyval == Gtk.GdkKeySyms.F3
+        if !visible(completion_window)
+            return init_autocomplete(textview, t; key=:ctrl_tab)
         end
     end
     if doing(Actions["runline"], event) || doing(Actions["runline_kp"], event)

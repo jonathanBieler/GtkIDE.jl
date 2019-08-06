@@ -10,9 +10,8 @@ mutable struct CompletionWindow <: GtkWindow #FIXME not the right container?
     main_window::MainWindow
     prefix::AbstractString
     func_names::Array{AbstractString,1}#store just the name of functions, for tuple autocomplete
-    mode::Symbol
+    mode::Symbol #keep track of which key was pressed
     provider::CompletionProvider
-
 
     function CompletionWindow(main_window::MainWindow)
 
@@ -84,16 +83,6 @@ function selection_down(w::CompletionWindow)
     display(w)
 end
 
-function insert_autocomplete(s::AbstractString,itstart::GtkTextIters,itend::GtkTextIters,buffer::GtkTextBuffer,mode=:normal)
-    s = remove_filename_from_methods_def(s)
-    if mode == :normal
-        replace_text(buffer,itstart,itend,s)
-    end
-    if mode == :tuple
-        insert!(buffer,itstart,s)
-    end
-end
-
 #FIXME dirty hack
 function remove_filename_from_methods_def(s::AbstractString)
     ex = r"(^.*\))(.*\.jl:[0-9]+$)" #remove the file/line number for methods)
@@ -107,7 +96,7 @@ function remove_filename_from_methods_def(s::AbstractString)
     return s
 end
 
-function update_completion_window(event::Gtk.GdkEvent,buffer::GtkTextBuffer,t)
+function update_completion_window(event::Gtk.GdkEvent, buffer::GtkTextBuffer, t)
 
     propagate = true
 
@@ -136,12 +125,12 @@ end
 
 ##
 
-function on_return(w::CompletionWindow,buffer,t)
+function on_return(w::CompletionWindow, buffer, t)
     p = w.provider
     c = current_console(w.main_window)
 
     #check if we are still in the right mode, and update iterators
-    if !select_text(p,c,buffer,get_text_iter_at_cursor(buffer),t)
+    if !select_text(p, c, buffer, get_text_iter_at_cursor(buffer), t)
         visible(completion_window,false)
         return
     end
@@ -165,7 +154,7 @@ function on_return(w::CompletionWindow,buffer,t)
 end
 
 ##
-function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuffer,editor)#FIXME? Editor not defined
+function update_completion_window_release(event::Gtk.GdkEvent, buffer::GtkTextBuffer, editor)
 
     event.keyval == Gtk.GdkKeySyms.Escape && return false
     event.keyval == Gtk.GdkKeySyms.Down && return false
@@ -174,18 +163,15 @@ function update_completion_window_release(event::Gtk.GdkEvent,buffer::GtkTextBuf
     event.keyval == Gtk.GdkKeySyms.Tab && return false
 
     t = current_tab(editor)
-    visible(completion_window) && init_autocomplete(t.view, t,false)
+    visible(completion_window) && init_autocomplete(t.view, t, false; key=completion_window.mode)
     return true
 end
 
-
-function build_completion_window(comp,view,prefix,mode::Symbol)
-
-    completion_window.mode = mode
-    completion_window.content = comp
+function init_completion_window(view, p::CompletionProvider; mode=:tab)
+    completion_window.provider = p
+    completion_window.content = p.comp
     completion_window.idx = 1
-    completion_window.prefix = prefix
-
+    completion_window.mode = mode
     display(completion_window)
 
     (x,y,h) = get_cursor_absolute_position(view)
@@ -193,13 +179,6 @@ function build_completion_window(comp,view,prefix,mode::Symbol)
     visible(completion_window,true)
 
     showall(completion_window)
-end
-build_completion_window(comp,view,prefix) =
-build_completion_window(comp,view,prefix,:normal)
-
-function build_completion_window(comp,view,prefix,func_names)
-    completion_window.func_names = func_names
-    build_completion_window(comp,view,prefix,:tuple)
 end
 
 #############################################
