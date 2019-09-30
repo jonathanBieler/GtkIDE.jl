@@ -2,8 +2,8 @@
 
 function logo()
 
-    circle(t, r, c, opt) = layer(x=r[1]*sin.(2π*t)+c[1], y=r[2]*cos.(2π*t)+c[2], opt...)
-    line(t, v, c, opt) = layer(x=v[1]*t+c[1], y=v[2]*t+c[2], opt...)
+    circle(t, r, c, opt) = layer(x=r[1]*sin.(2π*t) .+ c[1], y=r[2]*cos.(2π*t) .+ c[2], opt...)
+    line(t, v, c, opt)   = layer(x=v[1]*t .+ c[1], y=v[2]*t .+ c[2], opt...)
 
     c0 = Colors.RGBA(0.15, 0.15, 0.15, 0.9)
     c1 = Colors.RGBA(107/255, 171/255, 91/255, 0.9)
@@ -11,7 +11,7 @@ function logo()
     c3 = Colors.RGBA(0.67, 0.49, 0.75, 0.9)
 
     xt = range(0, stop=1, length=25)
-    xt = xt.^4 ./ (0.3.^4 + xt.^4)
+    xt = @. xt^4 / (0.3^4 + xt^4)
 
     opt  = (Geom.point, Theme(default_color=c0, highlight_width=0pt, point_size=3pt))
     opt1 = (Geom.point, Theme(default_color=c1, highlight_width=0pt, point_size=3pt))
@@ -27,9 +27,9 @@ function logo()
         
         p = plot(
             #G
-            circle(t/2+0.5, (0.6, 0.8), (0, 0.8), opt),
+            circle(t/2  .+ 0.5, (0.6, 0.8), (0, 0.8), opt),
             line(t, (0, 0.6), (0, 0), opt),
-            circle(-t/5 -0.5, (0.2, 0.2), (0, 0.8), opt),
+            circle(-t/5 .- 0.5, (0.2, 0.2), (0, 0.8), opt),
             #T
             line(t, (0, h*2/3), (spacing, 0), opt),
             line(t, (0.5, 0), (spacing-0.25, h*2/3), opt),
@@ -57,7 +57,7 @@ function logo()
         sleep(0.01)
         
     end
-    sleep(0.1)
+    sleep(0.01)
     display(plot(x=xt, y=sin.(2π*xt), Geom.line))
 
 end
