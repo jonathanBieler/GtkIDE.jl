@@ -28,12 +28,12 @@ b = t.buffer
 function goto_line(buffer::GtkIDE.GtkTextBuffer,line::Integer)
     it = GtkIDE.mutable( GtkIDE.GtkTextIter(buffer,1) )
     GtkIDE.set_gtk_property!(it,:line,line-1)
-    GtkIDE.text_buffer_place_cursor(buffer,it)
+    GtkIDE.place_cursor(buffer,it)
 end
 function to_line_end(buffer::GtkIDE.GtkTextBuffer)
     it = GtkIDE.mutable( GtkIDE.get_text_iter_at_cursor(buffer) )
-    GtkIDE.text_iter_forward_to_line_end(it)
-    GtkIDE.text_buffer_place_cursor(buffer,it)
+    skip(it,:forward_to_line_end)
+    GtkIDE.place_cursor(buffer,it)
 end
 
 goto_line(b,1)

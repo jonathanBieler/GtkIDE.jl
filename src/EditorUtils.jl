@@ -168,56 +168,8 @@ function lstrip_idx(s::AbstractString)
 end
 
 get_buffer(view::GtkTextView) = get_gtk_property(view,:buffer,GtkTextBuffer)
-cursor_position(b::GtkTextBuffer) = get_gtk_property(b,:cursor_position,Int)
 
-get_text_iter_at_cursor(b::GtkTextBuffer) =
-    GtkTextIter(b,cursor_position(b)+1) #+1 because there's a -1 in gtk.jl
-
-function get_current_line_text(buffer::GtkTextBuffer)
-    it = get_text_iter_at_cursor(buffer)
-    return get_line_text(buffer,it)
-end
-function get_line_text(buffer::GtkTextBuffer,it::GtkTextIter)
-
-    itstart, itend = mutable(it), mutable(it)
-    li = get_gtk_property(itstart,:line,Integer)
-
-    text_iter_backward_line(itstart)#seems there's no skip to line start
-    li != get_gtk_property(itstart,:line,Integer) && skip(itstart,1,:line)#for fist line
-    !get_gtk_property(itend,:ends_line,Bool) && text_iter_forward_to_line_end(itend)
-
-    return ((itstart:itend).text[String], itstart, itend)
-end
-
-function get_text_right_of_cursor(buffer::GtkTextBuffer)
-    it = mutable(get_text_iter_at_cursor(buffer))
-    return (it:(it+1)).text[String]
-end
-function get_text_left_of_cursor(buffer::GtkTextBuffer)
-    it = mutable(get_text_iter_at_cursor(buffer))
-    return ((it-1):it).text[String]
-end
-
-get_text_left_of_iter(it::MutableGtkTextIter) = ((it-1):it).text[String]
-get_text_right_of_iter(it::MutableGtkTextIter) = (it:(it+1)).text[String]
-
-get_text_left_of_iter(it::GtkTextIter) = ((mutable(it)-1):mutable(it)).text[String]
-get_text_right_of_iter(it::GtkTextIter) = (mutable(it):(mutable(it)+1)).text[String]
-
-nlines(it_start,it_end) = abs(line(it_end)-line(it_start))+1
-
-function move_cursor_to_sentence_start(buffer::GtkTextBuffer)
-    it = mutable( get_text_iter_at_cursor(buffer) )
-    text_iter_backward_sentence_start(it)
-    text_buffer_place_cursor(buffer,it)
-end
-function move_cursor_to_sentence_end(buffer::GtkTextBuffer)
-    it = mutable( get_text_iter_at_cursor(buffer) )
-    text_iter_forward_sentence_end(it)
-    text_buffer_place_cursor(buffer,it)
-end
-
-function select_on_ctrl_shift(direction,buffer::GtkSourceBuffer)
+function select_on_ctrl_shift(direction, buffer::GtkSourceBuffer)
         
     (found,its,ite) = selection_bounds(buffer)
 
@@ -231,7 +183,7 @@ function select_on_ctrl_shift(direction,buffer::GtkSourceBuffer)
     direction == :end && move_cursor_to_sentence_end(buffer)
     
     ite = get_text_iter_at_cursor(buffer)
-    selection_bounds(buffer,ite,its)#invert here so the cursor end up on the far right
+    select_range(buffer,ite,its)#invert here so the cursor end up on the far right
 end
 
 

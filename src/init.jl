@@ -205,7 +205,7 @@ function __init__()
 
        GtkREPL.init_stdout!(main_window.console_manager,watch_stdout_task,stdout_,stderr_)
 
-        g_timeout_add(10,print_to_console,console)
+        g_timeout_add(()->print_to_console(console), 10)
     end
 
     println("Warming up, hold on...")

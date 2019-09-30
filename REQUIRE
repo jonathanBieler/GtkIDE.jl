@@ -5,6 +5,7 @@ GtkUtilities
 GtkExtensions
 GtkMarkdownTextView
 GtkREPL
+Refactoring
 Immerse
 Gadfly
 Cairo

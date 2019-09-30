@@ -9,8 +9,9 @@ using Compat
 using Gtk, GtkSourceWidget, GtkUtilities, GtkExtensions, GtkMarkdownTextView
 using Immerse
 using GtkREPL
-using JSON, ConfParser
+using JSON, ConfParser, Refactoring
 using Distributed, REPL, InteractiveUtils, Sockets, Markdown, Pkg
+using GtkREPL.GtkTextUtils
 
 import GtkREPL: ConsoleManager, Console, current_console, print_to_console, new_prompt,
 worker, add_remote_console_cb, ConsoleCommand, on_command_done
@@ -47,7 +48,6 @@ include("MainWindow.jl")
 include("Project.jl")
 include("Console.jl")
 include("ConsoleCommands.jl")
-include("Refactoring.jl")
 include("Editor.jl")
 include("NtbookUtils.jl")
 include("PathDisplay.jl")

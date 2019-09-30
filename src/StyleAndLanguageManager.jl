@@ -1,9 +1,10 @@
 mutable struct StyleAndLanguageManager
     languageDefinitions::Dict{AbstractString,GtkSourceWidget.GtkSourceLanguage}
     main_style::GtkSourceWidget.GtkSourceStyleScheme
-    fontsize
-    fontCss
-    style_provider
+    fontsize::Int
+    fontCss::String
+    style_provider::GtkCssProvider
+    styles::Dict{String,GtkSourceWidget.GtkSourceStyle}
 
     function StyleAndLanguageManager()
 
@@ -48,12 +49,23 @@ mutable struct StyleAndLanguageManager
         provider = GtkCssProviderFromData!(provider,data=fontCss)
         GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(HOMEDIR,"../icons/"))
 
+        # I'm getting duplicated GObject when calling style several times, 
+        # so let's call it only once.
+        styles = Dict(
+            "text" => GtkSourceWidget.style(main_style, "text"),
+            "def:note" => GtkSourceWidget.style(main_style, "def:note")
+        )
+
         new(
             languageDefinitions,
             main_style,
             fontsize,
             fontCss,
-            provider
+            provider,
+            styles
         )
     end
 end
+
+get_style(mng::StyleAndLanguageManager, style_id::String) =
+    haskey(mng.styles,style_id) ? mng.styles[style_id] : GtkSourceWidget.style(mng.main_style, style_id) 

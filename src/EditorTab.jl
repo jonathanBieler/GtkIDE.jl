@@ -140,8 +140,8 @@ end
 
 function get_cell(buffer::GtkTextBuffer)
 
-    (foundb,itb_start,itb_end) = text_iter_backward_search(buffer, "##")
-    (foundf,itf_start,itf_end) = text_iter_forward_search(buffer, "##")
+    (foundb, itb_start, itb_end) = search(buffer, "##", :backward)
+    (foundf, itf_start, itf_end) = search(buffer, "##", :forward)
 
     if foundf && !foundb
         return(true, mutable(GtkTextIter(buffer,1)), itf_end) #start of file
@@ -160,11 +160,6 @@ function highlight_cells()
     end
 end
 
-import Gtk.hasselection
-function hasselection(b::GtkTextBuffer)
-    (found,it_start,it_end) = selection_bounds(b)
-    found
-end
 hasselection(t::EditorTab) = hasselection(t.buffer)
 
 function selected_text(t::EditorTab)
@@ -189,7 +184,7 @@ function open_tab(file, editor; line=0)
                 if line != 0
                     it = GtkTextIter(n.buffer,line,1)
                     scroll_to_iter(n.view, it)
-                    text_buffer_place_cursor(n.buffer,it)
+                    place_cursor(n.buffer,it)
                 end
                 grab_focus(n.view)
                 return true
@@ -242,7 +237,7 @@ function select_word_double_click(textview::GtkTextView, buffer::GtkTextBuffer, 
     #iter_end = mutable( get_text_iter_at_cursor(buffer) ) #not using this because the cursor position is modified somewhere
 
     (w, iter_start, iter_end) = select_word(iter_end,buffer)
-    selection_bounds(buffer,iter_start,iter_end)
+    select_range(buffer,iter_start,iter_end)
 end
 
 @guarded (INTERRUPT) function tab_button_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
@@ -372,7 +367,7 @@ end
         (found,it_start,it_end) = selection_bounds(buffer)
         if !found
             (txt, its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer))
-            selection_bounds(buffer,its,ite)
+            select_range(buffer,its,ite)
         end
         signal_emit(textview, "copy-clipboard", Nothing)
         return INTERRUPT
@@ -385,7 +380,7 @@ end
         (found,it_start,it_end) = selection_bounds(buffer)
         if !found
             (txt, its,ite) = get_line_text(buffer, get_text_iter_at_cursor(buffer))
-            selection_bounds(buffer,its,ite)
+            select_range(buffer,its,ite)
         end
         signal_emit(textview, "cut-clipboard", Nothing)
 
@@ -423,12 +418,12 @@ end
     if doing(Actions["delete_line"],event)
         (found,itstart,itend) = selection_bounds(buffer)
         if found
-            itstart = text_iter_line_start(nonmutable(buffer,itstart))#FIXME need a mutable version
-            !get_gtk_property(itend,:ends_line,Bool) && text_iter_forward_to_line_end(itend)
-            splice!(buffer,itstart-1:itend)
+            itstart = text_iter_line_start(nonmutable(buffer, itstart))#FIXME need a mutable version
+            !get_gtk_property(itend, :ends_line, Bool) && skip(itend, :forward_to_line_end)
+            splice!(buffer, itstart-1:itend)
         else
             (cmd, itstart, itend) = get_current_line_text(buffer)
-            splice!(buffer,itstart-1:itend)
+            splice!(buffer, itstart-1:itend)
         end
     end
     if doing(Actions["duplicate_line"],event)
@@ -463,9 +458,14 @@ function editor_extract_method(buffer::GtkTextBuffer)
     body == "" && return PROPAGATE
     
     insert_offset = offset(itstart)
-    replace_text(buffer,itstart,itend,Refactoring.extract_method(body))
+
+    tabw = opt("Editor","tab_width")
+    tab = " "^tabw
+    met = Refactoring.extract_method(body,tab)
+
+    replace_text(buffer, itstart, itend, met)
     it = GtkTextIter(buffer, insert_offset + sizeof("function ")+2) #FIXME probable offset issue 
-    text_buffer_place_cursor(buffer,it)
+    place_cursor(buffer,it)
     
     return INTERRUPT 
 end
@@ -544,13 +544,16 @@ function show_data_hint(textview::GtkTextView, t::EditorTab)
 
         end
         
-        sp = parent(t).main_window.style_and_language_manager.main_style
-        style = GtkSourceWidget.style(sp,"text")
+        # sp = parent(t).main_window.style_and_language_manager.main_style
+        # style = GtkSourceWidget.style(sp,"text")
+
+        style_mng = parent(t).main_window.style_and_language_manager
+        style = get_style(style_mng, "text")
         
         mc = MarkdownColors(
             Gtk.get_gtk_property(style,:foreground,String),
             Gtk.get_gtk_property(style,:background,String),
-            Gtk.get_gtk_property(GtkSourceWidget.style(sp,"def:note"),:foreground,String),
+            Gtk.get_gtk_property(get_style(style_mng, "def:note"),:foreground,String),
             Gtk.get_gtk_property(style,:background,String),
         )
 

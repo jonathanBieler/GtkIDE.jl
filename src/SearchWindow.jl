@@ -101,17 +101,16 @@ end
 function search_forward(t::EditorTab)
 
     if t.search_mark_end == nothing
-        t.search_mark_end = text_buffer_create_mark(t.buffer,Gtk.GtkTextIter(t.buffer,1))#search from the start
+        t.search_mark_end = create_mark(t.buffer,Gtk.GtkTextIter(t.buffer,1))#search from the start
     end
 
-    it = text_buffer_get_iter_at_mark(t.buffer,t.search_mark_end)
-    it = nonmutable(t.buffer,it)
-    (found,its,ite) = search_context_forward(t.search_context,it)
+    it = GtkTextIter(t.buffer, t.search_mark_end)
+    (found,its,ite) = search_context_forward(t.search_context, it)
 
     if found
         scroll_to_iter(t.view,its)
-        t.search_mark_start  = text_buffer_create_mark(t.buffer,its)#save the position for next search
-        t.search_mark_end  = text_buffer_create_mark(t.buffer,ite)
+        t.search_mark_start  = create_mark(t.buffer,its)#save the position for next search
+        t.search_mark_end  = create_mark(t.buffer,ite)
     end
     return found
 end
@@ -150,8 +149,8 @@ function replace_forward(t::EditorTab,entry::GtkEntry,search_window::SearchWindo
 
     do_search = false
     if t.search_mark_end != nothing && t.search_mark_start != nothing
-        its = text_buffer_get_iter_at_mark(t.buffer,t.search_mark_start)
-        ite = text_buffer_get_iter_at_mark(t.buffer,t.search_mark_end)
+        its = GtkTextIter(t.buffer,t.search_mark_start)
+        ite = GtkTextIter(t.buffer,t.search_mark_end)
 
         #if it doesn't match, we search forward
         if (its:ite).text[String] != search_text
@@ -163,8 +162,8 @@ function replace_forward(t::EditorTab,entry::GtkEntry,search_window::SearchWindo
 
     if do_search
         !search_forward(t) && return INTERRUPT
-        its = text_buffer_get_iter_at_mark(t.buffer,t.search_mark_start)
-        ite = text_buffer_get_iter_at_mark(t.buffer,t.search_mark_end)
+        its = GtkTextIter(t.buffer,t.search_mark_start)
+        ite = GtkTextIter(t.buffer,t.search_mark_end)
     end
 
     s = get_gtk_property(entry,:text,AbstractString)
