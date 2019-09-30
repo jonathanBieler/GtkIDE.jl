@@ -39,8 +39,6 @@ Demo [video](https://www.youtube.com/watch?v=AbzNUNfwSGc).
 **Warning:** make sure to backup or commit your work before editing files, as this editor is
 still somewhat experimental.
 
-Use your terminal for package management instead of GktIDE console.
-
 ### Opening files
 
 Use cd, ls, pwd to navigate in the console, and type `edit filename` to open a file.
@@ -100,6 +98,8 @@ In the editor:
 
 - `Ctrl+f` Search.
 - `Ctrl+a` Select all.
+
+- `F3` Autocompletion using the console history as a provider. 
 
 In the console:
 
