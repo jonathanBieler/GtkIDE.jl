@@ -4,7 +4,7 @@
 #
 #     using Gtk
 #     export NoCompletion, NormalCompletion, MethodCompletion, TupleCompletion, CompletionProvider,
-#     WordCompletion, WordMenuCompletion,WordMenuCompletion_step1
+#     WordCompletion, WordMenuCompletion, WordMenuCompletion_step1
 
     abstract type CompletionProvider end
 
@@ -12,58 +12,58 @@
     end
 
     mutable struct NormalCompletion <: CompletionProvider
-        steps::Array{Function,1}
+        steps::Array{Function, 1}
         state::Int
         cmd::AbstractString
         itstart
         itend
         comp
         dotpos
-        NormalCompletion() = new(Function[],1,"",nothing,nothing,[""],-1:0)
+        NormalCompletion() = new(Function[], 1, "", nothing, nothing, [""], -1:0)
     end
 
     mutable struct MethodCompletion <: CompletionProvider
-        steps::Array{Function,1}
+        steps::Array{Function, 1}
         state::Int
         cmd::AbstractString
         itstart
         itend
         comp
         dotpos
-        MethodCompletion() = new(Function[],1,"",nothing,nothing,[""],-1:0)
+        MethodCompletion() = new(Function[], 1, "", nothing, nothing, [""], -1:0)
     end
 
     mutable struct TupleCompletion <: CompletionProvider
-        steps::Array{Function,1}
+        steps::Array{Function, 1}
         state::Int
         cmd::AbstractString
         itstart
         itend
         comp
         func_names
-        TupleCompletion() = new(Function[],1,"",nothing,nothing,[""],[""])
+        TupleCompletion() = new(Function[], 1, "", nothing, nothing, [""], [""])
     end
     
     mutable struct PathCompletion <: CompletionProvider
-        steps::Array{Function,1}
+        steps::Array{Function, 1}
         state::Int
         cmd::AbstractString
         itstart
         itend
         comp
         dotpos
-        PathCompletion() = new(Function[],1,"",nothing,nothing,[""],-1:0)
+        PathCompletion() = new(Function[], 1, "", nothing, nothing, [""], -1:0)
     end
     
     mutable struct HistoryCompletion <: CompletionProvider
-        steps::Array{Function,1}
+        steps::Array{Function, 1}
         state::Int
         cmd::AbstractString
         itstart
         itend
         comp
         dotpos
-        HistoryCompletion() = new(Function[],1,"",nothing,nothing,[""],-1:0)
+        HistoryCompletion() = new(Function[], 1, "", nothing, nothing, [""], -1:0)
     end
 
 #end
@@ -77,7 +77,7 @@ function init_autocomplete(view::GtkTextView, t::EditorTab, replace=true; key=:t
     console = current_console(editor)
     
     #let's not autocomplete multiple lines
-    (found,it_start,it_end) = selection_bounds(buffer)
+    (found, it_start, it_end) = selection_bounds(buffer)
     if found 
         nlines(it_start, it_end) > 1 && @goto exit
     end
@@ -89,20 +89,20 @@ function init_autocomplete(view::GtkTextView, t::EditorTab, replace=true; key=:t
         p.comp = p.steps[p.state]()
         p.state += 1
     else
-        completions(p,t,completion_window.idx,console)
+        completions(p, t, completion_window.idx, console)
     end
     isempty(p.comp) && @goto exit
 
     if length(p.comp) == 1 && replace
-        insert(p, formatcompletion(p,1), buffer)
+        insert(p, formatcompletion(p, 1), buffer)
     else
-        init_completion_window(view,p; mode = key)
+        init_completion_window(view, p; mode = key)
     end
 
     return INTERRUPT
 
     @label exit
-    visible(completion_window,false)
+    visible(completion_window, false)
     return PROPAGATE
 end
 
@@ -117,7 +117,7 @@ function get_completion_provider(console::Console, view::GtkTextView, t::EditorT
 
     for pt in pts
         p = pt()
-        select_text(p,console,buffer,it,t) && return p
+        select_text(p, console, buffer, it, t) && return p
     end
     return NoCompletion()
 end
@@ -127,15 +127,15 @@ end
 function test_completion_providers()
     t = get_current_tab()
     view = t.view
-    p = get_completion_provider(console,view,t)
+    p = get_completion_provider(console, view, t)
 
     typeof(p) == NoCompletion
 
     buffer = getbuffer(view)
     it = get_text_iter_at_cursor(buffer)
 
-#    completions(p,t)
-    init_autocomplete(view,t)
+#    completions(p, t)
+    init_autocomplete(view, t)
     p
 end
 
@@ -146,8 +146,8 @@ end
 function formatcompletion(p::CompletionProvider, idx::Int)
     p.comp[idx]
 end
-function insert(p::CompletionProvider,s,buffer)
-    replace_text(buffer,p.itstart,p.itend,s)
+function insert(p::CompletionProvider, s, buffer)
+    replace_text(buffer, p.itstart, p.itend, s)
 end
 
 #####################
@@ -157,7 +157,7 @@ function select_text(p::NormalCompletion, console, buffer, it, t)
 
     istextfile(t) && return false
 
-    (cmd,its,ite) = select_word_backward(it,buffer,false)
+    (cmd, its, ite) = select_word_backward(it, buffer, false)
     cmd = strip(cmd)
     isempty(cmd) && return false
     cmd[end] == '(' && return false #trying to complete a method
@@ -169,10 +169,10 @@ function select_text(p::NormalCompletion, console, buffer, it, t)
     true
 end
 function completions(p::NormalCompletion, t, idx, c::Console)
-    if !isdefined(t,:autocomplete_words)
+    if !isdefined(t, :autocomplete_words)
         t.autocomplete_words = [""]
     end
-    comp,dotpos = extcompletions(p.cmd,t.autocomplete_words,c)
+    comp, dotpos = extcompletions(p.cmd, t.autocomplete_words, c)
     p.comp = comp
     p.dotpos = dotpos
 end
@@ -184,16 +184,16 @@ function formatcompletion(p::NormalCompletion, idx::Int)
 end
 
 function insert(p::NormalCompletion, s, buffer)
-    replace_text(buffer,p.itstart,p.itend,s)
+    replace_text(buffer, p.itstart, p.itend, s)
 end
 
 #####################
 #Methods completion
 
-function select_text(p::MethodCompletion,console,buffer,it,t)
+function select_text(p::MethodCompletion, console, buffer, it, t)
     istextfile(t) && return false
 
-    (cmd,its,ite) = select_word_backward(it,buffer,false)
+    (cmd, its, ite) = select_word_backward(it, buffer, false)
     cmd = strip(cmd)
     cmd == "" && return false
     cmd[end] != '(' && return false
@@ -203,13 +203,13 @@ function select_text(p::MethodCompletion,console,buffer,it,t)
     true
 end
 
-function completions(p::MethodCompletion,t,idx,c::Console)
+function completions(p::MethodCompletion, t, idx, c::Console)
     # for some reason completion removes the first module when completing methods,
     # so I take note of it here and add it back at the end
-    mods = split(p.cmd,'.')
+    mods = split(p.cmd, '.')
     prefix = length(mods) > 2 ? mods[1] : ""
 
-    comp,dotpos = GtkREPL.completions_in_module(p.cmd,c)
+    comp, dotpos = GtkREPL.completions_in_module(p.cmd, c)
     dotpos = dotpos .+ (lastindex(prefix)-1)
     comp = [prefix != "" ? string(prefix, '.', c) : c for c in comp]
 
@@ -217,24 +217,24 @@ function completions(p::MethodCompletion,t,idx,c::Console)
     p.dotpos = dotpos
 end
 
-function formatcompletion(p::MethodCompletion,idx::Int)
+function formatcompletion(p::MethodCompletion, idx::Int)
     s = remove_filename_from_methods_def( p.comp[idx] )
     dotpos = p.dotpos.start
     prefix = dotpos > 1 ? p.cmd[1:dotpos-1] : ""
     prefix * s
 end
 
-function insert(p::MethodCompletion,s,buffer)
-    replace_text(buffer,p.itstart,p.itend,s)
+function insert(p::MethodCompletion, s, buffer)
+    replace_text(buffer, p.itstart, p.itend, s)
 end
 
 #####################
 #Tuple completion
 
-function select_text(p::TupleCompletion,console,buffer,it,t)
+function select_text(p::TupleCompletion, console, buffer, it, t)
     istextfile(t) && return false
 
-    (found,tu,itstart) = select_tuple(it, buffer)
+    (found, tu, itstart) = select_tuple(it, buffer)
     !found && return false
 
     p.cmd = tu
@@ -243,29 +243,29 @@ function select_text(p::TupleCompletion,console,buffer,it,t)
     true
 end
 
-function completions(p::TupleCompletion,t,idx,c::Console)
+function completions(p::TupleCompletion, t, idx, c::Console)
 
-    args = tuple_to_types(p.cmd,c)
+    args = tuple_to_types(p.cmd, c)
     isempty(args) && return
     m = methods_with_tuple(args)
-    comp = map(string,m)
+    comp = map(string, m)
     func_names = [string(x.name) for x in m]
     p.comp = comp
     p.func_names = func_names
 end
 
-function formatcompletion(p::TupleCompletion,idx::Int)
+function formatcompletion(p::TupleCompletion, idx::Int)
     p.func_names[idx]
 end
 
-function insert(p::TupleCompletion,s,buffer)
-    insert!(buffer,p.itstart,s)
+function insert(p::TupleCompletion, s, buffer)
+    insert!(buffer, p.itstart, s)
 end
 
 #####################
 # PathCompletion
 
-function formatcompletion(p::PathCompletion,idx::Int)
+function formatcompletion(p::PathCompletion, idx::Int)
     dotpos = p.dotpos.start
     cmd = p.cmd[2:end]#remove the leading "
     prefix = dotpos > 1 ? cmd[1:dotpos-1] : ""
@@ -273,7 +273,7 @@ function formatcompletion(p::PathCompletion,idx::Int)
     '"' * prefix * p.comp[idx]
 end
 
-function select_text(p::PathCompletion,console,buffer,it,t)
+function select_text(p::PathCompletion, console, buffer, it, t)
     istextfile(t) && return false
 
     (cmd, its, ite) = get_current_line_text(buffer)
@@ -281,7 +281,7 @@ function select_text(p::PathCompletion,console,buffer,it,t)
     cmd = (its:ite).text[String]
     
     cmd == "" && return false
-    idx = findlast(c->c=='"',cmd)
+    idx = findlast(c->c=='"', cmd)
     
     idx == nothing && return false
     idx == length(cmd) && return false 
@@ -300,7 +300,7 @@ function select_text(p::PathCompletion,console,buffer,it,t)
     true
 end
 
-function completions(p::PathCompletion,t,idx,c::Console)
+function completions(p::PathCompletion, t, idx, c::Console)
     cmd = p.cmd
     cmd = strip(cmd[2:end])#remove the leading "
     comp, dotpos = remotecall_fetch(REPL.REPLCompletions.complete_path, worker(c), cmd, lastindex(cmd))
@@ -321,7 +321,7 @@ function select_text(p::HistoryCompletion, console, buffer, it, t)
     if found 
         cmd = (its:ite).text[String]
     else
-        (cmd,its,ite) = select_word_backward(it, buffer, false)
+        (cmd, its, ite) = select_word_backward(it, buffer, false)
     end
     cmd = strip(cmd)
     isempty(cmd) && return false

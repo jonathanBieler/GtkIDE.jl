@@ -12,17 +12,19 @@ mutable struct MainWindow <: GtkWindow
 
     function MainWindow()
 
-        w = GtkWindow("GtkIDE.jl - v$(VERSION)",1800,1200)
-        signal_connect(main_window_key_press_cb,w, "key-press-event", Cint, (Ptr{Gtk.GdkEvent},), false)
-        signal_connect(main_window_quit_cb, w, "delete-event", Cint, (Ptr{Gtk.GdkEvent},), false)
+        w = GtkWindow("GtkIDE.jl - v$(VERSION)", 1800, 1200)
+        signal_connect(main_window_key_press_cb, w, "key-press-event", Cint, (Ptr{Gtk.GdkEvent}, ), false)
+        signal_connect(main_window_quit_cb, w, "delete-event", Cint, (Ptr{Gtk.GdkEvent}, ), false)
 
         sl_mng = StyleAndLanguageManager()
-        n = new(w.handle,sl_mng)
+        n = new(w.handle, sl_mng)
         Gtk.gobject_move_ref(n, w)
     end
 end
 
-function init!(main_window::MainWindow,editor,c_mng,pathCBox,statusBar,project,menubar,sidepanel_ntbook)#TODO type this ?
+function init!(main_window::MainWindow, editor, c_mng, pathCBox, statusBar, project,
+    menubar, sidepanel_ntbook)
+
     main_window.editor = editor
     main_window.console_manager = c_mng
     main_window.pathCBox = pathCBox
@@ -34,7 +36,7 @@ function init!(main_window::MainWindow,editor,c_mng,pathCBox,statusBar,project,m
 end
 
 ## exiting
-@guarded (PROPAGATE) function main_window_quit_cb(widgetptr::Ptr,eventptr::Ptr, user_data)
+@guarded (PROPAGATE) function main_window_quit_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
     main_window = convert(GtkWindow, widgetptr)
 
@@ -52,9 +54,9 @@ end
 function toggle_editor()#use visible ?
     if Gtk.G_.position(mainPan) > 0
         mainPanPos = Gtk.G_.position(mainPan)
-        Gtk.G_.position(mainPan,0)
+        Gtk.G_.position(mainPan, 0)
     else
-        Gtk.G_.position(mainPan,650) #FIXME need a layout type to save all these things
+        Gtk.G_.position(mainPan, 650) #FIXME need a layout type to save all these things
     end
 end
 
@@ -65,11 +67,11 @@ end
 
     mod = get_default_mod_mask()
 
-    if doing(Action("r",PrimaryModifier),event)
+    if doing(Action("r", PrimaryModifier), event)
         #@async begin
             #crashes if we are still in the callback
             #sleep(0.2)
-#            eval(Main,:(restart()))
+#            eval(Main, :(restart()))
             #restart(main_window)
         #end
     end
@@ -82,7 +84,7 @@ end
 
     if doing(Actions["console_editor_switch"], event)
         c = current_console(main_window.console_manager).view
-        if !get_gtk_property(c,:has_focus,Bool)
+        if !get_gtk_property(c, :has_focus, Bool)
             grab_focus(c)
         else
             grab_focus(current_tab(main_window.editor).view)
@@ -104,22 +106,24 @@ end
 
 function toggle_sidepanel()
     visibility = !visible(sidepanel_ntbook)
-    visible(sidepanel_ntbook,visibility)
+    visible(sidepanel_ntbook, visibility)
     for panel in sidepanel_ntbook
-        visible(panel,visibility)
+        visible(panel, visibility)
         visible(panel) && update!(panel)#Panels can opt out of updating while hidden, so update them when revealed
     end
 end
 
 # Not ideal, it always refresh when using the pathdisplay
-@guarded nothing function on_path_change(main_window::MainWindow, doUpdate=false, console=current_console(main_window))
+@guarded nothing function on_path_change(main_window::MainWindow, 
+    doUpdate=false, console=current_console(main_window))
+
     c_path = unsafe_string(Gtk.G_.active_text(main_window.pathCBox))
     path = pwd(console)
     
-    update_pathEntry(main_window,path)
+    update_pathEntry(main_window, path)
 
     if path != c_path || doUpdate
-        push!(main_window.pathCBox,path)
+        push!(main_window.pathCBox, path)
         for panel in main_window.sidepanel_ntbook
             on_path_change(panel, path)
         end
@@ -132,19 +136,18 @@ function reload()
 
     GtkREPL.reload()
     Core.eval(GtkIDE, quote
-    include(joinpath(HOMEDIR,"PlotWindow.jl"))
-    include(joinpath(HOMEDIR,"StyleAndLanguageManager.jl"))
-    include(joinpath(HOMEDIR,"MainWindow.jl"))
-    include(joinpath(HOMEDIR,"Project.jl"))
-    include(joinpath(HOMEDIR,"Console.jl"))
-    include(joinpath(HOMEDIR,"ConsoleCommands.jl"))
-#    include(joinpath(HOMEDIR,"Refactoring.jl"))
-    include(joinpath(HOMEDIR,"Editor.jl"))
-    include(joinpath(HOMEDIR,"NtbookUtils.jl"))
-    include(joinpath(HOMEDIR,"PathDisplay.jl"))
-    include(joinpath(HOMEDIR,"MainMenu.jl"))
-    include(joinpath(HOMEDIR,"SidePanels.jl"))
-    include(joinpath(HOMEDIR,"Logo.jl"))
+    include(joinpath(HOMEDIR, "PlotWindow.jl"))
+    include(joinpath(HOMEDIR, "StyleAndLanguageManager.jl"))
+    include(joinpath(HOMEDIR, "MainWindow.jl"))
+    include(joinpath(HOMEDIR, "Project.jl"))
+    include(joinpath(HOMEDIR, "Console.jl"))
+    include(joinpath(HOMEDIR, "ConsoleCommands.jl"))
+    include(joinpath(HOMEDIR, "Editor.jl"))
+    include(joinpath(HOMEDIR, "NtbookUtils.jl"))
+    include(joinpath(HOMEDIR, "PathDisplay.jl"))
+    include(joinpath(HOMEDIR, "MainMenu.jl"))
+    include(joinpath(HOMEDIR, "SidePanels.jl"))
+    include(joinpath(HOMEDIR, "Logo.jl"))
     init_console_commands()
     nothing
     end)
@@ -152,7 +155,7 @@ function reload()
 end
 
 ##
-function restart(main_window::MainWindow,new_workspace=false)
+function restart(main_window::MainWindow, new_workspace=false)
 
         println("restarting...")
         sleep(0.1)
@@ -167,7 +170,7 @@ function restart(main_window::MainWindow,new_workspace=false)
         destroy(main_window)
 #        gtkide()
 
-        #include( joinpath(HOMEDIR,"GtkIDE.jl") )
+        #include( joinpath(HOMEDIR, "GtkIDE.jl") )
 
         reload()
 
@@ -177,7 +180,7 @@ function restart(main_window::MainWindow,new_workspace=false)
 end
 
 function run_tests()
-    include( joinpath(HOMEDIR,"..","test","runtests.jl") )
+    include( joinpath(HOMEDIR, "..", "test", "runtests.jl") )
 end
 
 
@@ -187,15 +190,15 @@ JSON.lower(w::MainWindow) = Dict(
  )
 
 function save(w::MainWindow)
-    !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
-    open( joinpath(HOMEDIR,"config","main_window.json") ,"w") do io
-        JSON.print(io,w)
+    !isdir( joinpath(HOMEDIR, "config") ) && mkdir( joinpath(HOMEDIR, "config") )
+    open( joinpath(HOMEDIR, "config", "main_window.json") , "w") do io
+        JSON.print(io, w)
     end
 end
 
 function load(w::MainWindow)
-    !isdir( joinpath(HOMEDIR,"config") ) && mkdir( joinpath(HOMEDIR,"config") )
-    pth = joinpath(HOMEDIR,"config","main_window.json")
+    !isdir( joinpath(HOMEDIR, "config") ) && mkdir( joinpath(HOMEDIR, "config") )
+    pth = joinpath(HOMEDIR, "config", "main_window.json")
     if !isfile(pth)
         w.project.name = "default"
         return

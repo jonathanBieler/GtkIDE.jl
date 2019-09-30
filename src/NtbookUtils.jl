@@ -14,17 +14,17 @@ console_manager(main_window::MainWindow) = main_window.console_manager
 console_manager(c::Console) = console_manager(c.main_window)#parent(c)::ConsoleManager
 
 # Methods for GtkNotebook
-function close_tab(n::GtkNotebook,idx::Integer)
-    splice!(n,idx)
-    set_current_page_idx(n,max(idx-1,0))
+function close_tab(n::GtkNotebook, idx::Integer)
+    splice!(n, idx)
+    set_current_page_idx(n, max(idx-1, 0))
 end
-close_tab(n::GtkNotebook) = close_tab(n,index(n))
+close_tab(n::GtkNotebook) = close_tab(n, index(n))
 
 get_current_tab(n::GtkNotebook) = n[index(n)]
 
 @guarded (nothing) function ntbook_close_tab_cb(btn::Ptr, user_data)
     ntbook, tab = user_data
-    close_tab(ntbook,index(ntbook,tab))
+    close_tab(ntbook, index(ntbook, tab))
     return nothing
 end
 

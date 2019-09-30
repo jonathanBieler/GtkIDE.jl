@@ -5,33 +5,33 @@ mutable struct CompletionWindow <: GtkWindow #FIXME not the right container?
     handle::Ptr{Gtk.GObject}
     view::GtkSourceView
     buffer::GtkSourceBuffer
-    content::Array{AbstractString,1}
+    content::Array{AbstractString, 1}
     idx::Integer
     main_window::MainWindow
     prefix::AbstractString
-    func_names::Array{AbstractString,1}#store just the name of functions, for tuple autocomplete
+    func_names::Array{AbstractString, 1}#store just the name of functions, for tuple autocomplete
     mode::Symbol #keep track of which key was pressed
     provider::CompletionProvider
 
     function CompletionWindow(main_window::MainWindow)
 
         buffer = GtkSourceBuffer()
-        set_gtk_property!(buffer,:text,"")
-        Gtk.create_tag(buffer, "selected",font="Bold")
+        set_gtk_property!(buffer, :text, "")
+        Gtk.create_tag(buffer, "selected", font="Bold")
 
         textview = GtkSourceView()
-        set_gtk_property!(textview,:buffer, buffer)
-        set_gtk_property!(textview,:editable, false)
-        set_gtk_property!(textview,:can_focus, false)
-        set_gtk_property!(textview,:hexpand, true)
-        set_gtk_property!(textview,:wrap_mode,0)
+        set_gtk_property!(textview, :buffer, buffer)
+        set_gtk_property!(textview, :editable, false)
+        set_gtk_property!(textview, :can_focus, false)
+        set_gtk_property!(textview, :hexpand, true)
+        set_gtk_property!(textview, :wrap_mode, 0)
 
-        completion_window = GtkWindow("",1,1,true,false)
-        #set_gtk_property!(completion_window,:height_request, 100)
-        push!(completion_window,textview)
+        completion_window = GtkWindow("", 1, 1, true, false)
+        #set_gtk_property!(completion_window, :height_request, 100)
+        push!(completion_window, textview)
         showall(completion_window)
 
-        t = new(completion_window.handle,textview,buffer,AbstractString[],1,main_window)
+        t = new(completion_window.handle, textview, buffer, AbstractString[], 1, main_window)
         Gtk.gobject_move_ref(t, completion_window)
     end
 end
@@ -43,7 +43,7 @@ import  Base.Multimedia.display
 #    str = ""
 #    pos_start = 1
 #    pos_end = 1
-#    for i = 1:min(length(w.content),30)
+#    for i = 1:min(length(w.content), 30)
 #        pos = length(str)+1
 #        str = i == 1 ? w.content[i] : str * "\n" * w.content[i]
 #        if w.idx == i
@@ -51,8 +51,8 @@ import  Base.Multimedia.display
 #            pos_end = length(str)+1
 #        end
 #    end
-#    set_gtk_property!(w.buffer,:text,str)
-#    Gtk.apply_tag(w.buffer, "selected", Gtk.GtkTextIter(w.buffer,pos_start), Gtk.GtkTextIter(w.buffer,pos_end) )
+#    set_gtk_property!(w.buffer, :text, str)
+#    Gtk.apply_tag(w.buffer, "selected", Gtk.GtkTextIter(w.buffer, pos_start), Gtk.GtkTextIter(w.buffer, pos_end) )
 #end
 
 function display(w::CompletionWindow)
@@ -61,7 +61,7 @@ function display(w::CompletionWindow)
     str = ""
     pos_start = 1
     pos_end = 1
-    for i = 1:min(length(p.comp),30)
+    for i = 1:min(length(p.comp), 30)
         pos = length(str)+1
         str = i == 1 ? p.comp[i] : str * "\n" * p.comp[i]
         if w.idx == i
@@ -69,8 +69,8 @@ function display(w::CompletionWindow)
             pos_end = length(str)+1
         end
     end
-    set_gtk_property!(w.buffer,:text,str)
-    Gtk.apply_tag(w.buffer, "selected", Gtk.GtkTextIter(w.buffer,pos_start), Gtk.GtkTextIter(w.buffer,pos_end) )
+    set_gtk_property!(w.buffer, :text, str)
+    Gtk.apply_tag(w.buffer, "selected", Gtk.GtkTextIter(w.buffer, pos_start), Gtk.GtkTextIter(w.buffer, pos_end) )
 end
 #
 ##
@@ -86,11 +86,11 @@ end
 #FIXME dirty hack
 function remove_filename_from_methods_def(s::AbstractString)
     ex = r"(^.*\))(.*\.jl:[0-9]+$)" #remove the file/line number for methods)
-    m = match(ex,s)
+    m = match(ex, s)
     s = m == nothing ? s : m[1]
 
     ex = r"(^.*\))(.*?at none:[0-9]+$)"
-    m = match(ex,s)
+    m = match(ex, s)
     s = m == nothing ? s : m[1]
 
     return s
@@ -115,7 +115,7 @@ function update_completion_window(event::Gtk.GdkEvent, buffer::GtkTextBuffer, t)
     elseif event.keyval == Gtk.GdkKeySyms.Return || event.keyval == Gtk.GdkKeySyms.Tab
         if visible(completion_window)
 
-            on_return(completion_window,buffer,t)
+            on_return(completion_window, buffer, t)
             propagate = false
         end
     else
@@ -131,7 +131,7 @@ function on_return(w::CompletionWindow, buffer, t)
 
     #check if we are still in the right mode, and update iterators
     if !select_text(p, c, buffer, get_text_iter_at_cursor(buffer), t)
-        visible(completion_window,false)
+        visible(completion_window, false)
         return
     end
 
@@ -141,13 +141,13 @@ function on_return(w::CompletionWindow, buffer, t)
     else
         #this was multisteps
         if !isempty(p.steps) && p.state == length(p.steps)+1
-            completions(p,t,completion_window.idx,c)
+            completions(p, t, completion_window.idx, c)
             completion_window.content = p.comp
             display(completion_window)
             p.state = p.state+1
         else
-            insert(p,formatcompletion(p,completion_window.idx),buffer)
-            visible(completion_window,false)
+            insert(p, formatcompletion(p, completion_window.idx), buffer)
+            visible(completion_window, false)
         end
     end
 
@@ -174,9 +174,9 @@ function init_completion_window(view, p::CompletionProvider; mode=:tab)
     completion_window.mode = mode
     display(completion_window)
 
-    (x,y,h) = get_cursor_absolute_position(view)
-    Gtk.G_.position(completion_window,x+h,y)
-    visible(completion_window,true)
+    (x, y, h) = get_cursor_absolute_position(view)
+    Gtk.G_.position(completion_window, x+h, y)
+    visible(completion_window, true)
 
     showall(completion_window)
 end
@@ -184,7 +184,7 @@ end
 #############################################
 ## Add symbols from current files to completions
 
-function clean_symbols(S::Array{Symbol,1})
+function clean_symbols(S::Array{Symbol, 1})
     S = unique(S)
     S = map(x -> string(x), S)
     S = filter(x -> length(x) > 1, S)
@@ -193,7 +193,7 @@ end
 
 function collect_symbols(t::EditorTab)
     ##
-    str = String(get_gtk_property(t.buffer,:text,AbstractString))
+    str = String(get_gtk_property(t.buffer, :text, AbstractString))
     S = Symbol[]
 
     #no searchall :'(
@@ -201,17 +201,17 @@ function collect_symbols(t::EditorTab)
     del = '\n'
     i = firstindex(str)
     for j=1:length(str)
-        str[i] == del && push!(pos,i)
-        i = nextind(str,i)
+        str[i] == del && push!(pos, i)
+        i = nextind(str, i)
     end
 
     i = firstindex(str)
     while !(i > ncodeunits(str))#thanks Lint.jl
         try
-            (ex,i) = Meta.parse(str,i)
+            (ex, i) = Meta.parse(str, i)
             if ex != nothing
                 S_ = collect_symbols(ex)
-                if typeof(S_) == Array{Symbol,1}
+                if typeof(S_) == Array{Symbol, 1}
                     append!(S, S_)
                 elseif typeof(S_) == Symbol
                     push!(S, S_)
@@ -238,10 +238,10 @@ function collect_symbols(ex::Expr)
     for i=1:length(ex.args)
         s  = collect_symbols(ex.args[i])
         if typeof(s) == Symbol
-            push!(S,s)
-        elseif typeof(s) == Array{Symbol,1}
+            push!(S, s)
+        elseif typeof(s) == Array{Symbol, 1}
             for el in s
-                push!(S,el)
+                push!(S, el)
             end
         end
     end
@@ -251,51 +251,51 @@ collect_symbols(s::Symbol) = s
 collect_symbols(other) = :nothing
 
 ##
-function complete_additional_symbols(str,S)
+function complete_additional_symbols(str, S)
     comp = String[]
     for s in S
-        startswith(s,str) && push!(comp,s)
+        startswith(s, str) && push!(comp, s)
     end
     comp
 end
 
-function extcompletions(cmd,S,c::Console)
+function extcompletions(cmd, S, c::Console)
 
-    #(comp,dotpos) = completions(cmd, endof(cmd))
-    comp,dotpos = GtkREPL.completions_in_module(cmd,c)
-    comp2 = complete_additional_symbols(cmd,S)
+    #(comp, dotpos) = completions(cmd, endof(cmd))
+    comp, dotpos = GtkREPL.completions_in_module(cmd, c)
+    comp2 = complete_additional_symbols(cmd, S)
 
     for c in comp2
-        push!(comp,c)
+        push!(comp, c)
     end
     comp = unique(comp)
 
-    return (comp,dotpos)
+    return (comp, dotpos)
 end
 
 ########################
 ## Tuple completion
 
 function type_close_enough(x::DataType, t::DataType)
-    typeseq(x,t) && return true
+    typeseq(x, t) && return true
     return (x.name === t.name && !isconcretetype(t) && x <: t)
 end
 function type_close_enough(x::Union, t::DataType)
-    typeseq(x,t) && return true
+    typeseq(x, t) && return true
     for u in x.types
         t <: u && return true
     end
     false
 end
-function type_close_enough(t::DataType,x::Union)
-    typeseq(x,t) && return true
+function type_close_enough(t::DataType, x::Union)
+    typeseq(x, t) && return true
     for u in x.types
         u <: t && return true
     end
     false
 end
-function type_close_enough(t::Union,x::Union)
-    typeseq(x,t) && return true
+function type_close_enough(t::Union, x::Union)
+    typeseq(x, t) && return true
     for u in x.types
         for v in t.types
             u <: v && return true
@@ -315,12 +315,12 @@ end
 
 function methods_with_tuple(t::Tuple, d::Method, meths = Method[])
 
-    if !isdefined(d.sig,:parameters) 
+    if !isdefined(d.sig, :parameters) 
         return meths
     end
 
     x = d.sig.parameters[2:end]
-    cons = Dict{Symbol,Type}()
+    cons = Dict{Symbol, Type}()
     if length(x) == length(t)
         m = true
         for i = 1:length(x)
@@ -331,9 +331,9 @@ function methods_with_tuple(t::Tuple, d::Method, meths = Method[])
                 break
             end
 
-            #check thing like (T<:K,T<:K)
+            #check thing like (T<:K, T<:K)
             if typeof(x[i]) == TypeVar
-                if haskey(cons,x[i].name) && !(t[i] <: cons[x[i].name])
+                if haskey(cons, x[i].name) && !(t[i] <: cons[x[i].name])
                     m = false
                     break
                 end
@@ -370,7 +370,7 @@ function methods_with_tuple(t::Tuple)
     mainmod = Main
     # find modules in Main
     for nm in names(mainmod)
-        if isdefined(mainmod,nm)
+        if isdefined(mainmod, nm)
             mod = getfield(mainmod, nm)
             if isa(mod, Module)
                 append!(meths, methods_with_tuple(t, mod))
@@ -382,23 +382,23 @@ end
 
 
 "
-take a tuple as a string `(x,y)`, parse it and return the types in a tuple if defined
+take a tuple as a string `(x, y)`, parse it and return the types in a tuple if defined
 "
-function tuple_to_types(tu::AbstractString,c::Console)
+function tuple_to_types(tu::AbstractString, c::Console)
     args = []
     try
         ex = Meta.parse(tu)
         if typeof(ex) != Expr
-            ex = Expr(:tuple,ex)
+            ex = Expr(:tuple, ex)
         end
 
         for a in ex.args
             try
-                v = remotecall_fetch(Core.eval,c.worker_idx,c.eval_in,a)
-                if typeof(v) <: Union{Type,TypeVar}
-                    push!(args,v)
+                v = remotecall_fetch(Core.eval, c.worker_idx, c.eval_in, a)
+                if typeof(v) <: Union{Type, TypeVar}
+                    push!(args, v)
                 else
-                    push!(args,typeof(v))
+                    push!(args, typeof(v))
                 end
             catch err
                 @warn err
@@ -413,4 +413,4 @@ end
 
 ##
 
-#Gtk.G_.keep_above(completion_window,true)
+#Gtk.G_.keep_above(completion_window, true)

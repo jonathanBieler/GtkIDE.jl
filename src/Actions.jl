@@ -19,11 +19,11 @@ mutable struct Action
     state::Integer
     description::AbstractString
 
-    Action(k::Integer,s::Integer) = new(k,s,"")
-    Action(k::Integer,s::Integer,d::AbstractString) = new(k,s,d)
-    Action(k::Integer,d::AbstractString) = new(k,NoModifier,d)
-    Action(k::AbstractString,s::Integer,d::AbstractString) = new(keyval(k),s,d)
-    Action(k::AbstractString,s::Integer) = new(keyval(k),s,"")
+    Action(k::Integer, s::Integer) = new(k, s, "")
+    Action(k::Integer, s::Integer, d::AbstractString) = new(k, s, d)
+    Action(k::Integer, d::AbstractString) = new(k, NoModifier, d)
+    Action(k::AbstractString, s::Integer, d::AbstractString) = new(keyval(k), s, d)
+    Action(k::AbstractString, s::Integer) = new(keyval(k), s, "")
 end
 
 #https://developer.gnome.org/gtk3/unstable/checklist-modifiers.html
@@ -61,15 +61,15 @@ Actions["search"]   = Action(keyval("f"), PrimaryModifier, "Search")
 
 Actions["runline"]  = Action(Gtk.GdkKeySyms.Return, PrimaryModifier + GdkModifierType.SHIFT, "Execute current line")
 Actions["runcode"]  = Action(Gtk.GdkKeySyms.Return, PrimaryModifier, "Execute code")
-Actions["runfile"]  = Action(Gtk.GdkKeySyms.F5,"Run current file")
+Actions["runfile"]  = Action(Gtk.GdkKeySyms.F5, "Run current file")
 
 #TODO I should allow for several shortcuts
 Actions["runline_kp"]  = Action(Gtk.GdkKeySyms.KP_Enter, PrimaryModifier + GdkModifierType.SHIFT, "Execute current line")
 Actions["runcode_kp"]  = Action(Gtk.GdkKeySyms.KP_Enter, PrimaryModifier, "Execute code")
 
-Actions["copy"]     = Action("c", PrimaryModifier,"Copy")
-Actions["paste"]    = Action("v", PrimaryModifier,"Paste")
-Actions["cut"]      = Action("x", PrimaryModifier,"Cut")
+Actions["copy"]     = Action("c", PrimaryModifier, "Copy")
+Actions["paste"]    = Action("v", PrimaryModifier, "Paste")
+Actions["cut"]      = Action("x", PrimaryModifier, "Cut")
 Actions["move_to_line_start"] = Action("a", SecondaryModifer, "Move cursor to line start")
 Actions["move_to_line_end"]   = Action("e", SecondaryModifer, "Move cursor to line end")
 Actions["delete_line"] = Action("k", PrimaryModifier, "Delete line")

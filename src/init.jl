@@ -1,23 +1,23 @@
 ## globals
 
-function init_console!(v,b,main_window)
+function init_console!(v, b, main_window)
 
-    set_gtk_property!(b,:style_scheme,main_window.style_and_language_manager.main_style)
+    set_gtk_property!(b, :style_scheme, main_window.style_and_language_manager.main_style)
     
-    highlight_matching_brackets(b,true)
+    highlight_matching_brackets(b, true)
     
-    show_line_numbers!(v,false)
-    auto_indent!(v,true)
+    show_line_numbers!(v, false)
+    auto_indent!(v, true)
     highlight_current_line!(v, true)
-    set_gtk_property!(v,:wrap_mode,1)
-    #set_gtk_property!(v,:expand,true)
+    set_gtk_property!(v, :wrap_mode, 1)
+    #set_gtk_property!(v, :expand, true)
 
-    set_gtk_property!(v,:tab_width,4)
-    set_gtk_property!(v,:insert_spaces_instead_of_tabs,true)
+    set_gtk_property!(v, :tab_width, 4)
+    set_gtk_property!(v, :insert_spaces_instead_of_tabs, true)
 
-    set_gtk_property!(v,:margin_bottom,10)
+    set_gtk_property!(v, :margin_bottom, 10)
 
-    style_css(v,style_provider(main_window))
+    style_css(v, style_provider(main_window))
 
 end
 
@@ -29,7 +29,7 @@ function __init__()
 
     ## Console
 
-    console_mng = ConsoleManager(main_window,GtkIDE)
+    console_mng = ConsoleManager(main_window, GtkIDE)
     GtkREPL.init!(console_mng)
     init_console_commands()#insert console commands into GtkREPL
 
@@ -39,13 +39,13 @@ function __init__()
 
     search_window = SearchWindow(editor)
     init!(search_window)
-    visible(search_window,false)
+    visible(search_window, false)
 
-    init!(editor,search_window)
+    init!(editor, search_window)
 
     upgrade_project()
 
-    global project = Project(main_window,"default")
+    global project = Project(main_window, "default")
 
     pathCBox = PathComboBox(main_window)
     statusBar = GtkStatusbar()
@@ -54,12 +54,12 @@ function __init__()
 
     global sidepanel_ntbook = GtkNotebook()
 
-    init!(main_window,editor,console_mng,pathCBox,statusBar,project,menubar,sidepanel_ntbook)
+    init!(main_window, editor, console_mng, pathCBox, statusBar, project, menubar, sidepanel_ntbook)
     GtkREPL.set_main_window(main_window) 
 
     load(project)
     cd(project.path)
-    load_tabs(editor,project)
+    load_tabs(editor, project)
 
     ## Ploting window
 
@@ -67,13 +67,13 @@ function __init__()
     global _display = Immerse._display
 
     #FIXME need init!
-    signal_connect(fig_ntbook_key_press_cb,fig_ntbook, "key-press-event",Cint, (Ptr{Gtk.GdkEvent},), false)
-    signal_connect(fig_ntbook_switch_page_cb,fig_ntbook,"switch-page", Nothing, (Ptr{Gtk.GtkWidget},Int32), false)
+    signal_connect(fig_ntbook_key_press_cb, fig_ntbook, "key-press-event", Cint, (Ptr{Gtk.GdkEvent}, ), false)
+    signal_connect(fig_ntbook_switch_page_cb, fig_ntbook, "switch-page", Nothing, (Ptr{Gtk.GtkWidget}, Int32), false)
 
     ## completion window
 
     global completion_window = CompletionWindow(main_window)
-    visible(completion_window,false)
+    visible(completion_window, false)
 
     ## Main layout
     global mainPan = GtkPaned(:h)
@@ -113,20 +113,22 @@ function __init__()
 
 
     lang = main_window.style_and_language_manager.languageDefinitions[".jl"]
-    console = Console{GtkSourceView,GtkSourceBuffer}(1,main_window,TCPSocket(),(v,b)->init_console!(v,b,main_window),(lang,))
+    console = Console{GtkSourceView, GtkSourceBuffer}(
+        1, main_window, TCPSocket(), (v, b)->init_console!(v, b, main_window), (lang, )
+    )
     GtkREPL.init!(console)
 
     @assert length(console_mng) == 1
 
-    set_gtk_property!(statusBar,:margin,2)
-    push!(statusBar,"main","Julia $VERSION")
-    Gtk.G_.position(sidePan,160)
+    set_gtk_property!(statusBar, :margin, 2)
+    push!(statusBar, "main", "Julia $VERSION")
+    Gtk.G_.position(sidePan, 160)
 
-    set_gtk_property!(editor,:vexpand,true)
-    set_gtk_property!(editorBox,:expand,editor,true)
-    set_gtk_property!(mainPan,:margin,0)
-    Gtk.G_.position(mainPan,600)
-    Gtk.G_.position(rightPan,450)
+    set_gtk_property!(editor, :vexpand, true)
+    set_gtk_property!(editorBox, :expand, editor, true)
+    set_gtk_property!(mainPan, :margin, 0)
+    Gtk.G_.position(mainPan, 600)
+    Gtk.G_.position(rightPan, 450)
     #-
 
     ## set some style
@@ -139,29 +141,29 @@ function __init__()
         margin:0px;
         font-size:$(main_window.style_and_language_manager.fontsize-1)px;
     }"
-    style_css(main_window.editor,nbtbookcss)
-    style_css(main_window.console_manager,nbtbookcss)
-    style_css(fig_ntbook,nbtbookcss)
-    style_css(sidepanel_ntbook,nbtbookcss)
+    style_css(main_window.editor, nbtbookcss)
+    style_css(main_window.console_manager, nbtbookcss)
+    style_css(fig_ntbook, nbtbookcss)
+    style_css(sidepanel_ntbook, nbtbookcss)
 
-    set_gtk_property!(topBarBox,:hexpand,true)
+    set_gtk_property!(topBarBox, :hexpand, true)
 
     ################
     # Side Panels
 
     global filespanel = FilesPanel(main_window)
     update!(filespanel, pwd())
-    add_side_panel(filespanel,"F")
+    add_side_panel(filespanel, "F")
 
     global workspacepanel = WorkspacePanel(main_window)
     update!(workspacepanel)
-    add_side_panel(workspacepanel,"W")
+    add_side_panel(workspacepanel, "W")
 
     ##
 
     global projectspanel = ProjectsPanel(main_window)
     update!(projectspanel)
-    add_side_panel(projectspanel,"P")
+    add_side_panel(projectspanel, "P")
 
     ################
     ## Plots
@@ -177,9 +179,9 @@ function __init__()
     signal_connect(editorButtonclicked_cb, editorButton, "clicked", Nothing, (), false)
 
     showall(main_window)
-    visible(search_window,false)
-    visible(sidepanel_ntbook,false)
-    GtkSourceWidget.SOURCE_MAP && visible(editor.sourcemap,opt("Editor","show_source_map"))
+    visible(search_window, false)
+    visible(sidepanel_ntbook, false)
+    GtkSourceWidget.SOURCE_MAP && visible(editor.sourcemap, opt("Editor", "show_source_map"))
 
     ## starting task and such
 
@@ -194,16 +196,16 @@ function __init__()
         #read_stderr, wre = redirect_stderr()
 
         function watch_stdout()
-            @async GtkREPL.watch_stream(read_stdout,console)
+            @async GtkREPL.watch_stream(read_stdout, console)
         end
         function watch_stderr()
-            @async GtkREPL.watch_stream(read_stderr,console)
+            @async GtkREPL.watch_stream(read_stderr, console)
         end
 
         global watch_stdout_task = watch_stdout()
         #global watch_stderr_task = watch_stderr()
 
-       GtkREPL.init_stdout!(main_window.console_manager,watch_stdout_task,stdout_,stderr_)
+       GtkREPL.init_stdout!(main_window.console_manager, watch_stdout_task, stdout_, stderr_)
 
         g_timeout_add(()->print_to_console(console), 10)
     end

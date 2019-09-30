@@ -4,12 +4,13 @@
 mutable struct Project
     name::String
     path::String
-    files::Array{String,1}
-    scroll_position::Array{Float64,1}
+    files::Array{String, 1}
+    scroll_position::Array{Float64, 1}
     ntbook_idx::Integer
     main_window::MainWindow
 
-    Project(main_window::MainWindow,name::String) = new(name,"",String[],Float64[],1,main_window)
+    Project(main_window::MainWindow, name::String) =
+        new(name, "", String[], Float64[], 1, main_window)
 end
 
 #let's not serialize main_window
@@ -29,45 +30,45 @@ function update!(w::Project)
     w.ntbook_idx = get_current_page_idx(editor)
 
     for i=1:length(editor)
-        t = get_tab(editor,i)
+        t = get_tab(editor, i)
         if typeof(t) == EditorTab && t.filename != ""#in case we want to have something else in the editor
 
-            adj = get_gtk_property(t,:vadjustment, GtkAdjustment)
-            push!(w.scroll_position,get_gtk_property(adj,:value,AbstractFloat))
+            adj = get_gtk_property(t, :vadjustment, GtkAdjustment)
+            push!(w.scroll_position, get_gtk_property(adj, :value, AbstractFloat))
 
-            push!(w.files,t.filename)
+            push!(w.files, t.filename)
         end
     end
 end
 
 #upgrade smoothly from the old project system
 function upgrade_project()
-    !isdir( joinpath(HOMEDIR,"config","projects") ) && mkdir( joinpath(HOMEDIR,"config","projects") )
-    if !isfile(joinpath(HOMEDIR,"config","projects","default.json"))
-        isfile(joinpath(HOMEDIR,"config","project")) &&
-        cp(joinpath(HOMEDIR,"config","project"),joinpath(HOMEDIR,"config","projects","default.json"))
+    !isdir( joinpath(HOMEDIR, "config", "projects") ) && mkdir( joinpath(HOMEDIR, "config", "projects") )
+    if !isfile(joinpath(HOMEDIR, "config", "projects", "default.json"))
+        isfile(joinpath(HOMEDIR, "config", "project")) &&
+        cp(joinpath(HOMEDIR, "config", "project"), joinpath(HOMEDIR, "config", "projects", "default.json"))
     end
 end
 
 function save(w::Project)
     update!(w)
-    !isdir( joinpath(HOMEDIR,"config","projects") ) && mkdir( joinpath(HOMEDIR,"config","projects") )
-    open( joinpath(HOMEDIR,"config","projects","$(w.name).json") ,"w") do io
-        JSON.print(io,w,4)
+    !isdir( joinpath(HOMEDIR, "config", "projects") ) && mkdir( joinpath(HOMEDIR, "config", "projects") )
+    open( joinpath(HOMEDIR, "config", "projects", "$(w.name).json") , "w") do io
+        JSON.print(io, w, 4)
     end
 end
 
 function load(w::Project)
-    !isdir( joinpath(HOMEDIR,"config","projects") ) && mkdir( joinpath(HOMEDIR,"config","projects") )
-    pth = joinpath(HOMEDIR,"config","projects","$(w.name).json")
+    !isdir( joinpath(HOMEDIR, "config", "projects") ) && mkdir( joinpath(HOMEDIR, "config", "projects") )
+    pth = joinpath(HOMEDIR, "config", "projects", "$(w.name).json")
     if !isfile(pth)
         w.path = pwd()
         return
     end
-#	println( joinpath(HOMEDIR,"config","project"))
+#	println( joinpath(HOMEDIR, "config", "project"))
     j = JSON.parsefile(pth)
 
-    if haskey(j,"name")#allow smooth upgrade
+    if haskey(j, "name")#allow smooth upgrade
         w.name = j["name"]
     else
         w.name = "default"

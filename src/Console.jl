@@ -6,7 +6,7 @@ function add_remote_console_cb(id, port)
         w = connect(port)
 
         lang = main_window.style_and_language_manager.languageDefinitions[".jl"]
-        c = Console{GtkSourceView,GtkSourceBuffer}(id,main_window,w,(v,b)->init_console!(v,b,main_window),(lang,))
+        c = Console{GtkSourceView, GtkSourceBuffer}(id, main_window, w, (v, b)->init_console!(v, b, main_window), (lang, ))
         GtkREPL.init!(c)
 
         c.worker_port = port
@@ -14,7 +14,7 @@ function add_remote_console_cb(id, port)
 
         #for some reason I need to warm-up things here, otherwise it bugs later on.
         GtkREPL.isdone(c)
-        @assert remotecall_fetch(identity,GtkREPL.worker(c),1) == 1
+        @assert remotecall_fetch(identity, GtkREPL.worker(c), 1) == 1
 
         showall(main_window)
         c
@@ -22,7 +22,7 @@ function add_remote_console_cb(id, port)
         warn(err)
     end
 
-    remotecall_fetch(println, worker(c),"Worker connected")
+    remotecall_fetch(println, worker(c), "Worker connected")
     "done"
 end
 
@@ -33,6 +33,6 @@ function on_command_done(main_window::MainWindow, console)
 end
 
 #here the index in the notebook isn't updated yet, so it's important to pass `console`
-GtkREPL.on_console_mng_switch_page(cm::ConsoleManager,console::Console) = begin
-    on_path_change(cm.main_window,false,console)
+GtkREPL.on_console_mng_switch_page(cm::ConsoleManager, console::Console) = begin
+    on_path_change(cm.main_window, false, console)
 end

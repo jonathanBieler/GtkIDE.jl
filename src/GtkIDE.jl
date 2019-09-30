@@ -36,7 +36,7 @@ end
 
 function method_filename(m)
     tv, decls, file, line = Base.arg_decl_parts(m.ms[1])
-    return file,line
+    return file, line
 end
 
 #export add_console, figure
