@@ -1,11 +1,5 @@
 ## Types
 #
-# module CompletionProviders
-#
-#     using Gtk
-#     export NoCompletion, NormalCompletion, MethodCompletion, TupleCompletion, CompletionProvider,
-#     WordCompletion, WordMenuCompletion, WordMenuCompletion_step1
-
     abstract type CompletionProvider end
 
     mutable struct NoCompletion <: CompletionProvider
@@ -79,7 +73,7 @@ function init_autocomplete(view::GtkTextView, t::EditorTab, replace=true; key=:t
     #let's not autocomplete multiple lines
     (found, it_start, it_end) = selection_bounds(buffer)
     if found 
-        nlines(it_start, it_end) > 1 && @goto exit
+        GtkTextUtils.nlines(it_start, it_end) > 1 && @goto exit
     end
     
     p = get_completion_provider(console, view, t, key)
@@ -321,7 +315,8 @@ function select_text(p::HistoryCompletion, console, buffer, it, t)
     if found 
         cmd = (its:ite).text[String]
     else
-        (cmd, its, ite) = select_word_backward(it, buffer, false)
+        #(cmd, its, ite) = select_word_backward(it, buffer, false)
+        (cmd, its, ite) = get_current_line_text(buffer)
     end
     cmd = strip(cmd)
     isempty(cmd) && return false
@@ -342,6 +337,24 @@ function completions(p::HistoryCompletion, t, idx, c::Console)
     p.comp = unique(c.history.history[idx])
 end
 
-#end
+function select_text(p::HistoryCompletion, console, buffer, it, t)
 
-##
+    istextfile(t) && return false
+
+    (found, its, ite) = selection_bounds(buffer)
+    if found 
+        cmd = (its:ite).text[String]
+    else
+        #(cmd, its, ite) = select_word_backward(it, buffer, false)
+        # select the whole line, so it works like in the console
+        (cmd, its, ite) = get_current_line_text(buffer)
+    end
+    cmd = strip(cmd)
+    isempty(cmd) && return false
+    
+    cmd == "" && return false
+    p.cmd = cmd
+    p.itstart = its
+    p.itend = ite
+    true
+end

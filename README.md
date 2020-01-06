@@ -87,7 +87,7 @@ In the editor:
 
 - `Ctrl+k` Delete line.
 - `Ctrl+d` Duplicate line.
-- `Ctrl+t` Toggle comment.
+- `Ctrl+/` Toggle comment.
 - `Ctrl+g` Go to line.
 
 - `Alt+e` Move cursor to line end.
