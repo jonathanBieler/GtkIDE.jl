@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<style-scheme id="visualcode" name="Visual Code" version="1.0">
+    <author>Jonathan Bieler</author>
+    <_description>Visual code like Theme</_description>
+
+    <style name="text"                  background="#FDF6E3"        foreground="#3f4444"/>
+    <style name="cursor"                background="#red"           foreground="#black"/>
+    <style name="diff:added-line"       background="#447744"        foreground="#aaeeaa"/>
+    <style name="diff:changed-line"     background="#ddbb55"        foreground="#lightyellow"/>
+    <style name="diff:removed-line"     background="#aaccaa"        foreground="#336633"/>
+    <style name="line-numbers"          background="#lightgrey"     foreground="#brown"/>
+    <style name="search-match"          background="#yellow"        foreground="#black"/>
+    <style name="def:comment"           foreground="#93A1A1"/>
+    <style name="def:constant"          foreground="#bb6666"/>
+    <style name="def:specials"          foreground="#darkcyan"      bold="true"/>
+    <style name="def:identifier"        foreground="#darkcyan"      bold="true"/>
+    <style name="def:statement"         foreground="#darkcyan"/>
+    <style name="def:preprocessor"      foreground="#darkgrey"/>
+    <style name="def:type"              foreground="#bb9900"        bold="true"/>
+    <style name="def:function"          foreground="#268BD2"/>
+    <style name="selection"             background="#gray"          foreground="#black"/>
+    <style name="def:note"              foreground="#2758a5"        bold="true"/>
+    <style name="def:keyword"           foreground="#859900"/>
+
+    <!-- Bracket Matching -->
+    <style name="bracket-match"         foreground="#darkcyan"      background="#lightgrey"     bold="true"/>
+    <style name="bracket-mismatch"      foreground="#darkcyan"      background="#lightgrey"     bold="true"/>
+
+    <style name="current-line"          background="#faf0e0"/>
+
+</style-scheme>

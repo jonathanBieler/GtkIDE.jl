@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<style-scheme id="autumn" name="Autumn" version="1.0">
+	<author/>
+	<_description>Autumn theme</_description>
+	<style name="text" 							background="#f7f7f7" 		foreground="#black" />
+	<style name="cursor" 						background="#red" 			foreground="#black" />
+	<style name="diff:added-line" 	background="#447744" 		foreground="#aaeeaa" />
+	<style name="diff:changed-line" background="#ddbb55" 		foreground="#lightyellow" />
+	<style name="diff:removed-line" background="#aaccaa" 		foreground="#336633" />
+	<style name="line-numbers" 			background="#lightgrey" foreground="#brown" />
+	<style name="search-match" 			background="#yellow" 		foreground="#black" />
+	<style name="def:comment" 			background="#f7f7f7" 				foreground="#977" />
+	<style name="def:comment" 			background="#f7f7f7" 				foreground="#977" />
+	<style name="def:constant" 			background="#f7f7f7" 				foreground="#bb6666" />
+	<style name="def:specials" 			background="#f7f7f7" 				foreground="#darkcyan" 	bold="true"  />
+	<style name="def:identifier" 		background="#f7f7f7" 				foreground="#darkcyan" 	bold="true"  />
+	<style name="def:statement" 		background="#f7f7f7" 				foreground="#darkcyan"  />
+	<style name="def:preprocessor" 		background="#f7f7f7" 				foreground="#darkgrey" />
+	<style name="def:type" 				background="#f7f7f7" 				foreground="#bb9900" 		bold="true"  />
+	<style name="def:function" 			background="#f7f7f7" 				foreground="#9e0404" 		 />
+  <style name="selection"         		background="#gray" 				foreground="#black" />
+  <style name="def:note" 				background="#f7f7f7" 				foreground="#2758a5" 			bold="true" />
+</style-scheme>
+

@@ -11,7 +11,7 @@ mutable struct StyleAndLanguageManager
         #FIXME this should be in GtkSourceWidget
         sourceStyleManager = GtkSourceStyleSchemeManager()
         GtkSourceWidget.set_search_path(sourceStyleManager,
-          Any[joinpath(pkgdir(GtkSourceWidget), "share/gtksourceview-3.0/styles/"), C_NULL])
+            Any[joinpath(GtkIDE.HOMEDIR, "../share/styles/"), C_NULL])
 
         languageDefinitions = Dict{AbstractString, GtkSourceWidget.GtkSourceLanguage}()
         sourceLanguageManager = GtkSourceWidget.sourceLanguageManager
@@ -49,7 +49,7 @@ mutable struct StyleAndLanguageManager
         provider = GtkCssProviderFromData!(provider, data=fontCss)
         GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(HOMEDIR, "../icons/"))
 
-        # I'm getting duplicated GObject when calling style several times, 
+        # I'm getting duplicated GObject when calling style several times,
         # so let's call it only once.
         styles = Dict(
             "text" => GtkSourceWidget.style(main_style, "text"),
@@ -68,4 +68,4 @@ mutable struct StyleAndLanguageManager
 end
 
 get_style(mng::StyleAndLanguageManager, style_id::String) =
-    haskey(mng.styles, style_id) ? mng.styles[style_id] : GtkSourceWidget.style(mng.main_style, style_id) 
+    haskey(mng.styles, style_id) ? mng.styles[style_id] : GtkSourceWidget.style(mng.main_style, style_id)
