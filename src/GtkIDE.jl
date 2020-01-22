@@ -29,11 +29,6 @@ import Cairo.text
 export image, plot, figure, rprint
 export GtkREPL, Pkg #This gets called by remote consoles
 
-if !GtkSourceWidget.SOURCE_MAP
-    macro GtkSourceMap() end
-    mutable struct GtkSourceMap end
-end
-
 function method_filename(m)
     tv, decls, file, line = Base.arg_decl_parts(m.ms[1])
     return file, line

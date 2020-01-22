@@ -15,6 +15,8 @@ mutable struct StyleAndLanguageManager
 
         languageDefinitions = Dict{AbstractString, GtkSourceWidget.GtkSourceLanguage}()
         sourceLanguageManager = GtkSourceWidget.sourceLanguageManager
+        GtkSourceWidget.set_search_path(sourceLanguageManager,
+            Any[joinpath(GtkIDE.HOMEDIR, "../share/language-specs/"), C_NULL])
 
         languageDefinitions[".jl"] = GtkSourceWidget.language(sourceLanguageManager, "julia")
         languageDefinitions[".md"] = GtkSourceWidget.language(sourceLanguageManager, "markdown")

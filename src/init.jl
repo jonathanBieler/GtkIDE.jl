@@ -181,7 +181,7 @@ function __init__()
     showall(main_window)
     visible(search_window, false)
     visible(sidepanel_ntbook, false)
-    GtkSourceWidget.SOURCE_MAP && visible(editor.sourcemap, opt("Editor", "show_source_map"))
+    visible(editor.sourcemap, opt("Editor", "show_source_map"))
 
     ## starting task and such
 

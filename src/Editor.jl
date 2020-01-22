@@ -16,19 +16,11 @@ mutable struct Editor <: GtkNotebook
         set_gtk_property!(ntbook, :scrollable, true)
         set_gtk_property!(ntbook, :enable_popup, false)
 
-        if GtkSourceWidget.SOURCE_MAP #old linux libraries don't have GtkSourceMap
-            sourcemap = GtkSourceMap()
-            t = new(ntbook.handle, sourcemap, main_window)
-        else
-            sourcemap = GtkBox(:v)#put a dummy box instead
-            t = new(ntbook.handle, sourcemap, main_window)
-        end
+        sourcemap = GtkSourceMap()
+        t = new(ntbook.handle, sourcemap, main_window)
+        
         Gtk.gobject_move_ref(t, ntbook)
     end
-end
-
-if !GtkSourceWidget.SOURCE_MAP
-    set_view() = nothing
 end
 
 get_current_tab() = get_tab(editor, index(editor))# remove this ?
@@ -42,7 +34,7 @@ function ntbook_switch_page_cb(widgetptr::Ptr, pageptr::Ptr, pagenum::Int32, use
     editor = convert(GtkNotebook, widgetptr)
     page = convert(Gtk.GtkWidget, pageptr)
 
-    if typeof(page) == EditorTab && GtkSourceWidget.SOURCE_MAP
+    if typeof(page) == EditorTab 
         set_view(editor.sourcemap, page.view)
         #visible(editor.sourcemap, opt("Editor", "show_source_map"))
     end
@@ -305,5 +297,5 @@ function load_tabs(editor::Editor, project::Project)
         index(editor, ntbook_idx)
     end
     t = current_tab(editor)
-    GtkSourceWidget.SOURCE_MAP && set_view(editor.sourcemap, t.view)
+    set_view(editor.sourcemap, t.view)
 end
