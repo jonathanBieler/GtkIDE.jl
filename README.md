@@ -13,16 +13,16 @@ Demo [video](https://www.youtube.com/watch?v=AbzNUNfwSGc).
 
 ## Installation
 
-1. Install the dependencies:
+1. Install the dependencies :
 
     ```julia
-     ]add GtkSourceWidget, GtkMarkdownTextView
-     ]add https://github.com/jonathanBieler/GtkExtensions.jl.git
-     ]add https://github.com/jonathanBieler/JuliaWordsUtils.jl.git
-     ]add https://github.com/jonathanBieler/GtkTextUtils.jl.git
-     ]add https://github.com/jonathanBieler/RemoteGtkREPL.jl.git
-     ]add https://github.com/jonathanBieler/GtkREPL.jl.git
-     ]add https://github.com/jonathanBieler/GtkIDE.jl.git
+     add GtkSourceWidget, GtkMarkdownTextView
+     add https://github.com/jonathanBieler/GtkExtensions.jl.git
+     add https://github.com/jonathanBieler/JuliaWordsUtils.jl.git
+     add https://github.com/jonathanBieler/GtkTextUtils.jl.git
+     add https://github.com/jonathanBieler/RemoteGtkREPL.jl.git
+     add https://github.com/jonathanBieler/GtkREPL.jl.git
+     add https://github.com/jonathanBieler/GtkIDE.jl.git
      ```
 
 3. Start julia and use the package
