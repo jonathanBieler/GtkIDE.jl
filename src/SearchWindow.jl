@@ -54,10 +54,16 @@ mutable struct SearchWindow <: GtkFrame
 end
 
 import Base.open
-function open(w::SearchWindow)
+@guarded (nothing) function open(w::SearchWindow, tab)
+
     visible(w, true)
+    (found, it_start, it_end) = selection_bounds(tab.buffer)
+    if found 
+        w.search_entry.text[String] = (it_start:it_end).text[String]
+    end
     grab_focus(w.search_entry)
     showall(w)
+    nothing
 end
 
 #first define the callbacks that are used in the constructor

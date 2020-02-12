@@ -187,7 +187,7 @@ function open_tab(file, editor; line=0)
                 set_current_page_idx(editor, i)
                 if line != 0
                     it = GtkTextIter(n.buffer, line, 1)
-                    scroll_to_iter(n.view, it)
+                    scroll_to_iter(n.view, it)#FIXME use mark instead ? use Gtk's scroll_to
                     place_cursor(n.buffer, it)
                 end
                 grab_focus(n.view)
@@ -338,7 +338,7 @@ end
         show_data_hint(textview, t)
     end
     if doing(Actions["search"], event)
-        open(editor.search_window)
+        open(editor.search_window, t)
     end
     if event.keyval == Gtk.GdkKeySyms.Tab
         if !visible(completion_window)
@@ -406,6 +406,14 @@ end
     end
     if doing(Action(GdkKeySyms.Left, PrimaryModifier+GdkModifierType.SHIFT), event)
         select_on_ctrl_shift(:start, buffer)
+        return INTERRUPT
+    end
+    if doing(Action(GdkKeySyms.Down, PrimaryModifier), event)
+        move_cursor_to_next_cell(buffer, textview, :down)
+        return INTERRUPT
+    end
+    if doing(Action(GdkKeySyms.Up, PrimaryModifier), event)
+        move_cursor_to_next_cell(buffer, textview, :up)
         return INTERRUPT
     end
     if doing(Actions["toggle_comment"], event)
@@ -545,7 +553,6 @@ function show_data_hint(textview::GtkTextView, t::EditorTab)
              
             v = string(v, "\n\n")
             doc = string("\n", doc)
-
         end
         
         # sp = parent(t).main_window.style_and_language_manager.main_style
@@ -689,3 +696,22 @@ function input_dialog(message::String, entry_default::String, buttons = (("Cance
     return resp, entry_text
 end
 
+@guarded (nothing) function move_cursor_to_next_cell(buffer, textview, direction = :down)
+    
+    (found, it_start, it_end) = search(buffer, "##", direction == :down ? :forward : :backward)
+    !found && return
+    
+    # if we are just bellow a cell going up, skip the ##
+    it = get_text_iter_at_cursor(buffer)
+    if (direction == :up) && (it.line[Int]-1 == it_start.line[Int])
+        place_cursor(buffer, it_start)
+        (found, it_start, it_end) = search(buffer, "##", :backward)
+        !found && return
+    end
+
+    skip(it_start, 1, :lines)#make sure the cursor is in the cell
+    place_cursor(buffer, it_start)
+    mark = create_mark(buffer, it_start)
+    scroll_to(textview, mark, 0, true, 0.0, 0.15)
+    nothing
+end
