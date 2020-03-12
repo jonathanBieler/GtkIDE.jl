@@ -115,9 +115,10 @@ end
 function select_word_backward(pos::Integer, txt::SolidString, include_dot::Bool)
 
     j = pos
-    #allow for autocomplete on functions
+    #allow for autocomplete on functions and arrays
     pos = txt[pos] == '(' ? pos-1 : pos
     pos = txt[pos] == '!' ? pos-1 : pos
+    pos = txt[pos] == '[' ? pos-1 : pos
 
     i = extend_word_backward(pos, txt, include_dot)
 

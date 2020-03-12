@@ -27,6 +27,18 @@
         MethodCompletion() = new(Function[], 1, "", nothing, nothing, [""], -1:0)
     end
 
+    mutable struct ArrayCompletion2 <: CompletionProvider
+        steps::Array{Function, 1}
+        state::Int
+        cmd::AbstractString
+        itstart
+        itend
+        comp
+        dotpos
+        indices
+        ArrayCompletion2() = new(Function[], 1, "", nothing, nothing, [""], -1:0, Int[])
+    end
+
     mutable struct TupleCompletion <: CompletionProvider
         steps::Array{Function, 1}
         state::Int
@@ -107,7 +119,7 @@ function get_completion_provider(console::Console, view::GtkTextView, t::EditorT
     it = get_text_iter_at_cursor(buffer)
 
     #change providers depending on which key we used
-    pts = key == :tab ? [PathCompletion, NormalCompletion, MethodCompletion, TupleCompletion] : [HistoryCompletion]
+    pts = key == :tab ? [PathCompletion, ArrayCompletion2, NormalCompletion, MethodCompletion, TupleCompletion] : [HistoryCompletion]
 
     for pt in pts
         p = pt()
@@ -182,7 +194,7 @@ function insert(p::NormalCompletion, s, buffer)
 end
 
 #####################
-#Methods completion
+# Methods completion
 
 function select_text(p::MethodCompletion, console, buffer, it, t)
     istextfile(t) && return false
@@ -220,6 +232,64 @@ end
 
 function insert(p::MethodCompletion, s, buffer)
     replace_text(buffer, p.itstart, p.itend, s)
+end
+
+#####################
+# Array completion
+
+function select_text(p::ArrayCompletion2, console, buffer, it, t)
+    
+    istextfile(t) && return false
+
+    (cmd, its, ite) = select_word_backward(it, buffer, false)
+    cmd = strip(cmd)
+    cmd == "" && return false
+    length(cmd) == 1 && return false #we need something before [
+    cmd[end] != '[' && return false
+    
+    p.cmd = cmd[1:end-1]
+    p.itstart = its
+    p.itend = ite
+    true
+end
+
+function compact_output(x)
+    io = IOBuffer()
+    show(IOContext(io, :compact => true, :limit => true, :displaysize => (8,20)), "text/plain", x)
+    String(take!(io))
+end
+
+function completions(p::ArrayCompletion2, t, idx, c::Console)
+
+    var = Symbol(p.cmd)
+    #check if variable is defined
+    !remotecall_fetch(isdefined, worker(c), c.eval_in, var) && return false
+    
+    ex =  :( (size = size($var), type = typeof($var)) )
+    s = remotecall_fetch(Core.eval, worker(c), c.eval_in, ex)
+
+    elems = [remotecall_fetch(Core.eval, worker(c), c.eval_in, Expr(:ref, var, i)) for i = 1:min(sum(s.size),20)]
+    elems = compact_output.(elems)
+    elems = [replace(e, '\n' => ' ') for e in elems]
+
+    idx   = [CartesianIndices(s.size)[i].I for i = 1:min(sum(s.size),20)]
+    elems = [string(idx, ": ", el) for (idx,el) in zip(idx,elems)]
+
+    comp  = ["$(s.size) - $(s.type)"; string.(elems)]
+    #comp = (s, string.(elems))
+    p.indices = idx
+    p.comp = comp
+end
+
+#TODO insert index into the brackets
+function insert(p::ArrayCompletion2, s, buffer)
+    replace_text(buffer, p.itend, p.itend, s)
+end
+
+function formatcompletion(p::ArrayCompletion2, idx::Int)
+    idx == 1 && return "" # the first element of comp shows the size of the array
+    i = p.indices[idx-1]
+    string( join(i, ','), ']')
 end
 
 #####################
