@@ -21,7 +21,7 @@ function init_console!(v, b, main_window)
 
 end
 
-function __init__()
+function run()#__init__()
 
     global is_running = true #should probably use g_main_loop_is_running or something of the sort
     global default_settings = init_opt()

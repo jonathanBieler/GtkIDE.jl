@@ -25,11 +25,11 @@ Demo [video](https://www.youtube.com/watch?v=AbzNUNfwSGc).
      add https://github.com/jonathanBieler/GtkIDE.jl.git
      ```
 
-3. Start julia and use the package
+3. Use the package and run the application
 
     ```
-    ... julia 
     using GtkIDE
+    GtkIDE.run()
     ```
 
 ## Usage
