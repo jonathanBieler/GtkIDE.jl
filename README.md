@@ -16,13 +16,14 @@ Demo [video](https://www.youtube.com/watch?v=AbzNUNfwSGc).
 1. Install the dependencies :
 
     ```julia
+     add Cairo
+     add Gadfly
      add https://github.com/jonathanBieler/GtkExtensions.jl.git
      add https://github.com/jonathanBieler/JuliaWordsUtils.jl.git
      add https://github.com/jonathanBieler/GtkTextUtils.jl.git
      add https://github.com/jonathanBieler/RemoteGtkREPL.jl.git
      add https://github.com/jonathanBieler/GtkREPL.jl.git
      add https://github.com/jonathanBieler/GtkIDE.jl.git
-     add Cairo
      ```
 
 3. Use the package and run the application
