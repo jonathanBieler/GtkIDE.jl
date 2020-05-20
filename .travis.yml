@@ -4,8 +4,7 @@ os:
   - linux
   - osx
 julia:
-  - 0.7
-  - 1.0
+  - 1.3
   - nightly
 matrix:
   allow_failures:
@@ -22,13 +21,13 @@ script:
     - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
     - if [[ `uname` = "Linux" ]]; then TESTCMD="xvfb-run julia"; else TESTCMD="julia"; fi
     - $TESTCMD -e 'using Pkg;
+          Pkg.add("Cairo");
+          Pkg.add("Gadfly");
           Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/GtkExtensions.jl.git", rev="master"));
-          Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/RemoteGtkREPL.jl.git", rev="master"));
           Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/JuliaWordsUtils.jl.git", rev="master"));
           Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/GtkTextUtils.jl.git", rev="master"));
-          Pkg.add(PackageSpec(url="https://github.com/JuliaGtk/GtkSourceWidget.jl", rev="master"));
+          Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/RemoteGtkREPL.jl.git", rev="master"));
           Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/GtkREPL.jl.git", rev="master"));
-          Pkg.add(PackageSpec(url="https://github.com/jonathanBieler/GtkMarkdownTextView.jl.git", rev="master"));
           Pkg.clone(pwd());
           Pkg.build("GtkIDE");
           Pkg.test("GtkIDE"; coverage=true)'
