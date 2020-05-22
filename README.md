@@ -16,6 +16,8 @@ Demo [video](https://www.youtube.com/watch?v=AbzNUNfwSGc).
 1. Install the dependencies :
 
     ```julia
+     add Cairo
+     add Gadfly
      add https://github.com/jonathanBieler/GtkExtensions.jl.git
      add https://github.com/jonathanBieler/JuliaWordsUtils.jl.git
      add https://github.com/jonathanBieler/GtkTextUtils.jl.git
