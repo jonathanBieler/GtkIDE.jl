@@ -451,8 +451,11 @@ end
     event = convert(Gtk.GdkEvent, eventptr)
     list = filespanel.list
     menu = filespanel.menu
+    mod = get_default_mod_mask()
 
-    if event.button == 3
+    macbook_right_click = Int(event.button) == 1 && (event.state & mod) == GdkModifierType.CONTROL
+    
+    if event.button == 3 || macbook_right_click
         (ret,current_path) = Gtk.path_at_pos(treeview,round(Int,event.x),round(Int,event.y));
         if ret
             (ret,filespanel.current_iterator) = Gtk.iter(

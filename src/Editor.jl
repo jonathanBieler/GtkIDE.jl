@@ -126,6 +126,7 @@ function find_filename(model_ptr, path_ptr, iter_ptr, data_ptr)
     iter  = unsafe_load(iter_ptr)
     path  = Gtk.GtkTreePath(path_ptr)
     data  = unsafe_pointer_to_objref(data_ptr)
+
     if model[iter, 3] == data[1]
         data[2][1] = true
         data[2][2] = path
@@ -136,8 +137,8 @@ function find_filename(model_ptr, path_ptr, iter_ptr, data_ptr)
 end
 
 @guarded nothing function reveal_in_tree_view(btn::Ptr, tab)
-    data = [false, nothing]
-    foreach(GtkTreeModel(filespanel.list), find_filename, (tab.filename, data))
+    data = [false, Gtk.GtkTreePath()]
+    foreach(GtkTreeModel(filespanel.list), find_filename, [tab.filename, data])
     if data[1]
         set_cursor_on_cell(filespanel.tree_view, data[2])
     end
@@ -250,7 +251,7 @@ function add_tab(filename::AbstractString, editor::Editor)
     t.scroll_target_line = 0
 
     idx = index(editor)+1
-    (event_box, t.label) = get_tab_widget(t, filename)
+    (event_box, t.label) = get_tab_widget(t, filename == "" ? "Untitled" : filename)
     insert!(editor, idx, t, event_box)
     showall(editor)
     index(editor, idx)
@@ -270,7 +271,7 @@ function add_tab(filename::AbstractString, editor::Editor)
 
     return t
 end
-add_tab(editor::Editor) = add_tab("Untitled.jl", editor)
+add_tab(editor::Editor) = add_tab("", editor)
 
 function openfile_dialog(editor::Editor)
     f = open_dialog("Pick a file", main_window, ("*.jl", "*.md")) #TODO global
