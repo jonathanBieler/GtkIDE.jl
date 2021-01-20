@@ -47,9 +47,10 @@ mutable struct StyleAndLanguageManager
             }"""
         end
 
-        provider = GtkExtensions.default_css_provider
-        provider = GtkCssProviderFromData!(provider, data=fontCss)
-        GtkIconThemeAddResourcePath(GtkIconThemeGetDefault(), joinpath(HOMEDIR, "../icons/"))
+        #provider = GtkExtensions.default_css_provider
+        #provider = GtkCssProviderFromData!(provider, data=fontCss)
+        provider = GtkCssProvider(data = fontCss)
+        Gtk.icon_theme_append_search_path(Gtk.icon_theme_get_default(), joinpath(HOMEDIR, "../icons/"))
 
         # I'm getting duplicated GObject when calling style several times,
         # so let's call it only once.

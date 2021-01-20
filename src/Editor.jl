@@ -140,15 +140,17 @@ end
     data = [false, Gtk.GtkTreePath()]
     foreach(GtkTreeModel(filespanel.list), find_filename, [tab.filename, data])
     if data[1]
-        set_cursor_on_cell(filespanel.tree_view, data[2])
+        GAccessor.cursor_on_cell(filespanel.tree_view, data[2])
     end
     return nothing
 end
+
 function switch_tab_cb(btn::Ptr, user_data)
     idx, editor = user_data
     index(editor, idx)
     return nothing
 end
+
 function create_tab_menu(container, tab)
 
     editor = parent(tab)::Editor
@@ -264,7 +266,7 @@ function add_tab(filename::AbstractString, editor::Editor)
 
     #we need to use the view here to capture all the keystrokes
     signal_connect(editor_tab_key_press_cb, t.view,   "key-press-event", Cint, (Ptr{Gtk.GdkEvent}, ), false, t)
-    signal_connect(editor_key_release_cb,   t.view,   "key-release-event", Cint, (Ptr{Gtk.GdkEvent}, ), false, editor)
+    #signal_connect(editor_key_release_cb,   t.view,   "key-release-event", Cint, (Ptr{Gtk.GdkEvent}, ), false, editor)
     signal_connect(tab_button_press_cb,     t.view,   "button-press-event", Cint, (Ptr{Gtk.GdkEvent}, ), false, editor)
     signal_connect(tab_buffer_changed_cb,   t.buffer, "changed", Nothing, (), false, t)
     signal_connect(tab_adj_changed_cb, t.view.vadjustment[GtkAdjustment] , "changed", Nothing, (), false, t)

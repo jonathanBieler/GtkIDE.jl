@@ -151,7 +151,7 @@ end
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     list = projectspanel.list
-    if event.keyval == Gtk.GdkKeySyms.Return
+    if event.keyval == GdkKeySyms.Return
         load(projectspanel,treeview,list)
     end
     return PROPAGATE

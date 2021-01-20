@@ -87,7 +87,7 @@ end
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     list = workspacepanel.list
-    if event.keyval == Gtk.GdkKeySyms.Return
+    if event.keyval == GdkKeySyms.Return
         open_variable(treeview,list,workspacepanel.main_window)
     end
     return PROPAGATE

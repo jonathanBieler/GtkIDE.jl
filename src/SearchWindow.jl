@@ -91,12 +91,12 @@ function search_entry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     event = convert(Gtk.GdkEvent, eventptr)
     search_window = user_data
 
-    if event.keyval == Gtk.GdkKeySyms.Escape
+    if event.keyval == GdkKeySyms.Escape
         set_search_text(search_window.search_settings, "")
         visible(search_window, false)
     end
 
-    if event.keyval == Gtk.GdkKeySyms.Return
+    if event.keyval == GdkKeySyms.Return
         t = current_tab(search_window.editor)
         search_forward(t)
     end
@@ -106,15 +106,15 @@ end
 
 function search_forward(t::EditorTab)
 
-    if t.search_mark_end == nothing
+    if isnothing(t.search_mark_end)
         t.search_mark_end = create_mark(t.buffer, Gtk.GtkTextIter(t.buffer, 1))#search from the start
     end
 
     it = GtkTextIter(t.buffer, t.search_mark_end)
-    (found, its, ite) = search_context_forward(t.search_context, it)
+    found, its, ite = search_context_forward(t.search_context, it)
 
     if found
-        scroll_to_iter(t.view, its)
+        scroll_to(t.view, its, 0, true, 0.0, 0.15)
         t.search_mark_start  = create_mark(t.buffer, its)#save the position for next search
         t.search_mark_end  = create_mark(t.buffer, ite)
     end
@@ -136,12 +136,12 @@ end
     event = convert(Gtk.GdkEvent, eventptr)
     search_window = user_data
 
-    if event.keyval == Gtk.GdkKeySyms.Escape
+    if event.keyval == GdkKeySyms.Escape
         set_search_text(search_window.search_settings, "")
         visible(search_window, false)
     end
 
-    if event.keyval == Gtk.GdkKeySyms.Return
+    if event.keyval == GdkKeySyms.Return
         t = current_tab(search_window.editor)
         replace_forward(t, entry, search_window)
     end

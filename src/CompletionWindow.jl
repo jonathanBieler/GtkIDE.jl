@@ -100,19 +100,19 @@ function update_completion_window(event::Gtk.GdkEvent, buffer::GtkTextBuffer, t)
 
     propagate = true
 
-    if event.keyval == Gtk.GdkKeySyms.Escape
+    if event.keyval == GdkKeySyms.Escape
         visible(completion_window, false)
-    elseif event.keyval == Gtk.GdkKeySyms.Up
+    elseif event.keyval == GdkKeySyms.Up
         if visible(completion_window)
             selection_up(completion_window)
             propagate = false
         end
-    elseif event.keyval == Gtk.GdkKeySyms.Down
+    elseif event.keyval == GdkKeySyms.Down
         if visible(completion_window)
             selection_down(completion_window)
             propagate = false
         end
-    elseif event.keyval == Gtk.GdkKeySyms.Return || event.keyval == Gtk.GdkKeySyms.Tab
+    elseif event.keyval == GdkKeySyms.Return || event.keyval == GdkKeySyms.Tab
         if visible(completion_window)
 
             on_return(completion_window, buffer, t)
@@ -156,11 +156,11 @@ end
 ##
 function update_completion_window_release(event::Gtk.GdkEvent, buffer::GtkTextBuffer, editor)
 
-    event.keyval == Gtk.GdkKeySyms.Escape && return false
-    event.keyval == Gtk.GdkKeySyms.Down && return false
-    event.keyval == Gtk.GdkKeySyms.Up && return false
-    event.keyval == Gtk.GdkKeySyms.Return && return false
-    event.keyval == Gtk.GdkKeySyms.Tab && return false
+    event.keyval == GdkKeySyms.Escape && return false
+    event.keyval == GdkKeySyms.Down && return false
+    event.keyval == GdkKeySyms.Up && return false
+    event.keyval == GdkKeySyms.Return && return false
+    event.keyval == GdkKeySyms.Tab && return false
 
     t = current_tab(editor)
     visible(completion_window) && init_autocomplete(t.view, t, false; key=completion_window.mode)

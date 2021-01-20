@@ -1,6 +1,6 @@
 """ custom add_remote_console_cb callback that apply GtkIDE's style"""
 function add_remote_console_cb(id, port)
-    @info "GtkREPL: Starting console for port $port with id $id"
+    @info "GtkIDE: Starting console for port $port with id $id"
 
     c = try
         w = connect(port)
@@ -13,7 +13,6 @@ function add_remote_console_cb(id, port)
         GtkREPL.init!(c)
 
         #for some reason I need to warm-up things here, otherwise it bugs later on.
-        GtkREPL.isdone(c)
         @assert remotecall_fetch(identity, GtkREPL.worker(c), 1) == 1
 
         showall(main_window)
@@ -22,9 +21,10 @@ function add_remote_console_cb(id, port)
         warn(err)
     end
 
-    remotecall_fetch(println, worker(c), "Worker connected")
+    RemoteGtkREPL.remotecall_fetch(println, worker(c), "Worker connected")
     "done"
 end
+
 
 #hook into GtkREPL `on_command_done`
 function on_command_done(main_window::MainWindow, console)

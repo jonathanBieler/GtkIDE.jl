@@ -184,7 +184,7 @@ function open_tab(file, editor; line=0)
             n = editor[i]
             if typeof(n) == EditorTab && n.filename == file
 
-                set_current_page_idx(editor, i)
+                index(editor, i)
                 if line != 0
                     it = GtkTextIter(n.buffer, line, 1)
                     scroll_to_iter(n.view, it)#FIXME use mark instead ? use Gtk's scroll_to
@@ -236,11 +236,11 @@ end
 
 function select_word_double_click(textview::GtkTextView, buffer::GtkTextBuffer, x::Integer, y::Integer)
 
-    (x, y) = text_view_window_to_buffer_coords(textview, x, y)
-    iter_end = get_iter_at_position(textview, x, y)
+    x, y  = Gtk.window_to_buffer_coords(textview, x, y)
+    iter_end = Gtk.text_iter_at_position(textview, x, y)
     #iter_end = mutable( get_text_iter_at_cursor(buffer) ) #not using this because the cursor position is modified somewhere
 
-    (w, iter_start, iter_end) = select_word(iter_end, buffer)
+    w, iter_start, iter_end = select_word(iter_end, buffer)
     select_range(buffer, iter_start, iter_end)
 end
 
@@ -265,7 +265,7 @@ end
     return PROPAGATE
 end
 
-function replace_text(buffer::GtkTextBuffer, itstart::T, itend::T, str::String) where {T<:GtkTextIters}
+function replace_text(buffer::GtkTextBuffer, itstart::T, itend::T, str::String) where {T <: Gtk.TI}
     pos = offset(itstart)+1
     splice!(buffer, itstart:itend)
     insert!(buffer, GtkTextIter(buffer, pos), str)
@@ -274,11 +274,11 @@ end
 # returns the position of the cursor inside a buffer such that we can position a window there
 function get_cursor_absolute_position(view::GtkTextView)
 
-    (it, r1, r2) = cursor_locations(view)
-    (x, y) = text_view_buffer_to_window_coords(view, 1, r1.x, r1.y)
+    it, r1, r2 = Gtk.cursor_locations(view)
+    x, y = Gtk.buffer_to_window_coords(view, 1, r1.x, r1.y)
 
-    w = Gtk.G_.window(view)
-    (ox, oy) = gdk_window_get_origin(w)
+    w = Gtk.GAccessor.window(view)
+    ox, oy = Gtk.get_origin(w)
 
     return (x+ox, y+oy+r1.height, r1.height)
 end
@@ -300,12 +300,15 @@ end
 
 @guarded (PROPAGATE) function editor_key_release_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
 
+    @warn "loading data"
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     buffer = getbuffer(textview)
     editor = user_data
     
+    @warn "updating completion window"
     !update_completion_window_release(event, buffer, editor) && return convert(Cint, true)
+    @warn "done"
 
     return PROPAGATE
 end
@@ -319,10 +322,7 @@ end
     t = user_data
     editor = parent(t)::Editor
     console = current_console(editor)
-
-#    println(event.state)
-#    println(event.keyval)
-
+    
     doing(Actions["save"], event) && save(t)
     doing(Actions["open"], event) && openfile_dialog()
 
@@ -340,12 +340,12 @@ end
     if doing(Actions["search"], event)
         open(editor.search_window, t)
     end
-    if event.keyval == Gtk.GdkKeySyms.Tab
+    if event.keyval == GdkKeySyms.Tab
         if !visible(completion_window)
             return init_autocomplete(textview, t; key=:tab)
         end
     end
-    if event.keyval == Gtk.GdkKeySyms.F3
+    if event.keyval == GdkKeySyms.F3
         if !visible(completion_window)
             return init_autocomplete(textview, t; key=:ctrl_tab)
         end
@@ -363,7 +363,7 @@ end
         cmd = replace(cmd, "\\" => "/")
         run_command(console, cmd)
     end
-    if event.keyval == Gtk.GdkKeySyms.Escape
+    if event.keyval == GdkKeySyms.Escape
         set_search_text(editor.search_window.search_settings, "")
         visible(editor.search_window, false)
     end
@@ -456,7 +456,6 @@ end
     if doing(Actions["extract_method"], event)
         return user_action(editor_extract_method, buffer)
     end
-
     !update_completion_window(event, buffer, t) && return INTERRUPT
 
     return PROPAGATE
@@ -525,11 +524,10 @@ function run_code(console::Console, t::EditorTab)
 end
 
 function get_word_under_mouse_cursor(textview::GtkTextView)
-    (x, y) = text_view_window_to_buffer_coords(textview, mousepos[1], mousepos[2])
-    iter_end = get_iter_at_position(textview, x, y)
-    buffer = get_gtk_property(textview, :buffer, GtkTextBuffer)
-    (word, itstart, itend) = select_word(iter_end, buffer, false)
-
+    x, y = Gtk.window_to_buffer_coords(textview, mousepos[1], mousepos[2])
+    iter_end = Gtk.text_iter_at_position(textview, x, y)
+    buffer = textview.buffer[GtkTextBuffer]
+    word, itstart, itend = select_word(iter_end, buffer, false)
     return word
 end
 
@@ -542,7 +540,7 @@ function show_data_hint(textview::GtkTextView, t::EditorTab)
 
         else
             ex = Meta.parse(word)
-            ex == nothing && return
+            isnothing(ex) && return
 
             c = current_console(parent(t))
             
@@ -562,6 +560,7 @@ function show_data_hint(textview::GtkTextView, t::EditorTab)
         style = get_style(style_mng, "text")
         
         mc = MarkdownColors(
+            style_mng.fontsize,
             Gtk.get_gtk_property(style, :foreground, String),
             Gtk.get_gtk_property(style, :background, String),
             Gtk.get_gtk_property(get_style(style_mng, "def:note"), :foreground, String),
@@ -598,7 +597,7 @@ end
     w = convert(GtkWindow, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     
-    if doing(Action(Gtk.GdkKeySyms.Escape, NoModifier), event)
+    if doing(Action(GdkKeySyms.Escape, NoModifier), event)
         destroy(w)
     end
     return PROPAGATE

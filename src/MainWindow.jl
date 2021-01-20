@@ -75,10 +75,10 @@ end
             #restart(main_window)
         #end
     end
-    if event.keyval == Gtk.GdkKeySyms.F1
+    if event.keyval == GdkKeySyms.F1
         toggle_sidepanel()
     end
-    if event.keyval == Gtk.GdkKeySyms.F2
+    if event.keyval == GdkKeySyms.F2
         toggle_editor()
     end
 
@@ -136,6 +136,7 @@ function reload()
 
     GtkREPL.reload()
     Core.eval(GtkIDE, quote
+    include(joinpath(HOMEDIR, "gtk_utils.jl"))
     include(joinpath(HOMEDIR, "PlotWindow.jl"))
     include(joinpath(HOMEDIR, "StyleAndLanguageManager.jl"))
     include(joinpath(HOMEDIR, "MainWindow.jl"))

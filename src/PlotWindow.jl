@@ -62,9 +62,9 @@ end
 
 function image(img)
     i = Image(reverse(img, dims=1))
-    f = get_tab(fig_ntbook, get_current_page_idx(fig_ntbook))
+    f = get_tab(fig_ntbook, index(fig_ntbook))
     if typeof(f) == Image
-        idx = get_current_page_idx(fig_ntbook)
+        idx = index(fig_ntbook)
         splice!(fig_ntbook, idx)
         insert!(fig_ntbook, idx, i, "Image")
     else
@@ -72,7 +72,7 @@ function image(img)
         insert!(fig_ntbook, idx, i, "Image")
     end
     showall(fig_ntbook)
-    set_current_page_idx(fig_ntbook, idx)
+    index(fig_ntbook, idx)
     i
 end
 
@@ -146,7 +146,7 @@ function Immerse.figure(;name::AbstractString="Figure $(Immerse.nextfig(Immerse.
     Immerse.initialize_toolbar_callbacks(f)
     Immerse.addfig(Immerse._display, i, f)
 
-    set_current_page_idx(fig_ntbook, idx)
+    index(fig_ntbook, idx)
     i
 end
 
@@ -159,7 +159,7 @@ function Immerse.figure(i::Integer; displayfig::Bool = true)
     for idx = 1:length(fig_ntbook)
         f = fig_ntbook[idx]
         if typeof(f) == Figure && f.figno == i
-            set_current_page_idx(fig_ntbook, idx)
+            index(fig_ntbook, idx)
         end
     end
     fig

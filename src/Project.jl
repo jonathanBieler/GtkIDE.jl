@@ -27,7 +27,7 @@ function update!(w::Project)
     w.path = pwd()
     w.files = String[]
     w.scroll_position = Float64[]
-    w.ntbook_idx = get_current_page_idx(editor)
+    w.ntbook_idx = index(editor)
 
     for i=1:length(editor)
         t = get_tab(editor, i)

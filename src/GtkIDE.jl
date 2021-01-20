@@ -6,7 +6,7 @@ global const REDIRECT_STDOUT = true
 pkgdir(pkg::Module) = abspath(joinpath(dirname(Base.pathof(pkg)), ".."))
 
 using Compat
-using Gtk, GtkSourceWidget, GtkUtilities, GtkExtensions, GtkMarkdownTextView
+using Gtk, GtkSourceWidget, GtkUtilities, GtkMarkdownTextView
 using Immerse
 using GtkREPL
 using JSON, ConfParser, Refactoring
@@ -14,11 +14,12 @@ using Distributed, REPL, InteractiveUtils, Sockets, Markdown, Pkg
 using GtkREPL.GtkTextUtils
 
 import GtkREPL: ConsoleManager, Console, current_console, print_to_console, new_prompt,
-worker, add_remote_console_cb, ConsoleCommand, on_command_done
+worker, add_remote_console_cb, ConsoleCommand, on_command_done, index, style_css, get_tab,
+PROPAGATE, INTERRUPT, nonmutable, offset
 
 include("Options.jl")
 
-import Gtk: GtkTextIter, get_default_mod_mask
+import Gtk: GtkTextIter, get_default_mod_mask, GdkKeySyms, selected, hasselection, mutable
 import Gadfly.Colors
 import Immerse: Cairo, Compose
 
@@ -37,6 +38,7 @@ end
 #export add_console, figure
 
 #Order matters
+include("gtk_utils.jl")
 include("PlotWindow.jl")
 include("StyleAndLanguageManager.jl")
 include("MainWindow.jl")

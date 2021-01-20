@@ -23,7 +23,7 @@ function pathEntry_key_press_cb(widgetptr::Ptr, eventptr::Ptr, user_data)
     pathCBox = user_data
     pathCBox.time_last_keypress = time()
 
-    if event.keyval == Gtk.GdkKeySyms.Return
+    if event.keyval == GdkKeySyms.Return
         path = get_gtk_property(widget, :text, AbstractString)
         try
             remotecall_fetch(cd, worker(current_console(pathCBox.main_window)), path)

@@ -16,7 +16,7 @@ console_manager(c::Console) = console_manager(c.main_window)#parent(c)::ConsoleM
 # Methods for GtkNotebook
 function close_tab(n::GtkNotebook, idx::Integer)
     splice!(n, idx)
-    set_current_page_idx(n, max(idx-1, 0))
+    index(n, max(idx-1, 0))
 end
 close_tab(n::GtkNotebook) = close_tab(n, index(n))
 

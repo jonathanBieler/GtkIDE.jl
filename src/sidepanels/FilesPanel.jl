@@ -156,11 +156,11 @@ function get_sorted_files(path)
 end
 
 function create_treestore_file_item(path::AbstractString, filename::AbstractString)
-    pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"code",16,1,0)
+    pixbuf = Gtk.icon_theme_load_icon_for_scale(Gtk.icon_theme_get_default(),"code",16,1,0)
     return (pixbuf,filename, joinpath(path,filename), true, type_file)
 end
 function create_treestore_placeholder_item()
-    pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"code",24,1,0)
+    pixbuf = Gtk.icon_theme_load_icon_for_scale(Gtk.icon_theme_get_default(),"code",24,1,0)
     return (pixbuf,"", "", true, type_placeholder)
 end
 function add_placeholder(list::GtkTreeStore, parent=nothing)
@@ -173,7 +173,7 @@ function insert_file(list::GtkTreeStore,path::AbstractString,filename::AbstractS
     return insert!(list,iter,create_treestore_file_item(path,filename), how=:sibling, where=:before)
 end
 function create_treestore_folder_item(path::AbstractString)
-  pixbuf = GtkIconThemeLoadIconForScale(GtkIconThemeGetDefault(),"folder",24,1,0)
+  pixbuf = Gtk.icon_theme_load_icon_for_scale(Gtk.icon_theme_get_default(),"folder",24,1,0)
   return (pixbuf,basename(path),path,false,type_folder )
 end
 function add_folder(list::GtkTreeStore,path::AbstractString, parent=nothing)
@@ -207,7 +207,7 @@ end
 
 function where_insert_folder(w::GtkTreeStore,path::AbstractString, parent)
     iter = Gtk.mutable(Gtk.GtkTreeIter)
-    iter_valid = iter_nth_child(Gtk.GtkTreeModel(w),iter,parent,1)
+    iter_valid = Gtk.iter_nth_child(Gtk.GtkTreeModel(w),iter,parent,1)
     while iter_valid && (w[iter,5] == type_folder && w[iter,2] < basename(path))
         iter_valid = Gtk.get_iter_next(Gtk.GtkTreeModel(w), iter)
     end
@@ -221,7 +221,7 @@ end
 function where_insert_file(w::GtkTreeStore,p::AbstractString, parent)
   iter = Gtk.mutable(Gtk.GtkTreeIter)
 
-  iter_valid = iter_nth_child(Gtk.GtkTreeModel(w),iter,parent,1)
+  iter_valid = Gtk.iter_nth_child(Gtk.GtkTreeModel(w),iter,parent,1)
   #Skip folders
   while iter_valid && w[iter,5] == type_folder
     iter_valid = Gtk.get_iter_next(Gtk.GtkTreeModel(w), iter)
@@ -297,7 +297,7 @@ function open_file(treeview::GtkTreeView,list::GtkTreeStore, editor::Editor)
     if file != nothing && file_idx==-1
         open_in_new_tab(file,editor)
     else
-        set_current_page_idx(editor,file_idx)
+        index(editor,file_idx)
     end
 end
 
@@ -432,9 +432,9 @@ end
                                              iterptr::Ptr{Gtk.TreeIter},
                                              path::Ptr{Gtk.TreePath},
                                              data)
-    treeview        = convert(GtkTreeView,treeviewptr)
+    treeview        = convert(GtkTreeView, treeviewptr)
     iter            = unsafe_load(iterptr)
-    tree_view_model = model(treeview)
+    tree_view_model = Gtk.model(treeview)
     if (tree_view_model[iter,5]==type_folder) && (!tree_view_model[iter,4])
         child_iter =Gtk.mutable(GtkTreeIter)
         if Gtk.iter_nth_child(GtkTreeModel(tree_view_model),child_iter,iter,1)
@@ -476,7 +476,7 @@ end
     treeview = convert(GtkTreeView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
     list = filespanel.list
-    if event.keyval == Gtk.GdkKeySyms.Return
+    if event.keyval == GdkKeySyms.Return
         open_file(treeview,list,_editor(filespanel.main_window))
     end
     return PROPAGATE

@@ -59,13 +59,13 @@ Actions["newtab"]   = Action("n", PrimaryModifier, "New tab")
 Actions["datahint"] = Action("D", PrimaryModifier+GdkModifierType.SHIFT, "Show data hint")
 Actions["search"]   = Action(keyval("f"), PrimaryModifier, "Search")
 
-Actions["runline"]  = Action(Gtk.GdkKeySyms.Return, PrimaryModifier + GdkModifierType.SHIFT, "Execute current line")
-Actions["runcode"]  = Action(Gtk.GdkKeySyms.Return, PrimaryModifier, "Execute code")
-Actions["runfile"]  = Action(Gtk.GdkKeySyms.F5, "Run current file")
+Actions["runline"]  = Action(GdkKeySyms.Return, PrimaryModifier + GdkModifierType.SHIFT, "Execute current line")
+Actions["runcode"]  = Action(GdkKeySyms.Return, PrimaryModifier, "Execute code")
+Actions["runfile"]  = Action(GdkKeySyms.F5, "Run current file")
 
 #TODO I should allow for several shortcuts
-Actions["runline_kp"]  = Action(Gtk.GdkKeySyms.KP_Enter, PrimaryModifier + GdkModifierType.SHIFT, "Execute current line")
-Actions["runcode_kp"]  = Action(Gtk.GdkKeySyms.KP_Enter, PrimaryModifier, "Execute code")
+Actions["runline_kp"]  = Action(GdkKeySyms.KP_Enter, PrimaryModifier + GdkModifierType.SHIFT, "Execute current line")
+Actions["runcode_kp"]  = Action(GdkKeySyms.KP_Enter, PrimaryModifier, "Execute code")
 
 Actions["copy"]     = Action("c", PrimaryModifier, "Copy")
 Actions["paste"]    = Action("v", PrimaryModifier, "Paste")

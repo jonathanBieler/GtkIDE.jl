@@ -167,7 +167,7 @@ function run()#__init__()
 
     ################
     ## Plots
-    GtkREPL.gadfly()
+    #GtkREPL.gadfly()
 
     sleep(0.01)
     figure()

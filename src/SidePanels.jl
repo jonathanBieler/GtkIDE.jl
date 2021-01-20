@@ -1,7 +1,7 @@
 #FIXME globals
 function add_side_panel(w::Gtk.GtkWidget, title::AbstractString)
     push!(sidepanel_ntbook, w)
-    set_tab_label_text(sidepanel_ntbook, w, title)
+    Gtk.GAccessor.tab_label_text(sidepanel_ntbook, w, title)
 end
 function give_me_a_treeview(n, rownames)
 
