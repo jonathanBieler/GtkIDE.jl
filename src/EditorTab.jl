@@ -187,7 +187,7 @@ function open_tab(file, editor; line=0)
                 index(editor, i)
                 if line != 0
                     it = GtkTextIter(n.buffer, line, 1)
-                    scroll_to_iter(n.view, it)#FIXME use mark instead ? use Gtk's scroll_to
+                    scroll_to(n.view, it, 0, true, 0.0, 0.15)#FIXME use mark instead ? use Gtk's scroll_to
                     place_cursor(n.buffer, it)
                 end
                 grab_focus(n.view)

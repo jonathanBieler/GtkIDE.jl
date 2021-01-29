@@ -192,7 +192,6 @@ function search_button_clicked_cb(widgetptr::Ptr, user_data)
 end
 
 function replace_button_clicked_cb(widgetptr::Ptr, user_data)
-
     search_window = user_data
     t = current_tab(search_window.editor)
     replace_forward(t, search_window.replace_entry, search_window)
@@ -200,7 +199,6 @@ function replace_button_clicked_cb(widgetptr::Ptr, user_data)
 end
 
 function init!(search_window::SearchWindow)
-
     signal_connect(search_entry_key_press_cb, search_window.search_entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent}, ), false, search_window)
     signal_connect(search_entry_key_release_cb, search_window.search_entry, "key-release-event", Cint, (Ptr{Gtk.GdkEvent}, ), false, search_window)
     signal_connect(replace_entry_key_press_cb, search_window.replace_entry, "key-press-event", Cint, (Ptr{Gtk.GdkEvent}, ), false, search_window)
