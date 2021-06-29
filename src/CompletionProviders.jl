@@ -78,7 +78,7 @@
 
 function init_autocomplete(view::GtkTextView, t::EditorTab, replace=true; key=:tab)
 
-    buffer = getbuffer(view)
+    buffer = view.buffer[GtkTextBuffer]
     editor = parent(t)::Editor
     console = current_console(editor)
     
@@ -115,7 +115,7 @@ end
 ##
 
 function get_completion_provider(console::Console, view::GtkTextView, t::EditorTab, key=:tab)
-    buffer = getbuffer(view)
+    buffer = view.buffer[GtkTextBuffer]
     it = get_text_iter_at_cursor(buffer)
 
     #change providers depending on which key we used
@@ -137,7 +137,7 @@ function test_completion_providers()
 
     typeof(p) == NoCompletion
 
-    buffer = getbuffer(view)
+    buffer = view.buffer[GtkTextBuffer]
     it = get_text_iter_at_cursor(buffer)
 
 #    completions(p, t)

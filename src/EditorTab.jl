@@ -61,9 +61,6 @@ function set_text!(t::EditorTab, text::String)
 end
 get_text(t::EditorTab) = get_gtk_property(t.buffer, :text, String)
 
-import GtkExtensions.getbuffer
-getbuffer(textview::GtkTextView) = get_gtk_property(textview, :buffer, GtkSourceBuffer)
-
 include("CompletionWindow.jl")
 include("SearchWindow.jl")
 
@@ -303,7 +300,7 @@ end
     @warn "loading data"
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
-    buffer = getbuffer(textview)
+    buffer = textview.buffer[GtkTextBuffer]
     editor = user_data
     
     @warn "updating completion window"
@@ -318,7 +315,7 @@ end
 
     textview = convert(GtkTextView, widgetptr)
     event = convert(Gtk.GdkEvent, eventptr)
-    buffer = getbuffer(textview)
+    buffer = textview.buffer[GtkTextBuffer]
     t = user_data
     editor = parent(t)::Editor
     console = current_console(editor)

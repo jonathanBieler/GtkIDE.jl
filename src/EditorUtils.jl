@@ -144,16 +144,14 @@ function select_tuple(it::GtkTextIter, buffer::GtkTextBuffer)
     txt = txt[1:pos]
 
     i = findlast(isequal('('), txt)
-    i == nothing && return (false, nothing, nothing)
+    isnothing(i) && return (false, nothing, nothing)
 
     its = GtkTextIter(buffer, i + offset(line_start))
     return (true, txt[i:pos], its)
-
 end
 
 function text_iter_line_start(it::GtkTextIter)
-
-    b = getbuffer(it)
+    b = Gtk.buffer(it)
     (txt, line_start, line_end) = get_line_text(b, it)
     i = lstrip_idx(txt)
     i > length(txt) && return it

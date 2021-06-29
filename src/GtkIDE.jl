@@ -5,7 +5,6 @@ global const HOMEDIR = @__DIR__()
 global const REDIRECT_STDOUT = true
 pkgdir(pkg::Module) = abspath(joinpath(dirname(Base.pathof(pkg)), ".."))
 
-using Compat
 using Gtk, GtkSourceWidget, GtkUtilities, GtkMarkdownTextView
 using Immerse
 using GtkREPL
