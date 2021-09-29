@@ -272,7 +272,7 @@ end
 function get_cursor_absolute_position(view::GtkTextView)
 
     it, r1, r2 = Gtk.cursor_locations(view)
-    x, y = Gtk.buffer_to_window_coords(view, 1, r1.x, r1.y)
+    x, y = Gtk.buffer_to_window_coords(view, r1.x, r1.y, 1)
 
     w = Gtk.GAccessor.window(view)
     ox, oy = Gtk.get_origin(w)

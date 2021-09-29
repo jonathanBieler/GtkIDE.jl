@@ -107,7 +107,7 @@ end
 function toggle_sidepanel()
     visibility = !visible(sidepanel_ntbook)
     visible(sidepanel_ntbook, visibility)
-    for panel in sidepanel_ntbook
+    for panel in sidepanel_ntbook.panels
         visible(panel, visibility)
         visible(panel) && update!(panel)#Panels can opt out of updating while hidden, so update them when revealed
     end
@@ -124,7 +124,7 @@ end
 
     if path != c_path || doUpdate
         push!(main_window.pathCBox, path)
-        for panel in main_window.sidepanel_ntbook
+        for panel in main_window.sidepanel_ntbook.panels
             on_path_change(panel, path)
         end
         save(main_window.project)

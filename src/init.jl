@@ -52,7 +52,7 @@ function run()#__init__()
 
     menubar = MainMenu(main_window)
 
-    global sidepanel_ntbook = GtkNotebook()
+    global sidepanel_ntbook = SidePanelManager(main_window)
 
     init!(main_window, editor, console_mng, pathCBox, statusBar, project, menubar, sidepanel_ntbook)
     GtkREPL.set_main_window(main_window) 
@@ -105,20 +105,16 @@ function run()#__init__()
             search_window
         )
 
+    @info 1
     sidePan |>
         sidepanel_ntbook |>
         mainPan
 
     # Console
-
-
     lang = main_window.style_and_language_manager.languageDefinitions[".jl"]
-    console = Console{GtkSourceView, GtkSourceBuffer}(
-        1, main_window, TCPSocket(), (v, b)->init_console!(v, b, main_window), (lang, )
-    )
-    GtkREPL.init!(console)
+    RemoteGtkREPL.estalbish_connection(console_mng.port, 1, "GtkIDE")
 
-    @assert length(console_mng) == 1
+    #@assert length(console_mng) == 1
 
     set_gtk_property!(statusBar, :margin, 2)
     push!(statusBar, "main", "Julia $VERSION")
@@ -150,20 +146,13 @@ function run()#__init__()
 
     ################
     # Side Panels
-
+    
+    #FIXME globals
     global filespanel = FilesPanel(main_window)
-    update!(filespanel, pwd())
-    add_side_panel(filespanel, "F")
-
     global workspacepanel = WorkspacePanel(main_window)
-    update!(workspacepanel)
-    add_side_panel(workspacepanel, "W")
-
-    ##
-
     global projectspanel = ProjectsPanel(main_window)
-    update!(projectspanel)
-    add_side_panel(projectspanel, "P")
+
+    init!(sidepanel_ntbook, [filespanel, workspacepanel, projectspanel], ["F", "W", "P"])
 
     ################
     ## Plots
@@ -187,7 +176,7 @@ function run()#__init__()
 
     sleep(0.01)
 
-    if REDIRECT_STDOUT
+    if false
 
         global stdout_ = stdout
         global stderr_ = stderr
@@ -213,6 +202,6 @@ function run()#__init__()
     println("Warming up, hold on...")
     sleep(0.05)
     #@async logo()
-    new_prompt(console)
+    #new_prompt(console)
 
 end

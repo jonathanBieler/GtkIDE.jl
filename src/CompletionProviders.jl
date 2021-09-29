@@ -134,7 +134,7 @@ function test_completion_providers()
     t = get_current_tab()
     view = t.view
     p = get_completion_provider(console, view, t)
-
+    
     typeof(p) == NoCompletion
 
     buffer = view.buffer[GtkTextBuffer]

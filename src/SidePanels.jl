@@ -1,8 +1,31 @@
-#FIXME globals
-function add_side_panel(w::Gtk.GtkWidget, title::AbstractString)
-    push!(sidepanel_ntbook, w)
-    Gtk.GAccessor.tab_label_text(sidepanel_ntbook, w, title)
+
+mutable struct SidePanelManager <: GtkNotebook
+
+    handle::Ptr{Gtk.GObject}
+    main_window
+    panels
+    
+    function SidePanelManager(main_window)
+
+        ntb = GtkNotebook()
+        set_gtk_property!(ntb, :vexpand, true)
+
+        # for some strange reason panel aren't type correctly, so I also have them in 
+        # that variable as well
+        panels = Any[]
+        n = new(ntb.handle, main_window, panels)
+        Gtk.gobject_move_ref(n, ntb)
+    end
 end
+
+function init!(sp::SidePanelManager, panels, titles)
+    for (p,t) in zip(panels, titles)
+        push!(sp, p)
+        push!(sp.panels, p)
+        Gtk.GAccessor.tab_label_text(sp, p, t)
+    end
+end
+
 function give_me_a_treeview(n, rownames)
 
     t = ntuple(i->AbstractString, n)
@@ -23,8 +46,3 @@ function give_me_a_treeview(n, rownames)
 
     return (tv, list, cols)
 end
-
-include(joinpath("sidepanels", "FilesPanel.jl"))
-include(joinpath("sidepanels", "WorkspacePanel.jl"))
-include(joinpath("sidepanels", "ProjectsPanel.jl"))
-

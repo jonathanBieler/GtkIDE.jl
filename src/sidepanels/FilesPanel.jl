@@ -31,6 +31,7 @@ mutable struct FilesPanel <: GtkScrolledWindow
                        Cint, (Ptr{Gtk.GdkEvent},), false,t)
         signal_connect(filespanel_treeview_row_expanded_cb,tv, "test-expand-row",
                        Cint, (Ptr{Gtk.TreeIter},Ptr{Gtk.TreePath}))
+                       
         Gtk.gobject_move_ref(t,sc)
     end
 end
